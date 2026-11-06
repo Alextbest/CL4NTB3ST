@@ -8,7 +8,7 @@
     "prepare:web": "node scripts/prepare-web.mjs",
     "prepare:assets": "node scripts/prepare-assets.mjs",
     "android:sync": "npm run prepare:web && npx cap sync android",
-    "android:build": "npm run prepare:web && npx cap sync android && cd android && ./gradlew assembleDebug"
+    "android:build": "npm run prepare:assets && npm run prepare:web && npx cap add android && npx capacitor-assets generate --android && node scripts/configure-android.mjs && npx cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",
