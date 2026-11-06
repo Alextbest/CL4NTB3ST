@@ -39,7 +39,7 @@ jobs:
       - name: Prepare web and icon assets
         run: |
           npm run prepare:assets
-          npm run prepare:web
+          npm run build:web
 
       - name: Create Android project
         run: npx cap add android
