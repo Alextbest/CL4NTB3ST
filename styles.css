@@ -5,3 +5,50 @@
 
 /* Evita menú de pulsación larga y selección en el botón de acceso web. */
 .web-open-btn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+
+
+/* Tema neón morado y amarillo inspirado en logo.png */
+:root{
+  --blue:#c58aff;
+  --red:#ffd45e;
+  --bg:#100b18;
+  --panel:#1b1427;
+  --line:#49345f;
+  --text:#fbf7ff;
+  --muted:#b3a3c5;
+}
+body{
+  background:
+    radial-gradient(ellipse at 12% 0%,#39204f 0%,transparent 42%),
+    radial-gradient(ellipse at 92% 12%,#514014 0%,transparent 34%),
+    #100b18;
+}
+.brand-logo{
+  border-color:#f2c94c;
+  box-shadow:0 0 10px #c58aff66,0 0 18px #f2c94c33;
+}
+.hero{
+  background:linear-gradient(120deg,#32194a,#21152f 65%,#44300f);
+  border-color:#76509a;
+  box-shadow:0 0 22px #9b55d633,inset 0 0 22px #f2c94c0b;
+}
+.eyebrow,.blue,.live-dot,footer span{color:#d49cff}
+.tag,.count-pill,.status{border-color:#62477a;color:#e0c7f4}
+.tab.active{background:linear-gradient(135deg,#63358a,#38204d);color:#fff;box-shadow:0 0 12px #b66aff44}
+.quick-card,.panel,.rolebar,.rules-list article{border-color:#49345f}
+.quick-icon.blue{color:#d49cff}
+.quick-icon.red,.red{color:#ffd45e}
+.primary-btn{
+  background:linear-gradient(135deg,#f8d65c,#d9a928);
+  color:#24172d;
+  box-shadow:0 0 13px #f2c94c35;
+}
+.secondary-btn{background:#38234b;color:#f0ddff;border-color:#76509a}
+input:focus,textarea:focus,select:focus{outline:1px solid #d49cff;border-color:#d49cff}
+.poll-choice.chosen{border-color:#d49cff;background:#352044}
+.notice{border-left-color:#ffd45e;background:#292012}
+.notice b{color:#ffe18a}
+footer{color:#9b86ad}
+footer span{color:#ffd45e}
+.brand b{color:#fff4c4;text-shadow:0 0 12px #f2c94c44}
+.web-open-btn{background:linear-gradient(135deg,#f8d65c,#c58aff);color:#21132c}
