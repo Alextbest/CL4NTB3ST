@@ -1,7 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 
-// Cliente inicializado; las operaciones de autenticación y datos se integrarán
-// en los siguientes pasos, después de definir el flujo seguro de cuentas.
+// Cliente de Supabase y flujo inicial de registro de integrantes.
 console.info("Supabase preparado para CL4N TB3ST", Boolean(supabase));
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
