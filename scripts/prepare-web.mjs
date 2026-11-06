@@ -13,4 +13,4 @@ await copyFile(resolve(root, 'assets/brand-logo.png'), resolve(webDir, 'logo.png
 await copyFile(resolve(root, 'assets/icon-192.png'), resolve(webDir, 'icon-192.png'));
 await copyFile(resolve(root, 'assets/icon-512.png'), resolve(webDir, 'icon-512.png'));
 
-console.log('Web assets and high-resolution logo copied to www/.');
+console.log('Web assets copied to www/. Bundling app dependencies is handled by the build:web script.');
