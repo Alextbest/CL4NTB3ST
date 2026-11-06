@@ -1,44 +1,23 @@
-const initialMembers = [
-  {id:1,name:"Líder",role:"Liderazgo",present:false},
-  {id:2,name:"Lideresa",role:"Liderazgo",present:false},
-  {id:3,name:"Integrante 01",role:"Miembro",present:false},
-  {id:4,name:"Integrante 02",role:"Miembro",present:false}
-];
-let members;
-try { members = JSON.parse(localStorage.getItem("clanhub-members")) || initialMembers; } catch { members = initialMembers; }
-let challengeAccepted = localStorage.getItem("clanhub-challenge") === "true";
-const $ = s => document.querySelector(s);
-function save(){ localStorage.setItem("clanhub-members",JSON.stringify(members)); render(); }
-function render(){
-  $("#member-count").textContent=members.length;
-  $("#member-pill").textContent=`${members.length} miembros`;
-  const present=members.filter(m=>m.present).length;
-  $("#attendance-count").textContent=members.length?Math.round(present/members.length*100)+"%":"0%";
-  $("#member-list").innerHTML=members.map(m=>`<div class="member-row"><div class="avatar">${escapeHtml(m.name.slice(0,1).toUpperCase())}</div><div class="member-info"><b>${escapeHtml(m.name)}</b><small>${escapeHtml(m.role)}</small></div><label title="Asistencia"><input class="attendance" type="checkbox" data-present="${m.id}" ${m.present?"checked":""}></label><button class="remove" data-remove="${m.id}" aria-label="Eliminar ${escapeHtml(m.name)}">×</button></div>`).join("");
-  $("#challenge-count").textContent=challengeAccepted?"1":"0";
-  $("#challenge-btn").textContent=challengeAccepted?"Cancelar aceptación":"Aceptar desafío";
-}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function navigate(page){
-  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("active",p.id===`page-${page}`));
-  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.page===page));
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-document.querySelectorAll("[data-page]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.page)));
-document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>navigate(b.dataset.go)));
-$("#member-form").addEventListener("submit",e=>{
-  e.preventDefault();const input=$("#member-name"),name=input.value.trim();if(!name)return;
-  members.push({id:Date.now(),name,role:"Miembro",present:false});input.value="";save();
-});
-$("#member-list").addEventListener("change",e=>{
-  const id=Number(e.target.dataset.present);if(!id)return;
-  members=members.map(m=>m.id===id?{...m,present:e.target.checked}:m);save();
-});
-$("#member-list").addEventListener("click",e=>{
-  const id=Number(e.target.dataset.remove);if(!id)return;
-  if(confirm("¿Eliminar este integrante?")){members=members.filter(m=>m.id!==id);save();}
-});
-$("#challenge-btn").addEventListener("click",()=>{
-  challengeAccepted=!challengeAccepted;localStorage.setItem("clanhub-challenge",String(challengeAccepted));render();
-});
+const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}, write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+let members=read("tb3st-members",[{id:1,name:"Líder",nick:"",role:"Líder"},{id:2,name:"Lideresa",nick:"",role:"Líder"},{id:3,name:"Integrante 01",nick:"",role:"Miembro"},{id:4,name:"Integrante 02",nick:"",role:"Miembro"}]);
+let activities=read("tb3st-activities",[]), role=localStorage.getItem("tb3st-demo-role")||"Líder", editing=null;
+const isLeader=()=>role==="Líder", canManageMembers=()=>isLeader()||role==="Decano";
+function nav(p){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id==="page-"+p));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
+document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>nav(b.dataset.page));document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>nav(b.dataset.go));
+$("#current-role").value=role;$("#current-role").onchange=e=>{role=e.target.value;localStorage.setItem("tb3st-demo-role",role);render()};
+$("#member-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;members.push({id:Date.now(),name:$("#member-name").value.trim(),nick:$("#member-nick").value.trim(),role:$("#member-role").value});write("tb3st-members",members);e.target.reset();render()};
+$("#member-list").onclick=e=>{const id=Number(e.target.dataset.edit||e.target.dataset.delete);if(!id)return;const m=members.find(x=>x.id===id);if(e.target.dataset.delete){if(!isLeader()||!confirm("¿Eliminar integrante?"))return;members=members.filter(x=>x.id!==id)}else{if(!canManageMembers()||(!isLeader()&&m.role!=="Miembro"))return;const name=prompt("Nombre visible:",m.name);if(name===null)return;const nick=prompt("Nick de Free Fire:",m.nick||"");if(nick===null)return;m.name=name.trim()||m.name;m.nick=nick.trim();if(isLeader()){const next=prompt("Rango: Líder, Decano o Miembro",m.role);if(next&&["Líder","Decano","Miembro"].includes(next))m.role=next}}write("tb3st-members",members);render()};
+$("#add-poll-option").onclick=()=>{const n=document.querySelectorAll(".poll-option").length;if(n<6){const i=document.createElement("input");i.className="poll-option";i.maxLength=50;i.placeholder="Opción "+(n+1);$("#poll-options").append(i)}};
+$("#activity-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;const opts=[...document.querySelectorAll(".poll-option")].map(x=>x.value.trim()).filter(Boolean);const item={id:editing||Date.now(),name:$("#activity-name").value.trim(),date:$("#activity-date").value,desc:$("#activity-desc").value.trim(),rules:$("#activity-rules").value.trim(),pollQuestion:$("#poll-question").value.trim(),options:opts.length>=2?opts:[],votes:editing?(activities.find(a=>a.id===editing)?.votes||{}):{},participants:editing?(activities.find(a=>a.id===editing)?.participants||{}):{}};activities=editing?activities.map(a=>a.id===editing?item:a):[item,...activities];write("tb3st-activities",activities);resetActivityForm();render()};
+function resetActivityForm(){editing=null;$("#activity-form").reset();$("#activity-form-title").textContent="Crear actividad";$("#activity-submit").textContent="Publicar actividad";$("#cancel-edit").classList.add("hidden")}
+$("#cancel-edit").onclick=resetActivityForm;
+$("#activities-list").onclick=e=>{const card=e.target.closest("[data-id]");if(!card)return;const id=Number(card.dataset.id),a=activities.find(x=>x.id===id);if(!a)return;const user=role; if(e.target.dataset.action==="edit"&&isLeader()){editing=id;$("#activity-name").value=a.name;$("#activity-date").value=a.date;$("#activity-desc").value=a.desc;$("#activity-rules").value=a.rules;$("#poll-question").value=a.pollQuestion||"";$("#poll-options").innerHTML=(a.options?.length?a.options:["",""]).map((o,i)=>`<input class="poll-option" maxlength="50" placeholder="Opción ${i+1}" value="${esc(o)}">`).join("");$("#activity-form-title").textContent="Editar actividad";$("#activity-submit").textContent="Guardar cambios";$("#cancel-edit").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})}
+if(e.target.dataset.action==="delete"&&isLeader()&&confirm("¿Eliminar esta actividad?"))activities=activities.filter(x=>x.id!==id);
+if(e.target.dataset.action==="join"||e.target.dataset.action==="leave"){const going=e.target.dataset.action==="join";if(!going){const start=new Date(a.date).getTime();if(Date.now()>=start-60*60*1000){alert("Ya no puedes cancelar: el límite es una hora antes del inicio.");return}}a.participants[user]=going; }
+if(e.target.dataset.vote){a.votes[user]=e.target.dataset.vote}
+write("tb3st-activities",activities);render()};
+function render(){const leaders=members.filter(m=>m.role==="Líder").length;$("#member-count").textContent=members.length;$("#member-pill").textContent=members.length+" miembros";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=members.length?Math.round(active/members.length*100)+"%":"0%";$("#member-form").classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=members.map(m=>`<div class="member-row"><div class="avatar">${esc(m.name.slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.name)}</b><small>${esc(m.role)} · ${esc(m.nick||"Sin nick")}</small></div>${canManageMembers()&&(isLeader()||m.role==="Miembro")?`<button class="secondary-btn" data-edit="${m.id}">Editar</button>`:""}${isLeader()?`<button class="remove" data-delete="${m.id}">×</button>`:""}</div>`).join("")||'<p class="muted">No hay integrantes.</p>';
+$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
+$("#activities-list").innerHTML=activities.map(a=>{const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[role],voted=a.votes?.[role];const participants=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]);const no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);return `<article class="panel activity-card" data-id="${a.id}"><div class="panel-title"><h3>${esc(a.name)}</h3><span class="tag">${isNaN(start)? "Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${esc(a.desc||"Sin descripción.")}</p>${a.rules?`<div class="activity-rules"><b>Reglas</b><p>${esc(a.rules)}</p></div>`:""}<div class="attendance-actions"><button class="${going?"secondary-btn":"primary-btn"}" data-action="${going?"leave":"join"}" ${!going&&locked?"disabled":""}>${going?"Cancelar participación":"Voy a participar"}</button><span class="muted">${locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes"}</span></div><div class="participant-grid"><div><b>Participan (${participants.length})</b><small>${participants.map(esc).join(", ")||"Nadie todavía"}</small></div><div><b>No participan (${no.length})</b><small>${no.map(esc).join(", ")||"Sin respuestas"}</small></div></div>${a.pollQuestion&&a.options?.length?`<div class="poll"><b>Encuesta: ${esc(a.pollQuestion)}</b>${a.options.map(o=>`<button class="poll-choice ${voted===o?"chosen":""}" data-vote="${esc(o)}">${esc(o)} <small>${Object.values(a.votes||{}).filter(v=>v===o).length} votos</small></button>`).join("")}<small>Tu voto: ${esc(voted||"Sin votar")}</small><p class="muted">Votos registrados: ${Object.entries(a.votes||{}).map(([u,v])=>esc(u)+": "+esc(v)).join(" · ")||"Ninguno"}</p></div>`:""}${isLeader()?`<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>`:""}</article>`}).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
 render();

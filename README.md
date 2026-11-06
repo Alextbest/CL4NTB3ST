@@ -1,33 +1,16 @@
-# CLANHUB PWA — versión inicial
+# CL4N TB3ST PWA — prototipo 0.2
 
-## Qué incluye
-- Diseño responsive para móviles.
-- Navegación entre Inicio, Miembros, Retos y Normas.
-- Alta y eliminación local de integrantes.
-- Marcado de asistencia.
-- Aceptación del reto 1v1.
-- Persistencia local mediante `localStorage`.
-- Manifiesto PWA y service worker para caché offline.
+## Incluye
+- Identidad CL4N TB3ST y PWA instalable.
+- Vista de prueba de roles: Líder, Decano y Miembro.
+- Miembros: alta, edición de nombre/nick y eliminación según rol.
+- Actividades creadas/editadas/eliminadas por líderes.
+- Encuestas, votos visibles y confirmación de participación.
+- Bloqueo de cancelación cuando falta una hora o menos para iniciar.
+- Datos guardados localmente en el navegador.
 
-## Importante
-Esta versión es un prototipo funcional local. No incluye todavía autenticación, permisos reales, base de datos compartida ni sincronización entre dispositivos. Los cambios quedan guardados en el navegador del dispositivo donde se realizan.
+## Limitación importante
+Este prototipo todavía NO tiene autenticación ni base de datos compartida. El selector de rol es solo para probar la interfaz y cualquier usuario puede cambiarlo; no representa seguridad real. Los datos se guardan únicamente en el dispositivo. Para que todos los integrantes vean los mismos datos y los permisos sean reales, hay que conectar un backend (por ejemplo Supabase), configurar cuentas y aplicar políticas de seguridad en el servidor.
 
-## Cómo probar en tu computadora
-Sirve la carpeta con un servidor local (no basta con abrir `index.html` para probar la instalación PWA):
-```bash
-python -m http.server 8000
-```
-Abre `http://localhost:8000`.
-
-## Cómo publicar gratis para instalar en Android
-1. Crea una cuenta en GitHub.
-2. Sube los archivos de esta carpeta a un repositorio.
-3. En el repositorio, abre Settings → Pages.
-4. Activa publicación desde la rama principal y carpeta raíz.
-5. Abre la URL HTTPS generada en Chrome en Android.
-6. Menú ⋮ → Instalar aplicación o Añadir a pantalla de inicio.
-
-El hosting debe servir HTTPS para que el service worker funcione en producción.
-
-## Siguiente etapa
-Conectar autenticación y base de datos (por ejemplo, Supabase), definir roles de administrador, líder, lideresa y miembro, y convertir los datos locales en datos compartidos.
+## Publicación
+Reemplaza los archivos del repositorio de GitHub Pages con los de esta carpeta. No borres el repositorio. Al actualizar, cierra y vuelve a abrir la PWA; si sigue mostrando la versión anterior, limpia los datos/caché del sitio o espera la actualización del service worker.
