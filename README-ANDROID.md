@@ -15,7 +15,7 @@ The debug APK is suitable for installation/testing by clan members. A signed rel
 
 - Name: CL4N TB3ST
 - Android application ID: `com.clantb3st.app`
-- Icon and launch screen source: existing repository `logo.png`, converted into high-resolution Android source assets during the build.
+- Icon and launch screen source: existing repository `logo.png`, converted into 1024px source artwork and Android launcher/splash variants during the build.
 
 ## Notes
 
