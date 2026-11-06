@@ -2,3 +2,6 @@
 .web-viewer-panel{overflow:hidden}.web-empty{display:grid;place-items:center;min-height:180px;padding:20px;text-align:center;color:var(--muted);font-size:12px;background:#111827;border:1px dashed var(--line);border-radius:12px}.web-frame{display:block;width:100%;height:min(72vh,760px);min-height:420px;border:1px solid var(--line);border-radius:12px;background:#fff}.web-viewer-panel .panel-title{margin-bottom:12px}
 
 .web-open-btn{width:100%;min-height:52px;font-size:14px;letter-spacing:.3px}.web-frame{display:block;width:100%;height:min(72vh,760px);min-height:420px;border:1px solid var(--line);border-radius:12px;background:#fff}.web-viewer-panel{overflow:hidden}.web-empty{display:grid;place-items:center;min-height:140px;padding:20px;text-align:center;color:var(--muted);font-size:12px;background:#111827;border:1px dashed var(--line);border-radius:12px}
+
+/* Evita menú de pulsación larga y selección en el botón de acceso web. */
+.web-open-btn{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
