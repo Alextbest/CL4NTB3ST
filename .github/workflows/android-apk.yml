@@ -38,10 +38,15 @@ jobs:
         run: |
           npm run prepare:assets
           npm run prepare:web
-          npx capacitor-assets generate --android
 
       - name: Create Android project
         run: npx cap add android
+
+      - name: Generate native icon and splash resources
+        run: npx capacitor-assets generate --android
+
+      - name: Configure Android auth deep link
+        run: node scripts/configure-android.mjs
 
       - name: Sync Capacitor
         run: npx cap sync android
