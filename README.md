@@ -1,16 +1,21 @@
-# CL4N TB3ST PWA — prototipo 0.2
+# CL4N TB3ST — aplicación PWA
 
-## Incluye
-- Identidad CL4N TB3ST y PWA instalable.
-- Vista de prueba de roles: Líder, Decano y Miembro.
-- Miembros: alta, edición de nombre/nick y eliminación según rol.
-- Actividades creadas/editadas/eliminadas por líderes.
-- Encuestas, votos visibles y confirmación de participación.
-- Bloqueo de cancelación cuando falta una hora o menos para iniciar.
-- Datos guardados localmente en el navegador.
+## Identidad
+El nombre oficial de la aplicación es **CL4N TB3ST**. Ese nombre se usa en el título, la interfaz y el manifiesto instalable.
 
-## Limitación importante
-Este prototipo todavía NO tiene autenticación ni base de datos compartida. El selector de rol es solo para probar la interfaz y cualquier usuario puede cambiarlo; no representa seguridad real. Los datos se guardan únicamente en el dispositivo. Para que todos los integrantes vean los mismos datos y los permisos sean reales, hay que conectar un backend (por ejemplo Supabase), configurar cuentas y aplicar políticas de seguridad en el servidor.
+## Estado actual
+- Interfaz PWA existente con secciones de Inicio, Integrantes, Actividades, Retos y Normas.
+- El prototipo anterior guarda información en el navegador y su selector de roles no es seguro.
+- Se añadió `supabase/schema.sql` como base de datos inicial: perfiles con teléfono único, integrantes, actividades, asistencia y encuestas.
+- La base de datos aplica políticas RLS. Los nuevos perfiles solo pueden crearse como `Miembro`; los rangos elevados no se asignan desde la interfaz pública.
 
-## Publicación
-Reemplaza los archivos del repositorio de GitHub Pages con los de esta carpeta. No borres el repositorio. Al actualizar, cierra y vuelve a abrir la PWA; si sigue mostrando la versión anterior, limpia los datos/caché del sitio o espera la actualización del service worker.
+## Configuración pendiente
+1. En Supabase, abre **SQL Editor**.
+2. Copia el contenido de `supabase/schema.sql` y ejecútalo en el proyecto correcto.
+3. Después habrá que implementar y configurar el mecanismo de autenticación y recuperación antes de retirar el modo de demostración.
+
+## Importante sobre la recuperación sin SMS
+El esquema de base de datos no envía mensajes ni verifica que una persona controle un número telefónico. La recuperación asistida por líderes requiere una función segura del servidor y un proceso de comprobación. No se debe tratar un teléfono no verificado como prueba suficiente de identidad.
+
+## Seguridad
+Nunca publiques la clave `service_role`, contraseñas de base de datos ni secretos de funciones en el código del navegador. La clave publicable puede utilizarse en el frontend con RLS correctamente configurado.
