@@ -1,12 +1,14 @@
-const CACHE = "tb3st-v07";
+const CACHE = "tb3st-v08";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=07",
-  "./app.js?v=07",
+  "./styles.css?v=08",
+  "./app.js?v=08",
   "./supabaseClient.js",
   "./manifest.webmanifest",
-  "./logo.png"
+  "./logo.png",
+  "./icon-192.png",
+  "./icon-512.png"
 ];
 
 self.addEventListener("install", event => {
