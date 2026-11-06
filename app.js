@@ -5,6 +5,12 @@ import { supabase } from "./supabaseClient.js";
 console.info("Supabase preparado para CL4N TB3ST", Boolean(supabase));
 
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const authGate=$("#auth-gate"), appRoot=$("#app"), sessionStart=$("#session-start"), sessionMessage=$("#session-message");
+function showSession(session){const ready=!!session;authGate.classList.toggle("hidden",ready);appRoot.classList.toggle("hidden",!ready)}
+async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;showSession(null);return}showSession(data.session)}
+supabase.auth.onAuthStateChange((_event,session)=>showSession(session));
+sessionStart.onclick=async()=>{sessionStart.disabled=true;sessionMessage.textContent="Creando sesión…";try{const {data,error}=await supabase.auth.signInAnonymously();if(error)throw error;if(!data.session)throw new Error("Supabase no devolvió una sesión.");showSession(data.session)}catch(error){sessionMessage.textContent="No se pudo iniciar: "+error.message+" Comprueba que la autenticación anónima esté activada en Supabase."}finally{sessionStart.disabled=false}};
+restoreSession();
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}, write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 let members=read("tb3st-members",[{id:1,name:"Líder",nick:"",role:"Líder"},{id:2,name:"Lideresa",nick:"",role:"Líder"},{id:3,name:"Integrante 01",nick:"",role:"Miembro"},{id:4,name:"Integrante 02",nick:"",role:"Miembro"}]);
 let activities=read("tb3st-activities",[]), role=localStorage.getItem("tb3st-demo-role")||"Líder", editing=null;
