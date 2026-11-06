@@ -6,19 +6,22 @@
   "type": "module",
   "scripts": {
     "prepare:web": "node scripts/prepare-web.mjs",
+    "build:web": "npm run prepare:web && esbuild app.js --bundle --format=esm --platform=browser --target=es2020 --outfile=www/app.js",
     "prepare:assets": "node scripts/prepare-assets.mjs",
-    "android:sync": "npm run prepare:web && npx cap sync android",
-    "android:build": "npm run prepare:assets && npm run prepare:web && npx cap add android && npx capacitor-assets generate --android && node scripts/configure-android.mjs && npx cap sync android && cd android && ./gradlew assembleDebug"
+    "android:sync": "npm run build:web && npx cap sync android",
+    "android:build": "npm run prepare:assets && npm run build:web && npx cap add android && npx capacitor-assets generate --android && node scripts/configure-android.mjs && npx cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",
     "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.6.0",
-    "@capacitor/splash-screen": "8.0.2"
+    "@capacitor/splash-screen": "8.0.2",
+    "@supabase/supabase-js": "^2.57.4"
   },
   "devDependencies": {
     "@capacitor/assets": "^4.0.0",
     "@capacitor/cli": "8.6.0",
+    "esbuild": "^0.25.0",
     "sharp": "^0.34.5",
     "typescript": "^5.9.3"
   }
