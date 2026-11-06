@@ -1,0 +1,24 @@
+{
+  "name": "cl4n-tb3st",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Aplicación Android y PWA de gestión del clan CL4N TB3ST",
+  "type": "module",
+  "scripts": {
+    "prepare:web": "node scripts/prepare-web.mjs",
+    "prepare:assets": "node scripts/prepare-assets.mjs",
+    "android:sync": "npm run prepare:web && npx cap sync android",
+    "android:build": "npm run prepare:web && npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/splash-screen": "8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "^3.0.0",
+    "@capacitor/cli": "8.6.0",
+    "sharp": "^0.34.5"
+  }
+}
