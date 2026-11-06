@@ -1,6 +1,9 @@
 name: Build signed Android APK
 
 on:
+  push:
+    branches:
+      - feature/android-apk-capacitor
   workflow_dispatch:
 
 permissions:
