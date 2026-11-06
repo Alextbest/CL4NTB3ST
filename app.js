@@ -8,7 +8,7 @@ const authGate=$("#auth-gate"), appRoot=$("#app"), sessionStart=$("#session-star
 let currentProfile=null;
 function showAccess(){authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
 function showRegistration(){authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
-function showApp(profile){currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");const roleSelect=$("#current-role");if(roleSelect){roleSelect.value=role;roleSelect.disabled=true}render()}
+function showApp(profile){currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");render()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164,role").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu registro: "+error.message;return}if(data)showApp(data);else showRegistration()}
 async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 sessionStart.onclick=async()=>{sessionStart.disabled=true;sessionMessage.textContent="Preparando registro…";try{let {data,error}=await supabase.auth.getSession();if(error)throw error;if(!data.session){const created=await supabase.auth.signInAnonymously();if(created.error)throw created.error;data=created.data}if(!data.session)throw new Error("Supabase no devolvió una sesión.");await loadProfile(data.session)}catch(error){sessionMessage.textContent="No se pudo iniciar: "+error.message}finally{sessionStart.disabled=false}};
@@ -30,7 +30,7 @@ if(webOpen){["contextmenu","selectstart","dragstart"].forEach(type=>webOpen.addE
 if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
 
 
-$("#current-role").value=role;$("#current-role").onchange=e=>{role=e.target.value;localStorage.setItem("tb3st-demo-role",role);render()};
+
 $("#member-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;members.push({id:Date.now(),name:$("#member-name").value.trim(),nick:$("#member-nick").value.trim(),role:$("#member-role").value});write("tb3st-members",members);e.target.reset();render()};
 $("#member-list").onclick=e=>{const id=Number(e.target.dataset.edit||e.target.dataset.delete);if(!id)return;const m=members.find(x=>x.id===id);if(e.target.dataset.delete){if(!isLeader()||!confirm("¿Eliminar integrante?"))return;members=members.filter(x=>x.id!==id)}else{if(!canManageMembers()||(!isLeader()&&m.role!=="Miembro"))return;const name=prompt("Nombre visible:",m.name);if(name===null)return;const nick=prompt("Nick de Free Fire:",m.nick||"");if(nick===null)return;m.name=name.trim()||m.name;m.nick=nick.trim();if(isLeader()){const next=prompt("Rango: Líder, Decano o Miembro",m.role);if(next&&["Líder","Decano","Miembro"].includes(next))m.role=next}}write("tb3st-members",members);render()};
 $("#add-poll-option").onclick=()=>{const n=document.querySelectorAll(".poll-option").length;if(n<6){const i=document.createElement("input");i.className="poll-option";i.maxLength=50;i.placeholder="Opción "+(n+1);$("#poll-options").append(i)}};
