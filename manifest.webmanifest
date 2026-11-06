@@ -1,28 +1,22 @@
 {
-"name": "CL4N TB3ST",
-"short_name": "CL4N TB3ST",
-"description": "Plataforma oficial de gestión del clan CL4N TB3ST",
+  "name": "CL4N TB3ST",
+  "short_name": "CL4N TB3ST",
+  "description": "Plataforma oficial de gestión del clan CL4N TB3ST",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0c101b",
   "theme_color": "#0c101b",
-"icons": [
-  {
-    "src": "logo.png",
-    "sizes": "192x192",
-    "type": "image/png",
-    "purpose": "any"
-  },
-  {
-    "src": "logo.png",
-    "sizes": "512x512",
-    "type": "image/png",
-    "purpose": "any"
-  }
-]
-      "src": "icon-512.png",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
