@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0c101b">
+  <meta name="description" content="CLANHUB - Gestión competitiva de clanes Free Fire">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>CLANHUB</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">C</div><div><b>CLANHUB</b><small>COMPETITIVE MANAGEMENT</small></div></div>
+      <span class="status"><i></i> EN LÍNEA</span>
+    </header>
+
+    <main id="app">
+      <section class="hero">
+        <div class="hero-top"><span class="eyebrow">FREE FIRE · CLAN</span><span class="tag">BETA 0.1</span></div>
+        <h1>CL4N TB3ST</h1>
+        <p>La disciplina nos hace competitivos.</p>
+        <div class="stats">
+          <div><strong id="member-count">4</strong><span>INTEGRANTES</span></div>
+          <div><strong id="challenge-count">0</strong><span>RETOS ABIERTOS</span></div>
+          <div><strong id="attendance-count">0%</strong><span>ASISTENCIA</span></div>
+        </div>
+      </section>
+
+      <nav class="tabs" aria-label="Navegación principal">
+        <button class="tab active" data-page="home">Inicio</button>
+        <button class="tab" data-page="members">Miembros</button>
+        <button class="tab" data-page="challenges">Retos</button>
+        <button class="tab" data-page="rules">Normas</button>
+      </nav>
+
+      <section class="page active" id="page-home">
+        <div class="section-heading"><div><span class="eyebrow">CENTRO DE MANDO</span><h2>Panel general</h2></div><span class="live-dot">● Activo</span></div>
+        <div class="quick-grid">
+          <button class="quick-card" data-go="members"><span class="quick-icon blue">♙</span><b>Integrantes</b><small>Gestiona los miembros</small><span class="card-arrow">↗</span></button>
+          <button class="quick-card" data-go="challenges"><span class="quick-icon red">⚔</span><b>Competición</b><small>Organiza enfrentamientos</small><span class="card-arrow">↗</span></button>
+        </div>
+        <div class="panel">
+          <div class="panel-title"><h3>Actividad reciente</h3><span class="muted">ESTE DISPOSITIVO</span></div>
+          <div id="activity-list" class="activity-list"><div class="activity"><span class="activity-icon">✓</span><div><b>CLANHUB está preparado</b><small>Tu espacio de administración está listo.</small></div></div></div>
+        </div>
+        <div class="notice"><b>Consejo de seguridad</b><p>Esta versión guarda los cambios en este dispositivo. Todavía no hay cuentas ni sincronización en línea.</p></div>
+      </section>
+
+      <section class="page" id="page-members">
+        <div class="section-heading"><div><span class="eyebrow">COMUNIDAD</span><h2>Integrantes</h2></div><span class="count-pill" id="member-pill">4 miembros</span></div>
+        <form id="member-form" class="add-form"><input id="member-name" maxlength="24" placeholder="Nombre o apodo del jugador" required><button class="primary-btn" type="submit">Añadir</button></form>
+        <div class="panel"><div class="panel-title"><h3>Plantilla del clan</h3><span class="muted">MARCA ASISTENCIA</span></div><div id="member-list" class="member-list"></div></div>
+      </section>
+
+      <section class="page" id="page-challenges">
+        <div class="section-heading"><div><span class="eyebrow">CAMPO DE BATALLA</span><h2>Retos y duelos</h2></div><span class="tag">1 VS 1</span></div>
+        <div class="challenge-card"><div class="challenge-banner"><span>DESAFÍO DE LIDERAZGO</span><span class="challenge-symbol">⚔</span></div><h3>Prueba de habilidad</h3><p>Reta al líder en un enfrentamiento individual bajo las reglas oficiales del clan.</p><div class="challenge-meta"><span>ARMA <b>M1014</b></span><span>MODALIDAD <b>1 contra 1</b></span></div><button id="challenge-btn" class="primary-btn full">Aceptar desafío</button></div>
+        <div class="panel"><div class="panel-title"><h3>Reglas del duelo</h3></div><ul class="rule-list"><li>Arma establecida: M1014.</li><li>Enfrentamiento individual.</li><li>El resultado debe ser confirmado por el liderazgo.</li></ul></div>
+      </section>
+
+      <section class="page" id="page-rules">
+        <div class="section-heading"><div><span class="eyebrow">CONVIVENCIA</span><h2>Normas del clan</h2></div></div>
+        <div class="rules-list">
+          <article><span>01</span><p>Respetar las decisiones del líder y la lideresa.</p></article>
+          <article><span>02</span><p>Los miembros masculinos presentan sus quejas al líder.</p></article>
+          <article><span>03</span><p>Las miembros femeninas presentan sus quejas a la lideresa.</p></article>
+          <article><span>04</span><p>Los desafíos oficiales se realizan bajo las reglas establecidas.</p></article>
+          <article><span>05</span><p>Mantener el respeto y la actividad dentro del clan.</p></article>
+        </div>
+        <p class="footnote">Las normas pueden editarse en una próxima versión con permisos de administración.</p>
+      </section>
+    </main>
+    <footer>CLANHUB <span>·</span> HECHO PARA COMPETIR</footer>
+  </div>
+  <script src="app.js"></script>
+  <script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(console.error));</script>
+</body>
+</html>

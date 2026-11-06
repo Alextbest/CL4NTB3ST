@@ -1,0 +1,25 @@
+{
+  "name": "CLANHUB - Gestión de clanes",
+  "short_name": "CLANHUB",
+  "description": "Administración competitiva de clanes Free Fire",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c101b",
+  "theme_color": "#0c101b",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
