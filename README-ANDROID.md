@@ -15,8 +15,18 @@ The debug APK is suitable for installation/testing by clan members. A signed rel
 
 - Name: CL4N TB3ST
 - Android application ID: `com.clantb3st.app`
-- Icon and launch screen source: existing repository `logo.png`, converted into 1024px source artwork and Android launcher/splash variants during the build.
+- Icon and launch screen source: the existing repository `logo.png`, converted into 1024px source artwork and Android launcher/splash variants during the build.
+
+## Supabase email confirmation
+
+Add this exact URL to Supabase **Authentication → URL Configuration → Redirect URLs**:
+
+```
+com.clantb3st.app://auth-callback
+```
+
+Keep the existing Netlify URL as the Site URL for the web/PWA version. The Android callback uses the custom app scheme and is handled inside the APK.
 
 ## Notes
 
-The APK contains the web interface locally. Supabase remains the online authentication/backend service. Email confirmation deep links still need to be configured and tested before distributing the APK as the main login app.
+The APK contains the web interface locally. Supabase remains the online authentication/backend service. The first debug build is for testing; use a securely signed release build before public distribution.
