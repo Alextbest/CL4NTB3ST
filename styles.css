@@ -56,3 +56,28 @@ footer span{color:#ffd45e}
 .security-note{margin-top:8px;padding:12px 13px;border:1px solid #62477a;border-radius:12px;background:#21182d}.security-note b{display:block;color:#ffe18a;font-size:12px;margin-bottom:5px}.security-note p{margin:0;color:#c8b9d7;font-size:11px;line-height:1.55}
 
 .auth-actions{margin-top:12px;flex-wrap:wrap}.auth-actions button{flex:1}.account-actions{justify-content:flex-end;margin-bottom:12px}.account-actions #signed-in-email{overflow-wrap:anywhere;text-align:right}
+
+
+/* Pantalla de carga inicial con destello continuo de izquierda a derecha */
+.loading-screen{
+  position:fixed;inset:0;z-index:9999;display:grid;place-items:center;
+  background:radial-gradient(ellipse at 50% 45%,#2b183b 0%,#100b18 58%,#090710 100%);
+  opacity:1;visibility:visible;transition:opacity .35s ease,visibility .35s ease;
+}
+.loading-screen.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.loading-text{
+  position:relative;display:inline-block;overflow:hidden;
+  color:#bca8d0;font:700 clamp(24px,7vw,34px) 'Space Grotesk',system-ui,sans-serif;
+  letter-spacing:2px;text-shadow:0 0 12px #c58aff55;
+}
+.loading-text::after{
+  content:"";position:absolute;inset:-20% auto -20% -55%;width:42%;
+  background:linear-gradient(105deg,transparent 0%,#ffffff22 28%,#fff 50%,#ffe98a 58%,#ffffff22 75%,transparent 100%);
+  filter:blur(2px);transform:skewX(-18deg);
+  animation:loading-shine 1.65s ease-in-out infinite;
+}
+@keyframes loading-shine{
+  0%{left:-55%}
+  100%{left:125%}
+}
+@media(prefers-reduced-motion:reduce){.loading-text::after{animation-duration:4s}}
