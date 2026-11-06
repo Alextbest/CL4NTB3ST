@@ -1,6 +1,6 @@
 # CL4N TB3ST — Android APK
 
-The Android wrapper uses Capacitor and packages the existing web interface into the app. The native build runs in GitHub Actions; no production Netlify deployment is required.
+The Android app packages the interface locally with Capacitor. The APK is built by GitHub Actions; it does not require a Netlify production deployment or Netlify hosting.
 
 ## Build
 
@@ -9,24 +9,29 @@ The Android wrapper uses Capacitor and packages the existing web interface into 
 3. Select **Build Android APK** and wait for the build to finish.
 4. Download the `CL4N-TB3ST-debug-apk` artifact from the completed run.
 
-The debug APK is suitable for installation/testing by clan members. A signed release APK/AAB requires a private Android signing key; never commit that key or its passwords.
+The debug APK is suitable for installation/testing. A signed release APK/AAB requires a private Android signing key; never commit that key or its passwords.
 
 ## App identity
 
 - Name: CL4N TB3ST
 - Android application ID: `com.clantb3st.app`
-- Icon and launch screen source: the existing repository `logo.png`, converted into 1024px source artwork and Android launcher/splash variants during the build.
+- Authentication callback: `com.clantb3st.app://auth-callback`
 
-## Supabase email confirmation
+## Supabase Auth configuration
 
-Add this exact URL to Supabase **Authentication → URL Configuration → Redirect URLs**:
+For an APK-only installation, configure **Supabase → Authentication → URL Configuration** as follows:
 
-```
-com.clantb3st.app://auth-callback
-```
+- **Site URL:** `com.clantb3st.app://auth-callback`
+- **Redirect URLs:** include the exact URL `com.clantb3st.app://auth-callback`
+- Remove the old Netlify URL from the allowed Redirect URLs after confirming the APK sign-in and email-confirmation flow.
 
-Keep the existing Netlify URL as the Site URL for the web/PWA version. The Android callback uses the custom app scheme and is handled inside the APK.
+The app passes this callback explicitly for email confirmation and password reset. Supabase remains the online authentication and database service; only the app interface is bundled into the APK.
 
-## Notes
+## Hosting independence
 
-The APK contains the web interface locally. Supabase remains the online authentication/backend service. The first debug build is for testing; use a securely signed release build before public distribution.
+- GitHub Actions builds and stores the APK artifact.
+- Android loads the interface from the installed app package, not from Netlify.
+- Supabase remains online and requires an internet connection.
+- No Netlify deployment is part of the Android build workflow.
+
+The first debug build is for testing. Use a securely signed release build before public distribution.
