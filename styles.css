@@ -81,3 +81,51 @@ footer span{color:#ffd45e}
   100%{left:125%}
 }
 @media(prefers-reduced-motion:reduce){.loading-text::after{animation-duration:4s}}
+
+
+/* Animación neón ambiental: brillo lento y movimiento sutil */
+@keyframes neon-breathe{
+  0%,100%{filter:brightness(1);box-shadow:0 0 7px #c58aff22,0 0 13px #ffd45e12}
+  50%{filter:brightness(1.16);box-shadow:0 0 13px #c58aff55,0 0 23px #ffd45e2b}
+}
+@keyframes neon-control{
+  0%,100%{box-shadow:0 0 5px #c58aff33,0 0 10px #ffd45e18}
+  50%{box-shadow:0 0 11px #c58aff77,0 0 19px #ffd45e38}
+}
+@keyframes character-sway{
+  0%,100%{transform:rotate(-2deg) translateY(0)}
+  50%{transform:rotate(2deg) translateY(-1px)}
+}
+@keyframes eye-glow{
+  0%,100%{opacity:.45;filter:blur(1px)}
+  50%{opacity:1;filter:blur(2px)}
+}
+.brand-logo{
+  transform-origin:50% 65%;
+  animation:character-sway 3.8s ease-in-out infinite,neon-breathe 2.8s ease-in-out infinite;
+}
+.hero,.panel,.rolebar,.quick-card,.rules-list article{
+  animation:neon-breathe 4.8s ease-in-out infinite;
+}
+.primary-btn,.secondary-btn,.danger-btn,.tab,.poll-choice,.web-open-btn{
+  transition:box-shadow .45s ease,filter .45s ease,transform .25s ease;
+  animation:neon-control 3.2s ease-in-out infinite;
+}
+button:active{transform:scale(.98)}
+.tab.active{animation:neon-control 2.6s ease-in-out infinite}
+input,textarea,select{
+  box-shadow:0 0 7px #c58aff18;
+  transition:box-shadow .4s ease,border-color .4s ease;
+}
+input:focus,textarea:focus,select:focus{
+  box-shadow:0 0 9px #c58aff88,0 0 17px #ffd45e33;
+}
+.status,.tag,.count-pill,.brand-logo{
+  transition:filter .5s ease,box-shadow .5s ease;
+}
+@media(prefers-reduced-motion:reduce){
+  .brand-logo,.hero,.panel,.rolebar,.quick-card,.rules-list article,
+  .primary-btn,.secondary-btn,.danger-btn,.tab,.poll-choice,.web-open-btn{
+    animation:none!important;
+  }
+}
