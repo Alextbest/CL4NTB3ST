@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient.js";
-import { Capacitor } from "https://esm.sh/@capacitor/core@8.6.0";
+import { Capacitor } from "@capacitor/core";
+import { App } from "@capacitor/app";
 
 const isNativeApp = Capacitor.isNativePlatform();
 const authRedirectUrl = isNativeApp ? "com.clantb3st.app://auth-callback" : window.location.origin;
@@ -26,7 +27,6 @@ async function handleNativeAuthUrl(rawUrl) {
 }
 
 if (isNativeApp) {
-  const { App } = await import("https://esm.sh/@capacitor/app@8.1.2");
   App.addListener("appUrlOpen", ({ url }) => handleNativeAuthUrl(url));
   const launch = await App.getLaunchUrl();
   if (launch?.url) await handleNativeAuthUrl(launch.url);
