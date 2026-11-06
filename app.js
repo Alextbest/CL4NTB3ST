@@ -84,3 +84,118 @@ function render(){renderWeb();const leaders=members.filter(m=>m.role==="Líder")
 $("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[role],voted=a.votes?.[role];const participants=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]);const no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);return `<article class="panel activity-card" data-id="${a.id}"><div class="panel-title"><h3>${esc(a.name)}</h3><span class="tag">${isNaN(start)? "Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${esc(a.desc||"Sin descripción.")}</p>${a.rules?`<div class="activity-rules"><b>Reglas</b><p>${esc(a.rules)}</p></div>`:""}<div class="attendance-actions"><button class="${going?"secondary-btn":"primary-btn"}" data-action="${going?"leave":"join"}" ${!going&&locked?"disabled":""}>${going?"Cancelar participación":"Voy a participar"}</button><span class="muted">${locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes"}</span></div><div class="participant-grid"><div><b>Participan (${participants.length})</b><small>${participants.map(esc).join(", ")||"Nadie todavía"}</small></div><div><b>No participan (${no.length})</b><small>${no.map(esc).join(", ")||"Sin respuestas"}</small></div></div>${a.pollQuestion&&a.options?.length?`<div class="poll"><b>Encuesta: ${esc(a.pollQuestion)}</b>${a.options.map(o=>`<button class="poll-choice ${voted===o?"chosen":""}" data-vote="${esc(o)}">${esc(o)} <small>${Object.values(a.votes||{}).filter(v=>v===o).length} votos</small></button>`).join("")}<small>Tu voto: ${esc(voted||"Sin votar")}</small><p class="muted">Votos registrados: ${Object.entries(a.votes||{}).map(([u,v])=>esc(u)+": "+esc(v)).join(" · ")||"Ninguno"}</p></div>`:""}${isLeader()?`<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>`:""}</article>`}).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
 render();
+
+// Copias personales en Supabase Storage: cada cuenta solo puede acceder a su propia carpeta.
+const BACKUP_BUCKET = "user-backups";
+const BACKUP_FILE = "backup.json";
+const backupStatus = $("#backup-status");
+const backupUploadButton = $("#backup-upload");
+const backupDownloadButton = $("#backup-download");
+const backupRestoreButton = $("#backup-restore");
+
+function getBackupPayload() {
+  return {
+    format: "CL4NTB3ST_BACKUP",
+    version: 1,
+    createdAt: new Date().toISOString(),
+    data: {
+      members: read("tb3st-members", []),
+      activities: read("tb3st-activities", []),
+      webLink: localStorage.getItem(WEB_LINK_KEY) || ""
+    }
+  };
+}
+
+function validateBackup(payload) {
+  if (!payload || payload.format !== "CL4NTB3ST_BACKUP" || payload.version !== 1 || !payload.data) {
+    throw new Error("El archivo no es una copia válida de CL4N TB3ST.");
+  }
+  if (!Array.isArray(payload.data.members) || !Array.isArray(payload.data.activities) || typeof payload.data.webLink !== "string") {
+    throw new Error("La copia está incompleta o dañada.");
+  }
+  return payload;
+}
+
+async function getBackupPath() {
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error) throw error;
+  if (!user) throw new Error("Inicia sesión para usar las copias de seguridad.");
+  return user.id + "/" + BACKUP_FILE;
+}
+
+function downloadBackupFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+async function fetchCloudBackup() {
+  const path = await getBackupPath();
+  const { data, error } = await supabase.storage.from(BACKUP_BUCKET).download(path);
+  if (error) throw error;
+  const payload = validateBackup(JSON.parse(await data.text()));
+  return { payload, blob: data };
+}
+
+if (backupUploadButton) backupUploadButton.onclick = async () => {
+  backupUploadButton.disabled = true;
+  backupStatus.textContent = "Subiendo tus datos de forma privada…";
+  try {
+    const path = await getBackupPath();
+    const payload = getBackupPayload();
+    const file = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const { error } = await supabase.storage.from(BACKUP_BUCKET).upload(path, file, {
+      contentType: "application/json",
+      upsert: true,
+      cacheControl: "0"
+    });
+    if (error) throw error;
+    backupStatus.textContent = "Copia guardada en la nube. Última copia: " + new Date(payload.createdAt).toLocaleString("es-PA");
+  } catch (error) {
+    backupStatus.textContent = "No se pudo subir la copia: " + (error.message || "Error desconocido");
+  } finally {
+    backupUploadButton.disabled = false;
+  }
+};
+
+if (backupDownloadButton) backupDownloadButton.onclick = async () => {
+  backupDownloadButton.disabled = true;
+  backupStatus.textContent = "Buscando tu copia en la nube…";
+  try {
+    const { payload, blob } = await fetchCloudBackup();
+    const date = new Date(payload.createdAt);
+    const stamp = isNaN(date) ? "backup" : date.toISOString().slice(0, 10);
+    downloadBackupFile(blob, "CL4NTB3ST-copia-" + stamp + ".json");
+    backupStatus.textContent = "Descarga preparada. Copia guardada el " + (isNaN(date) ? "día desconocido" : date.toLocaleString("es-PA")) + ".";
+  } catch (error) {
+    backupStatus.textContent = "No se pudo descargar: " + (error.message || "Error desconocido");
+  } finally {
+    backupDownloadButton.disabled = false;
+  }
+};
+
+if (backupRestoreButton) backupRestoreButton.onclick = async () => {
+  if (!confirm("Esto reemplazará los integrantes, actividades y enlace web de este teléfono por los datos de tu copia en la nube. ¿Continuar?")) return;
+  backupRestoreButton.disabled = true;
+  backupStatus.textContent = "Descargando y comprobando la copia…";
+  try {
+    const { payload } = await fetchCloudBackup();
+    localStorage.setItem("tb3st-members", JSON.stringify(payload.data.members));
+    localStorage.setItem("tb3st-activities", JSON.stringify(payload.data.activities));
+    localStorage.setItem(WEB_LINK_KEY, payload.data.webLink);
+    members = payload.data.members;
+    activities = payload.data.activities;
+    render();
+    backupStatus.textContent = "Restauración completada. Datos recuperados de la copia del " + new Date(payload.createdAt).toLocaleString("es-PA") + ".";
+  } catch (error) {
+    backupStatus.textContent = "No se pudo restaurar: " + (error.message || "Error desconocido");
+  } finally {
+    backupRestoreButton.disabled = false;
+  }
+};
