@@ -12,11 +12,13 @@ const isLeader=()=>role==="Líder", canManageMembers=()=>isLeader()||role==="Dec
 function nav(p){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id==="page-"+p));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>nav(b.dataset.page));document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>nav(b.dataset.go));
 const WEB_LINK_KEY="tb3st-web-link";
-const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty");
-function validWebUrl(value){try{const u=new URL(value);return u.protocol==="https:"||u.protocol==="http:"?u.href:null}catch{return null}}
-function renderWeb(){const saved=localStorage.getItem(WEB_LINK_KEY)||"";if(webInput)webInput.value=isLeader()?saved:"";if(webForm)webForm.classList.toggle("hidden",!isLeader());if(saved&&validWebUrl(saved)){webFrame.src=validWebUrl(saved);webFrame.classList.remove("hidden");webEmpty.classList.add("hidden");$("#web-view-title").textContent="Sitio configurado"}else{webFrame.removeAttribute("src");webFrame.classList.add("hidden");webEmpty.classList.remove("hidden");$("#web-view-title").textContent="Contenido web"}}
-if(webForm)webForm.onsubmit=e=>{e.preventDefault();if(!isLeader())return;const url=validWebUrl(webInput.value.trim());if(!url){alert("Introduce un enlace http o https válido.");return}localStorage.setItem(WEB_LINK_KEY,url);renderWeb();alert("Enlace guardado en este dispositivo.")};
-if($("#web-reload"))$("#web-reload").onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
+const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty"), webOpen=$("#web-open"), webReload=$("#web-reload");
+function validWebUrl(value){try{const u=new URL(value);return u.protocol==="https:"?u.href:null}catch{return null}}
+function renderWeb(){const saved=localStorage.getItem(WEB_LINK_KEY)||"",url=validWebUrl(saved);if(webInput)webInput.value=isLeader()?saved:"";if(webForm)webForm.classList.toggle("hidden",!isLeader());webFrame.classList.add("hidden");webFrame.removeAttribute("src");webReload.classList.add("hidden");webOpen.classList.toggle("hidden",!url);webEmpty.classList.toggle("hidden",!!url);$("#web-view-title").textContent=url?"Sitio privado del clan":"Sitio privado del clan"}
+if(webForm)webForm.onsubmit=e=>{e.preventDefault();if(!isLeader())return;const url=validWebUrl(webInput.value.trim());if(!url){alert("Introduce un enlace HTTPS válido.");return}localStorage.setItem(WEB_LINK_KEY,url);renderWeb();alert("Enlace guardado en este dispositivo.")};
+if(webOpen)webOpen.onclick=()=>{const url=validWebUrl(localStorage.getItem(WEB_LINK_KEY)||"");if(!url)return;webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")};
+if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
+
 
 $("#current-role").value=role;$("#current-role").onchange=e=>{role=e.target.value;localStorage.setItem("tb3st-demo-role",role);render()};
 $("#member-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;members.push({id:Date.now(),name:$("#member-name").value.trim(),nick:$("#member-nick").value.trim(),role:$("#member-role").value});write("tb3st-members",members);e.target.reset();render()};
