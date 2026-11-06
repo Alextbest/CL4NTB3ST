@@ -1,3 +1,9 @@
+import { supabase } from "./supabaseClient.js";
+
+// Cliente inicializado; las operaciones de autenticación y datos se integrarán
+// en los siguientes pasos, después de definir el flujo seguro de cuentas.
+console.info("Supabase preparado para CL4N TB3ST", Boolean(supabase));
+
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}, write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 let members=read("tb3st-members",[{id:1,name:"Líder",nick:"",role:"Líder"},{id:2,name:"Lideresa",nick:"",role:"Líder"},{id:3,name:"Integrante 01",nick:"",role:"Miembro"},{id:4,name:"Integrante 02",nick:"",role:"Miembro"}]);
