@@ -69,12 +69,18 @@ let clanRulesUpdatedAt = null;
 const rulesForm = $("#rules-form");
 const rulesEditor = $("#rules-editor");
 const rulesStatus = $("#rules-status");
+function renderRulesEditor() {
+  if (!rulesEditor) return;
+  rulesEditor.innerHTML = clanRules.map((rule, i) => `<div class="rule-edit-row"><span>${String(i+1).padStart(2,"0")}</span><input type="text" maxlength="240" data-rule-index="${i}" aria-label="Norma ${i+1}" value="${esc(rule)}"><button type="button" class="rule-remove" data-rule-remove="${i}" aria-label="Eliminar norma ${i+1}" title="Eliminar norma">×</button></div>`).join("");
+  const add = $("#rules-add");
+  if (add) add.disabled = clanRules.length >= 20;
+}
 function renderRules() {
   const list = $("#rules-list");
   if (!list) return;
   list.innerHTML = clanRules.map((rule, i) => `<article><span>${String(i+1).padStart(2,"0")}</span><p>${esc(rule)}</p></article>`).join("") || '<p class="muted">Todavía no hay normas publicadas.</p>';
   if (rulesForm) rulesForm.classList.toggle("hidden", !isLeader());
-  if (rulesEditor && document.activeElement !== rulesEditor) rulesEditor.value = clanRules.join("\n");
+  if (rulesEditor && document.activeElement?.dataset?.ruleIndex === undefined) renderRulesEditor();
   const updated = $("#rules-updated");
   if (updated) updated.textContent = clanRulesUpdatedAt ? "Última actualización: " + new Date(clanRulesUpdatedAt).toLocaleString("es-PA") : "Normas oficiales del clan.";
 }
@@ -90,13 +96,34 @@ async function loadClanRules() {
     clanRulesUpdatedAt = data.updated_at;
   }
   renderRules();
+  renderRulesEditor();
 }
+if (rulesEditor) {
+  rulesEditor.addEventListener("input", e => {
+    const index = Number(e.target.dataset.ruleIndex);
+    if (Number.isInteger(index) && index >= 0 && index < clanRules.length) clanRules[index] = e.target.value;
+  });
+  rulesEditor.addEventListener("click", e => {
+    const index = Number(e.target.dataset.ruleRemove);
+    if (!Number.isInteger(index) || index < 0 || index >= clanRules.length) return;
+    clanRules.splice(index, 1);
+    renderRulesEditor();
+  });
+}
+const rulesAdd = $("#rules-add");
+if (rulesAdd) rulesAdd.onclick = () => {
+  if (!isLeader() || clanRules.length >= 20) return;
+  clanRules.push("");
+  renderRulesEditor();
+  const last = rulesEditor.querySelector("input:last-of-type");
+  last?.focus();
+};
 if (rulesForm) rulesForm.onsubmit = async e => {
   e.preventDefault();
   if (!isLeader()) return;
-  const nextRules = rulesEditor.value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const nextRules = [...rulesEditor.querySelectorAll("[data-rule-index]")].map(input => input.value.trim()).filter(Boolean);
   if (!nextRules.length || nextRules.length > 20) {
-    rulesStatus.textContent = "Escribe entre 1 y 20 normas, una por línea.";
+    rulesStatus.textContent = "Debe haber entre 1 y 20 normas. Completa o elimina las filas vacías.";
     return;
   }
   const save = $("#rules-save");
@@ -111,11 +138,43 @@ if (rulesForm) rulesForm.onsubmit = async e => {
     clanRulesUpdatedAt = data.updated_at;
     rulesStatus.textContent = "Normas guardadas. Ya están disponibles para todos los integrantes.";
     renderRules();
+    renderRulesEditor();
   } catch (error) {
     rulesStatus.textContent = "No se pudieron guardar las normas: " + (error.message || "Error desconocido");
   } finally {
     save.disabled = false;
   }
+};
+
+// Tarjetas deslizable del boletín: el detalle se muestra dentro de la app.
+const newsItems = {
+  patch: { kicker: "ACTUALIZACIONES", title: "Notas del parche", body: "Las notas del parche reúnen los cambios oficiales de cada actualización: ajustes de armas, personajes, habilidades, mapas, modos y correcciones. Abre las publicaciones de Garena para revisar los cambios concretos de cada versión." },
+  balance: { kicker: "CAMBIOS DEL JUEGO", title: "Balance y novedades", body: "Aquí puedes consultar información oficial sobre ajustes de equilibrio, cambios en habilidades, armas y mecánicas. Los detalles y valores exactos deben comprobarse en el comunicado correspondiente de Garena." },
+  announcements: { kicker: "COMUNICADOS", title: "Anuncios de Garena", body: "Los comunicados oficiales pueden incluir avisos de mantenimiento, cambios importantes, novedades del juego y anuncios del equipo de Free Fire. Entra a la fuente oficial para leer cada publicación completa." },
+  collabs: { kicker: "CONTENIDO", title: "Colaboraciones y novedades", body: "Consulta las publicaciones oficiales sobre colaboraciones, contenido temático y novedades que llegan al juego. La disponibilidad y las fechas pueden variar por región; revisa siempre el anuncio oficial." }
+};
+const newsCarousel = $("#news-carousel");
+const newsDetail = $("#news-detail");
+function openNewsDetail(key) {
+  const item = newsItems[key];
+  if (!item || !newsDetail) return;
+  $("#news-detail-kicker").textContent = item.kicker;
+  $("#news-detail-title").textContent = item.title;
+  $("#news-detail-body").textContent = item.body;
+  newsCarousel?.classList.add("hidden");
+  $(".news-slide-hint")?.classList.add("hidden");
+  newsDetail.classList.remove("hidden");
+  newsDetail.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+if (newsCarousel) newsCarousel.addEventListener("click", e => {
+  const card = e.target.closest("[data-news]");
+  if (card) openNewsDetail(card.dataset.news);
+});
+const newsBack = $("#news-back");
+if (newsBack) newsBack.onclick = () => {
+  newsDetail?.classList.add("hidden");
+  newsCarousel?.classList.remove("hidden");
+  $(".news-slide-hint")?.classList.remove("hidden");
 };
 
 const WEB_LINK_KEY="tb3st-web-link";
