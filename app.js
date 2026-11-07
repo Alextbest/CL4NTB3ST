@@ -45,14 +45,14 @@ let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
 function showAccess(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
 function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
-function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp)}
+function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164,role").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function setAuthMode(mode){authMode=mode;const signup=mode==="signup";authTitle.textContent=signup?"Crear cuenta en CL4N TB3ST":"Entrar a CL4N TB3ST";authDescription.textContent=signup?"Regístrate con un correo y una contraseña exclusiva para esta aplicación.":"Inicia sesión con el correo y la contraseña de tu cuenta del clan.";authSubmit.textContent=signup?"Crear cuenta":"Iniciar sesión";authToggle.textContent=signup?"Ya tengo cuenta":"Crear cuenta nueva";$("#auth-password").autocomplete=signup?"new-password":"current-password";$("#auth-password").value="";authForgot.classList.toggle("hidden",signup);sessionMessage.textContent=""}
 authToggle.onclick=()=>setAuthMode(authMode==="signin"?"signup":"signin");
 authForm.onsubmit=async e=>{e.preventDefault();if(authBusy)return;const email=$("#auth-email").value.trim().toLowerCase(),password=$("#auth-password").value;if(!email||password.length<8){sessionMessage.textContent="Escribe un correo válido y una contraseña de al menos 8 caracteres.";return}authBusy=true;authSubmit.disabled=true;sessionMessage.textContent=authMode==="signup"?"Creando tu cuenta…":"Iniciando sesión…";try{if(authMode==="signup"){const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl}});if(error)throw error;if(data.session){await loadProfile(data.session)}else{sessionMessage.textContent="Cuenta creada. Revisa tu correo y confirma la dirección antes de iniciar sesión."}}else{const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;if(!data.session)throw new Error("No se recibió una sesión. Confirma tu correo e inténtalo de nuevo.");await loadProfile(data.session)}}catch(error){sessionMessage.textContent="No se pudo completar la operación: "+(error.message||"Error desconocido")}finally{authBusy=false;authSubmit.disabled=false}};
 authForgot.onclick=async()=>{const email=$("#auth-email").value.trim().toLowerCase();if(!email){sessionMessage.textContent="Escribe primero el correo de tu cuenta.";return}authForgot.disabled=true;try{const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});if(error)throw error;sessionMessage.textContent="Si el correo está registrado, recibirás instrucciones para restablecer la contraseña."}catch(error){sessionMessage.textContent="No se pudo solicitar el restablecimiento: "+error.message}finally{authForgot.disabled=false}};
-if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}currentProfile=null;role="Miembro";showAccess();setAuthMode("signin");signOutButton.disabled=false};
+if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}stopLobbyMusic();currentProfile=null;role="Miembro";showAccess();setAuthMode("signin");signOutButton.disabled=false};
 profileForm.onsubmit=async e=>{e.preventDefault();const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Guardando tus datos…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:$("#profile-ffid").value.trim()||null,phone_e164:phone,role:"Miembro"};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,phone_e164,role").single();if(error)throw error;showApp(data,session)}catch(error){sessionMessage.textContent=error.message?.includes("phone_e164")||error.code==="23505"?"Ese número ya está registrado o no tiene un formato válido. Revisa los datos.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){showAccess();return}if(event==="SIGNED_IN"&&session){loadProfile(session)}});
 setAuthMode("signin");
@@ -417,8 +417,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshSig
 if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive)refreshSignedInProfile()});
 
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}, write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-let members=read("tb3st-members",[{id:1,name:"Líder",nick:"",role:"Líder"},{id:2,name:"Lideresa",nick:"",role:"Líder"},{id:3,name:"Integrante 01",nick:"",role:"Miembro"},{id:4,name:"Integrante 02",nick:"",role:"Miembro"}]);
-let activities=read("tb3st-activities",[]), editing=null;
+let members=[], activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder", canManageMembers=()=>isLeader()||role==="Decano";
 function nav(p){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id==="page-"+p));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>nav(b.dataset.page));document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>nav(b.dataset.go));
@@ -673,178 +672,123 @@ if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
   }catch(error){roleAssignStatus.textContent=error.message||"No se pudo actualizar el rango."}
   finally{button.disabled=false}
 };
-$("#add-poll-option").onclick=()=>{const n=document.querySelectorAll(".poll-option").length;if(n<6){const i=document.createElement("input");i.className="poll-option";i.maxLength=50;i.placeholder="Opción "+(n+1);$("#poll-options").append(i)}};
-$("#activity-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;const opts=[...document.querySelectorAll(".poll-option")].map(x=>x.value.trim()).filter(Boolean);const item={id:editing||Date.now(),name:$("#activity-name").value.trim(),date:$("#activity-date").value,desc:$("#activity-desc").value.trim(),rules:$("#activity-rules").value.trim(),pollQuestion:$("#poll-question").value.trim(),options:opts.length>=2?opts:[],votes:editing?(activities.find(a=>a.id===editing)?.votes||{}):{},participants:editing?(activities.find(a=>a.id===editing)?.participants||{}):{}};activities=editing?activities.map(a=>a.id===editing?item:a):[item,...activities];write("tb3st-activities",activities);resetActivityForm();render()};
+
+async function loadCloudActivities(){
+ if(!currentProfile)return;
+ const results=await Promise.all([
+  supabase.from("activities").select("id,title,starts_at,description,rules").order("starts_at",{ascending:true}),
+  supabase.from("activity_participants").select("activity_id,user_id,attending"),
+  supabase.from("activity_polls").select("id,activity_id,question"),
+  supabase.from("activity_poll_options").select("id,poll_id,label,position").order("position"),
+  supabase.from("activity_poll_votes").select("poll_id,option_id,user_id")
+ ]);
+ const failed=results.find(x=>x.error);
+ if(failed){$("#activities-list").innerHTML='<div class="panel muted">No se pudieron sincronizar las actividades: '+esc(failed.error.message)+'</div>';return}
+ const rows=results[0].data||[], participants=results[1].data||[], polls=results[2].data||[], options=results[3].data||[], votes=results[4].data||[];
+ activities=rows.map(row=>{
+  const poll=polls.find(x=>x.activity_id===row.id), pollOptions=poll?options.filter(x=>x.poll_id===poll.id):[], partMap={}, voteMap={};
+  participants.filter(x=>x.activity_id===row.id).forEach(x=>partMap[x.user_id]=x.attending);
+  if(poll)votes.filter(x=>x.poll_id===poll.id).forEach(x=>voteMap[x.user_id]=x.option_id);
+  return {id:row.id,name:row.title,date:row.starts_at,desc:row.description,rules:row.rules,pollId:poll?.id||null,pollQuestion:poll?.question||"",options:pollOptions.map(x=>({id:x.id,label:x.label})),participants:partMap,votes:voteMap};
+ });
+ render();
+}
+function subscribeCloudActivities(){
+ activityChannels.forEach(ch=>supabase.removeChannel(ch));activityChannels=[];
+ ["activities","activity_participants","activity_polls","activity_poll_options","activity_poll_votes"].forEach(table=>{
+  activityChannels.push(supabase.channel("clan-"+table+"-"+currentProfile.id).on("postgres_changes",{event:"*",schema:"public",table},()=>loadCloudActivities()).subscribe());
+ });
+}
+async function saveCloudActivity(item){
+ const payload={title:item.name,starts_at:new Date(item.date).toISOString(),description:item.desc||"",rules:item.rules||""};
+ let id=editing;
+ if(id){
+  const result=await supabase.from("activities").update({...payload,updated_at:new Date().toISOString()}).eq("id",id);
+  if(result.error)throw result.error;
+  const removed=await supabase.from("activity_polls").delete().eq("activity_id",id);
+  if(removed.error)throw removed.error;
+ }else{
+  const result=await supabase.from("activities").insert({...payload,created_by:currentProfile.id}).select("id").single();
+  if(result.error)throw result.error;id=result.data.id;
+ }
+ if(item.pollQuestion&&item.options.length>=2){
+  const poll=await supabase.from("activity_polls").insert({activity_id:id,question:item.pollQuestion}).select("id").single();
+  if(poll.error)throw poll.error;
+  const inserted=await supabase.from("activity_poll_options").insert(item.options.map((label,index)=>({poll_id:poll.data.id,label,position:index})));
+  if(inserted.error)throw inserted.error;
+ }
+ editing=null;resetActivityForm();await loadCloudActivities();
+}
+$("#add-poll-option").onclick=()=>{const n=document.querySelectorAll(".poll-option").length;if(n<6){const input=document.createElement("input");input.className="poll-option";input.maxLength=50;input.placeholder="Opción "+(n+1);$("#poll-options").append(input)}};
+$("#activity-form").onsubmit=async e=>{
+ e.preventDefault();if(!isLeader())return;
+ const options=[...document.querySelectorAll(".poll-option")].map(x=>x.value.trim()).filter(Boolean);
+ const item={name:$("#activity-name").value.trim(),date:$("#activity-date").value,desc:$("#activity-desc").value.trim(),rules:$("#activity-rules").value.trim(),pollQuestion:$("#poll-question").value.trim(),options:options.length>=2?options:[]};
+ const button=$("#activity-submit");button.disabled=true;button.textContent="Guardando en la nube…";
+ try{await saveCloudActivity(item)}catch(error){alert("No se pudo guardar la actividad: "+(error.message||"Error desconocido"))}
+ finally{button.disabled=false;button.textContent=editing?"Guardar cambios":"Publicar actividad"}
+};
 function resetActivityForm(){editing=null;$("#activity-form").reset();$("#activity-form-title").textContent="Crear actividad";$("#activity-submit").textContent="Publicar actividad";$("#cancel-edit").classList.add("hidden")}
 $("#cancel-edit").onclick=resetActivityForm;
-$("#activities-list").onclick=e=>{const card=e.target.closest("[data-id]");if(!card)return;const id=Number(card.dataset.id),a=activities.find(x=>x.id===id);if(!a)return;const user=role; if(e.target.dataset.action==="edit"&&isLeader()){editing=id;$("#activity-name").value=a.name;$("#activity-date").value=a.date;$("#activity-desc").value=a.desc;$("#activity-rules").value=a.rules;$("#poll-question").value=a.pollQuestion||"";$("#poll-options").innerHTML=(a.options?.length?a.options:["",""]).map((o,i)=>`<input class="poll-option" maxlength="50" placeholder="Opción ${i+1}" value="${esc(o)}">`).join("");$("#activity-form-title").textContent="Editar actividad";$("#activity-submit").textContent="Guardar cambios";$("#cancel-edit").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"})}
-if(e.target.dataset.action==="delete"&&isLeader()&&confirm("¿Eliminar esta actividad?"))activities=activities.filter(x=>x.id!==id);
-if(e.target.dataset.action==="join"||e.target.dataset.action==="leave"){const going=e.target.dataset.action==="join";if(!going){const start=new Date(a.date).getTime();if(Date.now()>=start-60*60*1000){alert("Ya no puedes cancelar: el límite es una hora antes del inicio.");return}}a.participants[user]=going; }
-if(e.target.dataset.vote){a.votes[user]=e.target.dataset.vote}
-write("tb3st-activities",activities);render()};
+$("#activities-list").onclick=async e=>{
+ const action=e.target.closest("[data-action]"), voteButton=e.target.closest("[data-vote]"), card=e.target.closest("[data-id]");
+ if(!card)return;const activity=activities.find(x=>x.id===card.dataset.id);if(!activity)return;
+ try{
+  if(action?.dataset.action==="edit"&&isLeader()){
+   editing=activity.id;$("#activity-name").value=activity.name;$("#activity-date").value=new Date(activity.date).toISOString().slice(0,16);$("#activity-desc").value=activity.desc;$("#activity-rules").value=activity.rules;$("#poll-question").value=activity.pollQuestion||"";
+   $("#poll-options").innerHTML=(activity.options.length?activity.options.map(x=>x.label):["",""]).map((label,index)=>'<input class="poll-option" maxlength="50" placeholder="Opción '+(index+1)+'" value="'+esc(label)+'">').join("");
+   $("#activity-form-title").textContent="Editar actividad";$("#activity-submit").textContent="Guardar cambios";$("#cancel-edit").classList.remove("hidden");window.scrollTo({top:0,behavior:"smooth"});return;
+  }
+  if(action?.dataset.action==="delete"&&isLeader()&&confirm("¿Eliminar esta actividad para todos?")){
+   const result=await supabase.from("activities").delete().eq("id",activity.id);if(result.error)throw result.error;await loadCloudActivities();return;
+  }
+  if(action?.dataset.action==="join"||action?.dataset.action==="leave"){
+   const attending=action.dataset.action==="join";
+   if(!attending&&Date.now()>=new Date(activity.date).getTime()-3600000){alert("Ya no puedes cancelar: el límite es una hora antes.");return}
+   const result=await supabase.from("activity_participants").upsert({activity_id:activity.id,user_id:currentProfile.id,attending,updated_at:new Date().toISOString()},{onConflict:"activity_id,user_id"});
+   if(result.error)throw result.error;await loadCloudActivities();return;
+  }
+  if(voteButton){
+   const result=await supabase.from("activity_poll_votes").upsert({poll_id:activity.pollId,option_id:voteButton.dataset.vote,user_id:currentProfile.id},{onConflict:"poll_id,user_id"});
+   if(result.error)throw result.error;await loadCloudActivities();return;
+  }
+ }catch(error){alert("No se pudo sincronizar el cambio: "+(error.message||"Error desconocido"))}
+};
 function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#clan-member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.display_name)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small>${isLeader()?`<small class="role-account-id">ID cuenta: ${esc(m.id)} · ID Free Fire: ${esc(m.ff_id||"No registrado")}</small>`:(m.ff_id?`<small class="role-account-id">ID Free Fire: ${esc(m.ff_id)}</small>`:"")}</div>${canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:""}</div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
-$("#activities-list").innerHTML=activities.map(a=>{const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[role],voted=a.votes?.[role];const participants=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]);const no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);return `<article class="panel activity-card" data-id="${a.id}"><div class="panel-title"><h3>${esc(a.name)}</h3><span class="tag">${isNaN(start)? "Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${esc(a.desc||"Sin descripción.")}</p>${a.rules?`<div class="activity-rules"><b>Reglas</b><p>${esc(a.rules)}</p></div>`:""}<div class="attendance-actions"><button class="${going?"secondary-btn":"primary-btn"}" data-action="${going?"leave":"join"}" ${!going&&locked?"disabled":""}>${going?"Cancelar participación":"Voy a participar"}</button><span class="muted">${locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes"}</span></div><div class="participant-grid"><div><b>Participan (${participants.length})</b><small>${participants.map(esc).join(", ")||"Nadie todavía"}</small></div><div><b>No participan (${no.length})</b><small>${no.map(esc).join(", ")||"Sin respuestas"}</small></div></div>${a.pollQuestion&&a.options?.length?`<div class="poll"><b>Encuesta: ${esc(a.pollQuestion)}</b>${a.options.map(o=>`<button class="poll-choice ${voted===o?"chosen":""}" data-vote="${esc(o)}">${esc(o)} <small>${Object.values(a.votes||{}).filter(v=>v===o).length} votos</small></button>`).join("")}<small>Tu voto: ${esc(voted||"Sin votar")}</small><p class="muted">Votos registrados: ${Object.entries(a.votes||{}).map(([u,v])=>esc(u)+": "+esc(v)).join(" · ")||"Ninguno"}</p></div>`:""}${isLeader()?`<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>`:""}</article>`}).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
+$("#activities-list").innerHTML=activities.map(a=>{
+ const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];
+ const displayNames=ids=>ids.map(id=>esc(cloudMembers.find(m=>m.id===id)?.display_name||"Integrante")).join(", ")||"Nadie todavía";
+ const yes=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]),no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);
+ return '<article class="panel activity-card" data-id="'+a.id+'"><div class="panel-title"><h3>'+esc(a.name)+'</h3><span class="tag">'+(isNaN(start)?"Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"}))+'</span></div><p>'+esc(a.desc||"Sin descripción.")+'</p>'+(a.rules?'<div class="activity-rules"><b>Reglas</b><p>'+esc(a.rules)+'</p></div>':"")+'<div class="attendance-actions"><button class="'+(going?"secondary-btn":"primary-btn")+'" data-action="'+(going?"leave":"join")+'" '+(!going&&locked?"disabled":"")+'>'+(going?"Cancelar participación":"Voy a participar")+'</button><span class="muted">'+(locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes")+'</span></div><div class="participant-grid"><div><b>Participan ('+yes.length+')</b><small>'+displayNames(yes)+'</small></div><div><b>No participan ('+no.length+')</b><small>'+displayNames(no)+'</small></div></div>'+(a.pollQuestion&&a.options.length?'<div class="poll"><b>Encuesta: '+esc(a.pollQuestion)+'</b>'+a.options.map(o=>'<button class="poll-choice '+(voted===o.id?"chosen":"")+'" data-vote="'+o.id+'">'+esc(o.label)+' <small>'+Object.values(a.votes||{}).filter(v=>v===o.id).length+' votos</small></button>').join("")+'<small>Tu voto: '+(voted?esc(a.options.find(o=>o.id===voted)?.label||"Voto registrado"):"Sin votar")+'</small></div>':"")+(isLeader()?'<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>':"")+'</article>';
+}).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
 render();
 
-// Copias personales en Supabase Storage: cada cuenta solo puede acceder a su propia carpeta.
-const BACKUP_BUCKET = "user-backups";
-const BACKUP_FILE = "backup.json";
-const backupStatus = $("#backup-status");
-const backupUploadButton = $("#backup-upload");
-const backupDownloadButton = $("#backup-download");
-const backupRestoreButton = $("#backup-restore");
 
-function getBackupPayload() {
-  return {
-    format: "CL4NTB3ST_BACKUP",
-    version: 1,
-    createdAt: new Date().toISOString(),
-    data: {
-      members: read("tb3st-members", []),
-      activities: read("tb3st-activities", []),
-      webLink: ""
-    }
-  };
+const lobbyAudio=$("#lobby-audio"),musicToggle=$("#music-toggle");
+let musicFadeTimer=null;
+function stopLobbyMusic(){if(musicFadeTimer)clearInterval(musicFadeTimer);musicFadeTimer=null;if(lobbyAudio){lobbyAudio.pause();lobbyAudio.currentTime=0;lobbyAudio.volume=0}}
+async function playLobbyMusic(){
+ if(!lobbyAudio||!currentProfile)return;
+ if(musicFadeTimer)clearInterval(musicFadeTimer);lobbyAudio.loop=true;lobbyAudio.volume=0;
+ try{await lobbyAudio.play();let volume=0;musicFadeTimer=setInterval(()=>{volume=Math.min(.55,volume+.025);lobbyAudio.volume=volume;if(volume>=.55){clearInterval(musicFadeTimer);musicFadeTimer=null}},180);musicToggle.textContent="Silenciar música";musicToggle.dataset.muted="false";musicToggle.setAttribute("aria-pressed","false")}
+ catch(error){musicToggle.textContent="Activar música"}
 }
-
-function validateBackup(payload) {
-  if (!payload || payload.format !== "CL4NTB3ST_BACKUP" || payload.version !== 1 || !payload.data) {
-    throw new Error("El archivo no es una copia válida de CL4N TB3ST.");
-  }
-  if (!Array.isArray(payload.data.members) || !Array.isArray(payload.data.activities)) {
-    throw new Error("La copia está incompleta o dañada.");
-  }
-  return payload;
+async function initLobbyMusic(){
+ if(!lobbyAudio||!currentProfile)return;
+ const result=await supabase.from("member_preferences").select("music_muted").eq("user_id",currentProfile.id).maybeSingle();
+ const muted=result.error?false:!!result.data?.music_muted;
+ musicToggle.dataset.muted=String(muted);musicToggle.textContent=muted?"Activar música":"Silenciar música";musicToggle.setAttribute("aria-pressed",String(muted));
+ if(!muted)await playLobbyMusic();else stopLobbyMusic();
 }
-
-async function getBackupPath() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) throw error;
-  if (!user) throw new Error("Inicia sesión para usar las copias de seguridad.");
-  return user.id + "/" + BACKUP_FILE;
-}
-
-function downloadBackupFile(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 30000);
-}
-
-async function fetchCloudBackup() {
-  const path = await getBackupPath();
-  const { data, error } = await supabase.storage.from(BACKUP_BUCKET).download(path);
-  if (error) throw error;
-  const payload = validateBackup(JSON.parse(await data.text()));
-  return { payload, blob: data };
-}
-
-if (backupUploadButton) backupUploadButton.onclick = async () => {
-  backupUploadButton.disabled = true;
-  backupStatus.textContent = "Subiendo tus datos de forma privada…";
-  try {
-    const path = await getBackupPath();
-    const payload = getBackupPayload();
-    const file = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const { error } = await supabase.storage.from(BACKUP_BUCKET).upload(path, file, {
-      contentType: "application/json",
-      upsert: true,
-      cacheControl: "0"
-    });
-    if (error) throw error;
-    backupStatus.textContent = "Copia guardada en la nube. Última copia: " + new Date(payload.createdAt).toLocaleString("es-PA");
-  } catch (error) {
-    backupStatus.textContent = "No se pudo subir la copia: " + (error.message || "Error desconocido");
-  } finally {
-    backupUploadButton.disabled = false;
-  }
+if(musicToggle)musicToggle.onclick=async()=>{
+ if(!currentProfile)return;const muted=musicToggle.dataset.muted!=="true";musicToggle.disabled=true;
+ try{
+  const result=await supabase.from("member_preferences").upsert({user_id:currentProfile.id,music_muted:muted,updated_at:new Date().toISOString()},{onConflict:"user_id"});
+  if(result.error)throw result.error;
+  if(muted){stopLobbyMusic();musicToggle.textContent="Activar música";musicToggle.dataset.muted="true";musicToggle.setAttribute("aria-pressed","true")}else await playLobbyMusic();
+ }catch(error){alert("No se pudo guardar tu preferencia: "+(error.message||"Error desconocido"))}
+ finally{musicToggle.disabled=false}
 };
-
-if (backupDownloadButton) backupDownloadButton.onclick = async () => {
-  backupDownloadButton.disabled = true;
-  backupStatus.textContent = "Buscando tu copia en la nube…";
-  try {
-    const { payload, blob } = await fetchCloudBackup();
-    const date = new Date(payload.createdAt);
-    const stamp = isNaN(date) ? "backup" : date.toISOString().slice(0, 10);
-    downloadBackupFile(blob, "CL4NTB3ST-copia-" + stamp + ".json");
-    backupStatus.textContent = "Descarga preparada. Copia guardada el " + (isNaN(date) ? "día desconocido" : date.toLocaleString("es-PA")) + ".";
-  } catch (error) {
-    backupStatus.textContent = "No se pudo descargar: " + (error.message || "Error desconocido");
-  } finally {
-    backupDownloadButton.disabled = false;
-  }
-};
-
-if (backupRestoreButton) backupRestoreButton.onclick = async () => {
-  if (!confirm("Esto reemplazará los integrantes, actividades y enlace web de este teléfono por los datos de tu copia en la nube. ¿Continuar?")) return;
-  backupRestoreButton.disabled = true;
-  backupStatus.textContent = "Descargando y comprobando la copia…";
-  try {
-    const { payload } = await fetchCloudBackup();
-    localStorage.setItem("tb3st-members", JSON.stringify(payload.data.members));
-    localStorage.setItem("tb3st-activities", JSON.stringify(payload.data.activities));
-    members = payload.data.members;
-    activities = payload.data.activities;
-    render();
-    backupStatus.textContent = "Restauración completada. Datos recuperados de la copia del " + new Date(payload.createdAt).toLocaleString("es-PA") + ".";
-  } catch (error) {
-    backupStatus.textContent = "No se pudo restaurar: " + (error.message || "Error desconocido");
-  } finally {
-    backupRestoreButton.disabled = false;
-  }
-};
-
-
-// Acceso a archivos mediante los selectores nativos de Android.
-// Android entrega acceso solo a los elementos elegidos; no se solicita acceso total al almacenamiento.
-const pickMediaButton = $("#pick-media");
-const pickDocumentsButton = $("#pick-documents");
-const fileAccessStatus = $("#file-access-status");
-
-if (pickMediaButton) pickMediaButton.addEventListener("click", async () => {
-  pickMediaButton.disabled = true;
-  fileAccessStatus.textContent = "Abriendo la galería del teléfono…";
-  try {
-    const result = await FilePicker.pickMedia({ limit: 0 });
-    const count = result.files?.length || 0;
-    fileAccessStatus.textContent = count
-      ? count + " archivo(s) multimedia seleccionado(s): " + result.files.map(file => file.name || "Archivo").join(", ")
-      : "No se seleccionaron archivos.";
-  } catch (error) {
-    fileAccessStatus.textContent = "No se pudo abrir la galería: " + (error.message || "Operación cancelada.");
-  } finally {
-    pickMediaButton.disabled = false;
-  }
-});
-
-if (pickDocumentsButton) pickDocumentsButton.addEventListener("click", async () => {
-  pickDocumentsButton.disabled = true;
-  fileAccessStatus.textContent = "Abriendo el selector de documentos…";
-  try {
-    if (isNativeApp) {
-      const permission = await FilePicker.requestPermissions({ permissions: ["readExternalStorage"] });
-      if (permission.readExternalStorage === "denied") {
-        fileAccessStatus.textContent = "El permiso de lectura fue denegado. El selector del sistema puede seguir permitiendo elegir archivos.";
-      }
-    }
-    const result = await FilePicker.pickFiles({ multiple: true });
-    const count = result.files?.length || 0;
-    fileAccessStatus.textContent = count
-      ? count + " documento(s) seleccionado(s): " + result.files.map(file => file.name || "Archivo").join(", ")
-      : "No se seleccionaron documentos.";
-  } catch (error) {
-    fileAccessStatus.textContent = "No se pudo abrir el selector: " + (error.message || "Operación cancelada.");
-  } finally {
-    pickDocumentsButton.disabled = false;
-  }
-});
-
 
 // Iconografía coherente para acciones y controles de toda la interfaz.
 const interfaceIconPaths = {
