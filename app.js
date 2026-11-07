@@ -475,15 +475,16 @@ function subscribeClanPresence(){
  if(clanPresenceChannel)supabase.removeChannel(clanPresenceChannel);
  if(!currentProfile)return;
  const memberId=currentProfile.id;
- clanPresenceChannel=supabase.channel("clan-online-presence",{config:{presence:{key:memberId}}});
+ clanPresenceChannel=supabase.channel("clan-online-presence");
  clanPresenceChannel.on("presence",{event:"sync"},()=>{
   const state=clanPresenceChannel.presenceState();
-  onlineClanMembers=new Set(Object.keys(state));
+  onlineClanMembers=new Set(Object.values(state).flat().map(presence=>presence.user_id).filter(Boolean));
   updateConnectionBadges();
   document.dispatchEvent(new CustomEvent("clan-presence-updated"));
  });
  if(!presenceLifecycleBound){
   document.addEventListener("visibilitychange",()=>setClanPresenceActive(document.visibilityState==="visible"));
+  document.addEventListener("clan-presence-updated",updateConnectionBadges);
   App.addListener("appStateChange",({isActive})=>setClanPresenceActive(Boolean(isActive)));
   presenceLifecycleBound=true;
  }
@@ -900,7 +901,7 @@ function render(){renderWeb();renderRules();const activeMembers=cloudMembers.fil
   if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
   else moderation=`<button class="secondary-btn" data-member-action="restore" data-member-id="${esc(m.id)}" type="button">${status==="banned"?"Quitar veto":"Reintegrar"}</button>`;
  }
- return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small><small class="connection-status offline" data-connection-user="${esc(m.id)}">Desconectado</small></div><div class="member-actions">${edit}${moderation}</div></div>`;
+ return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small><small class="connection-status ${onlineClanMembers.has(m.id)?"online":"offline"}" data-connection-user="${esc(m.id)}">${onlineClanMembers.has(m.id)?"En línea":"Desconectado"}</small></div><div class="member-actions">${edit}${moderation}</div></div>`;
 }).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{
  const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];
