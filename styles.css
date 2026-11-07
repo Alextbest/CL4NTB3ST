@@ -438,4 +438,26 @@ footer span{color:#ffd45e}
 .news-main-link{color:#281b30}
 #page-home{padding-bottom:22px}
 @media(max-width:390px){.app-shell{padding-left:11px;padding-right:11px}.tb3st-clan-status{gap:8px;padding:11px}.tb3st-clan-data strong{font-size:17px}.tb3st-clan-level{padding-left:9px}.tb3st-card-copy b{font-size:13px}.tb3st-card-copy small{font-size:11px;line-height:1.4}.tb3st-quick-grid .quick-card{gap:7px;padding:10px 8px}}
+
+.muted{font-size:12px;letter-spacing:0;color:#eee5f4}
+.footnote{font-size:12px;letter-spacing:0;color:#eee5f4}
+.eyebrow{font-size:11px;letter-spacing:1px}
+.stats span{font-size:11px;letter-spacing:.5px;color:#eee5f4}
+.rolebar small{font-size:12px;color:#eee5f4}
+.member-info small,.social-comment small{font-size:11px;color:#eee5f4}
+.tb3st-card-copy small,.tb3st-clan-data small,.tb3st-announcement p{font-size:11px;color:#eee5f4}
+.review-card>a{color:#ffe18a;text-decoration:underline}
+.notice p{color:#eee5f4}
+.mandatory-update-changes-wrap h2{color:#fff}
+.mandatory-update-footnote{color:#eee5f4;font-size:11px;line-height:1.5}
+.mandatory-update-progress-heading{display:flex;justify-content:space-between;gap:12px;margin:8px 0;color:#fff;font-size:12px}
+.mandatory-update-progress-heading strong{color:#ffe18a}
+.mandatory-update-progress{display:block;width:100%;height:10px;border:1px solid #805a98;border-radius:999px;overflow:hidden;background:#1a1224;accent-color:#ffd45e}
+.mandatory-update-progress::-webkit-progress-bar{background:#1a1224}
+.mandatory-update-progress::-webkit-progress-value{background:linear-gradient(90deg,#c58aff,#ffd45e);border-radius:999px}
+.mandatory-update-progress::-moz-progress-bar{background:linear-gradient(90deg,#c58aff,#ffd45e);border-radius:999px}
+.hero,.tb3st-home-hero,.panel,.rolebar,.quick-card,.rules-list article,.feature-row,.ranking-row,.badge-card,.social-post,.review-card,.mission-card{animation:none}
+.primary-btn,.secondary-btn,.danger-btn,.web-open-btn,.tab,.poll-choice,.news-slide,.rule-remove{animation:none;transition:background .18s ease,border-color .18s ease,transform .18s ease,filter .18s ease}
+button:active{transform:scale(.985)}
+
 @media(prefers-reduced-motion:reduce){.quick-icon svg,.brand-logo,.mandatory-update-mark{animation:none!important}}
