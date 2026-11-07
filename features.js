@@ -305,13 +305,13 @@ export function initClanFeatures(supabase, profile, role) {
   const refreshAll = async () => {
     await Promise.all([loadPresence(),loadMissions(),loadRanking(),loadBadges(),loadWall()]);
   };
-  if (!featureChannels.some(ch=>ch.topic?.includes("tb3st-presence"))) {
-    featureChannels.push(supabase.channel("tb3st-presence-live")
-      .on("postgres_changes",{event:"*",schema:"public",table:"member_presence"},loadPresence).subscribe());
-  }
-  if (!featureChannels.some(ch=>ch.topic?.includes("tb3st-social"))) {
-    featureChannels.push(supabase.channel("tb3st-social-live")
-      .on("postgres_changes",{event:"*",schema:"public",table:"social_posts"},loadWall).subscribe());
+  if (featureChannels.length === 0) {
+    featureChannels.push(
+      supabase.channel("tb3st-presence-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"member_presence"},loadPresence).subscribe(),
+      supabase.channel("tb3st-social-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"social_posts"},loadWall).subscribe()
+    );
   }
   refreshAll();
 }
