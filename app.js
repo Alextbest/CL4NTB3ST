@@ -9,17 +9,21 @@ const ApkUpdater = registerPlugin("ApkUpdater");
 
 const isNativeApp = Capacitor.isNativePlatform();
 const authRedirectUrl = isNativeApp ? "com.clantb3st.app://auth-callback" : window.location.origin;
+let passwordRecoveryPending = false;
 
 async function handleNativeAuthUrl(rawUrl) {
   try {
     const callback = new URL(rawUrl);
+    const tokens = new URLSearchParams(callback.hash.replace(/^#/, ""));
+    if (callback.searchParams.get("type") === "recovery" || tokens.get("type") === "recovery") {
+      passwordRecoveryPending = true;
+    }
     const code = callback.searchParams.get("code");
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) throw error;
       return;
     }
-    const tokens = new URLSearchParams(callback.hash.replace(/^#/, ""));
     const access_token = tokens.get("access_token");
     const refresh_token = tokens.get("refresh_token");
     if (access_token && refresh_token) {
@@ -39,17 +43,22 @@ if (isNativeApp) {
 
 console.info("Supabase preparado para CL4N TB3ST", Boolean(supabase));
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const authGate=$("#auth-gate"), appRoot=$("#app"), sessionMessage=$("#session-message"), accessStep=$("#access-step"), authForm=$("#auth-form"), profileForm=$("#profile-form"), profileSubmit=$("#profile-submit");
+const authGate=$("#auth-gate"), appRoot=$("#app"), sessionMessage=$("#session-message"), accessStep=$("#access-step"), authForm=$("#auth-form"), profileForm=$("#profile-form"), profileSubmit=$("#profile-submit"), passwordRecoveryStep=$("#password-recovery-step"), passwordRecoveryForm=$("#password-recovery-form");
 const authTitle=$("#auth-title"), authDescription=$("#auth-description"), authSubmit=$("#auth-submit"), authToggle=$("#auth-mode-toggle"), authForgot=$("#auth-forgot"), signOutButton=$("#app-signout");
 let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
 function showAccess(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
-function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
+function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden");passwordRecoveryStep.classList.add("hidden")}
+function showPasswordRecovery(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.remove("hidden");hideLoadingScreen();sessionMessage.textContent="Escribe y confirma tu nueva contraseña para CL4NTB3ST."}
 function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus();subscribeClanPresence()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data&&data.membership_status!=="active"){currentProfile=null;role="Miembro";showAccess();sessionMessage.textContent=data.membership_status==="banned"?"Tu cuenta está vetada y no puede acceder a CL4NTB3ST. Contacta al líder si necesitas solicitar una revisión.":"Tu acceso al clan fue retirado. Contacta al líder si necesitas solicitar tu reincorporación.";await supabase.auth.signOut();return}if(data)showApp(data,session);else showRegistration()}
-async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
+async function restoreSession(){if(passwordRecoveryPending){showPasswordRecovery();return}const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function passwordChecks(value){return {length:value.length>=8,lower:/[a-z]/.test(value),upper:/[A-Z]/.test(value),number:/[0-9]/.test(value),symbol:/[^A-Za-z0-9\s]/.test(value)}}
 function updatePasswordRules(){const input=$("#auth-password"),checks=passwordChecks(input.value);for(const [key,ok] of Object.entries(checks)){const item=$("#pw-"+key);if(item){item.textContent=(ok?"✓ ":"○ ")+({length:"Al menos 8 caracteres",lower:"Una letra minúscula",upper:"Una letra mayúscula",number:"Un número",symbol:"Un símbolo (por ejemplo: !, @, # o $)"}[key]);item.classList.toggle("password-rule-met",ok)}}return Object.values(checks).every(Boolean)}
+function updateRecoveryPasswordRules(){const input=$("#recovery-password"),checks=passwordChecks(input.value);for(const [key,ok] of Object.entries(checks)){const item=$("#recovery-pw-"+key);if(item){item.textContent=(ok?"✓ ":"○ ")+({length:"Al menos 8 caracteres",lower:"Una letra minúscula",upper:"Una letra mayúscula",number:"Un número",symbol:"Un símbolo (por ejemplo: !, @, # o $)"}[key]);item.classList.toggle("password-rule-met",ok)}}return Object.values(checks).every(Boolean)}
+$("#recovery-password").addEventListener("input",updateRecoveryPasswordRules);
+passwordRecoveryForm.onsubmit=async e=>{e.preventDefault();if(authBusy)return;const password=$("#recovery-password").value,confirm=$("#recovery-password-confirm").value;if(!updateRecoveryPasswordRules()){sessionMessage.textContent="La nueva contraseña no cumple todos los requisitos.";return}if(password!==confirm){sessionMessage.textContent="Las contraseñas no coinciden.";return}authBusy=true;$("#password-recovery-submit").disabled=true;sessionMessage.textContent="Actualizando contraseña…";try{const {error}=await supabase.auth.updateUser({password});if(error)throw error;passwordRecoveryPending=false;await supabase.auth.signOut();showAccess();setAuthMode("signin");sessionMessage.textContent="Contraseña actualizada correctamente. Inicia sesión con tu nueva contraseña."}catch(error){sessionMessage.textContent="No se pudo actualizar la contraseña: "+(error.message||"Error desconocido")}finally{authBusy=false;$("#password-recovery-submit").disabled=false}};
+$("#password-recovery-cancel").onclick=async()=>{passwordRecoveryPending=false;await supabase.auth.signOut();showAccess();setAuthMode("signin")};
 $("#auth-password").addEventListener("input",()=>{if(authMode==="signup")updatePasswordRules()});
 function setAuthMode(mode){authMode=mode;const signup=mode==="signup";authTitle.textContent=signup?"Crear cuenta en CL4N TB3ST":"Entrar a CL4N TB3ST";authDescription.textContent=signup?"Regístrate con un correo y una contraseña exclusiva para esta aplicación.":"Inicia sesión con el correo y la contraseña de tu cuenta del clan.";authSubmit.textContent=signup?"Crear cuenta":"Iniciar sesión";authToggle.textContent=signup?"Ya tengo cuenta":"Crear cuenta nueva";$("#auth-password").autocomplete=signup?"new-password":"current-password";$("#auth-password").value="";$("#password-rules").classList.toggle("hidden",!signup);if(signup)updatePasswordRules();authForgot.classList.toggle("hidden",signup);sessionMessage.textContent=""}
 authToggle.onclick=()=>setAuthMode(authMode==="signin"?"signup":"signin");
@@ -58,7 +67,7 @@ authForgot.onclick=async()=>{const email=$("#auth-email").value.trim().toLowerCa
 if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}stopLobbyMusic();currentProfile=null;role="Miembro";stopClanPresence();showAccess();setAuthMode("signin");signOutButton.disabled=false};
 const ffIdInput=$("#profile-ffid");ffIdInput.addEventListener("input",()=>{ffIdInput.value=ffIdInput.value.replace(/\D/g,"").slice(0,11)});
 profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.trim();if(!/^[0-9]{1,11}$/.test(ffId)){sessionMessage.textContent="El ID de Free Fire debe contener solo números y tener como máximo 11 dígitos.";ffIdInput.focus();return}const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Guardando tus datos…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:ffId,phone_e164:phone};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,role").single();if(error)throw error;showApp(data,session)}catch(error){const duplicateFfId=error.code==="23505"&&/profiles_ff_id_unique_idx|ff_id/i.test((error.message||"")+" "+(error.details||""));const duplicatePhone=error.code==="23505"&&/phone_e164/i.test((error.message||"")+" "+(error.details||""));sessionMessage.textContent=duplicateFfId?"Ese ID de Free Fire ya está registrado. No puedes usar el ID de otra cuenta.":duplicatePhone?"Ese número ya está registrado. Usa otro número.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
-supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();showAccess();return}if(event==="SIGNED_IN"&&session){loadProfile(session)}});
+supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();showAccess();return}if(event==="PASSWORD_RECOVERY"){passwordRecoveryPending=true;showPasswordRecovery();return}if(event==="SIGNED_IN"&&session){if(passwordRecoveryPending)showPasswordRecovery();else loadProfile(session)}});
 setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
 const PATCH_BUILTIN_VERSION = "__CL4NTB3ST_PATCH_VERSION__";
