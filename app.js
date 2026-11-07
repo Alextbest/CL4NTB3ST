@@ -71,7 +71,9 @@ async function checkForRemotePatch() {
       manifest.nativeApi !== PATCH_NATIVE_API ||
       typeof manifest.version !== "string" ||
       !/^ota-[0-9]+$/.test(manifest.version) ||
-      typeof manifest.url !== "string"
+      typeof manifest.url !== "string" ||
+      typeof manifest.checksum !== "string" ||
+      !/^[a-f0-9]{64}$/i.test(manifest.checksum)
     ) return;
 
     const patchUrl = new URL(manifest.url);
@@ -93,7 +95,8 @@ async function checkForRemotePatch() {
 
     const downloaded = await CapacitorUpdater.download({
       version: manifest.version,
-      url: manifest.url
+      url: manifest.url,
+      checksum: manifest.checksum
     });
     if (!downloaded?.id) throw new Error("El paquete descargado no devolvió un identificador válido.");
     await CapacitorUpdater.set({ id: downloaded.id });
