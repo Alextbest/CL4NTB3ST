@@ -435,15 +435,17 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     $("#gold-balance").textContent=Number(balanceData||0).toLocaleString("es-PA")+" oro";
     host.innerHTML=rows.map(row=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(row.reason)+'</b><small>'+dateText(row.created_at)+' · '+esc(row.source_type)+'</small></div><strong class="'+(row.amount>0?"gold-positive":"gold-negative")+'">'+(row.amount>0?"+":"")+Number(row.amount).toLocaleString("es-PA")+' oro</strong></article>').join("")||'<p class="muted">Todavía no tienes movimientos de oro.</p>';
     const select=$("#gold-award-form select[name=user_id]");
-    if(isLeader()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("")}
+    if(isLeader()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");const missionSelect=$("#gold-award-form select[name=mission_id]");const {data:missions}=await supabase.from("clan_missions").select("id,title,gold_reward").eq("is_active",true).order("created_at",{ascending:false});if(missionSelect)missionSelect.innerHTML='<option value="">Otorgamiento manual</option>'+(missions||[]).map(m=>'<option value="'+m.id+'" data-gold="'+m.gold_reward+'" data-title="'+esc(m.title)+'">'+esc(m.title)+' · '+Number(m.gold_reward).toLocaleString("es-PA")+' oro</option>').join("")}
     $("#gold-award-form")?.classList.toggle("hidden",!isLeader());
   }
   const goldAwardForm=$("#gold-award-form");
+  const goldMissionSelect=goldAwardForm?.elements.mission_id;
+  if(goldMissionSelect)goldMissionSelect.addEventListener("change",()=>{const option=goldMissionSelect.selectedOptions[0];if(!option?.value)return;goldAwardForm.elements.amount.value=option.dataset.gold||0;goldAwardForm.elements.reason.value="Recompensa por misión: "+(option.dataset.title||"");goldAwardForm.elements.source_type.value="mission"});
   if(goldAwardForm)goldAwardForm.onsubmit=async e=>{
     e.preventDefault();if(!isLeader())return;
     const button=goldAwardForm.querySelector('button[type="submit"]');button.disabled=true;
     $("#gold-award-status").textContent="Registrando oro…";
-    const {error}=await supabase.rpc("grant_clan_gold",{p_user_id:goldAwardForm.elements.user_id.value,p_amount:Number(goldAwardForm.elements.amount.value),p_reason:goldAwardForm.elements.reason.value.trim(),p_source_type:goldAwardForm.elements.source_type.value,p_source_id:null});
+    const {error}=await supabase.rpc("grant_clan_gold",{p_user_id:goldAwardForm.elements.user_id.value,p_amount:Number(goldAwardForm.elements.amount.value),p_reason:goldAwardForm.elements.reason.value.trim(),p_source_type:goldAwardForm.elements.source_type.value,p_source_id:goldAwardForm.elements.mission_id.value||null});
     $("#gold-award-status").textContent=error?"No se pudo otorgar oro: "+error.message:"Oro otorgado correctamente.";
     button.disabled=false;if(!error){goldAwardForm.elements.amount.value="";goldAwardForm.elements.reason.value="";await loadWallet();}
   };
