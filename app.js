@@ -72,7 +72,6 @@ supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopC
 setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
 const PATCH_BUILTIN_VERSION = "ota-315";
-const PATCH_RETIRED_THROUGH = 326;
 const PATCH_NATIVE_API = 1;
 const mandatoryUpdateScreen = $("#mandatory-update-screen");
 const mandatoryUpdateVersion = $("#mandatory-update-version");
@@ -144,7 +143,9 @@ async function checkForRemotePatch() {
     ) throw new Error("El enlace del parche no es válido.");
 
     const manifestPatchNumber = Number(manifest.version.slice(4));
-    if (manifestPatchNumber <= PATCH_RETIRED_THROUGH) {
+    const installedApk = await ApkUpdater.getInstalledVersion();
+    const installedApkVersionCode = Number(installedApk?.versionCode) || 0;
+    if (manifestPatchNumber <= installedApkVersionCode) {
       otaPatchManifest = null;
       if (mandatoryUpdateScreen) mandatoryUpdateScreen.classList.add("hidden");
       return "current";
