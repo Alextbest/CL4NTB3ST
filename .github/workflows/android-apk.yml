@@ -72,7 +72,13 @@ jobs:
             "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/clantb3st-web-bundle.zip",
             "nativeApi": 1,
             "checksum": "${CHECKSUM}",
-            "notes": "Actualización remota de CL4N TB3ST"
+            "notes": "Actualización obligatoria de CL4N TB3ST. Instala este parche para continuar.",
+            "changes": [
+              "Comprobación automática del parche antes de mostrar el acceso.",
+              "Descripción y lista del contenido antes de descargar.",
+              "Acceso bloqueado hasta completar la instalación.",
+              "Botón para reintentar si falla la conexión o la descarga."
+            ]
           }
           EOF
 

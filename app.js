@@ -58,32 +58,58 @@ setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
 const PATCH_BUILTIN_VERSION = "__CL4NTB3ST_PATCH_VERSION__";
 const PATCH_NATIVE_API = 1;
-const otaUpdatePanel = $("#ota-update-panel");
-const otaUpdateMessage = $("#ota-update-message");
-const otaUpdateButton = $("#ota-update-button");
+const mandatoryUpdateScreen = $("#mandatory-update-screen");
+const mandatoryUpdateVersion = $("#mandatory-update-version");
+const mandatoryUpdateNotes = $("#mandatory-update-notes");
+const mandatoryUpdateChanges = $("#mandatory-update-changes");
+const mandatoryUpdateStatus = $("#mandatory-update-status");
+const mandatoryUpdateButton = $("#mandatory-update-button");
 let otaPatchManifest = null;
 let patchCheckRunning = false;
 let otaPatchBusy = false;
 
-function showOtaMessage(message) {
-  if (otaUpdateMessage) otaUpdateMessage.textContent = message;
+function showMandatoryUpdateStatus(message) {
+  if (mandatoryUpdateStatus) mandatoryUpdateStatus.textContent = message;
+}
+
+function showMandatoryUpdate(manifest) {
+  if (!mandatoryUpdateScreen) return;
+  mandatoryUpdateScreen.classList.remove("hidden");
+  hideLoadingScreen();
+  if (mandatoryUpdateVersion) mandatoryUpdateVersion.textContent = "Versión " + manifest.version;
+  if (mandatoryUpdateNotes) mandatoryUpdateNotes.textContent =
+    typeof manifest.notes === "string" && manifest.notes.trim()
+      ? manifest.notes
+      : "Esta actualización contiene mejoras y correcciones para CL4N TB3ST.";
+  if (mandatoryUpdateChanges) {
+    mandatoryUpdateChanges.replaceChildren();
+    const changes = Array.isArray(manifest.changes) && manifest.changes.length
+      ? manifest.changes
+      : ["Mejoras y correcciones de la aplicación."];
+    changes.slice(0, 8).forEach(change => {
+      const item = document.createElement("li");
+      item.textContent = String(change);
+      mandatoryUpdateChanges.appendChild(item);
+    });
+  }
 }
 
 async function checkForRemotePatch() {
-  if (!isNativeApp || patchCheckRunning) return;
+  if (!isNativeApp || patchCheckRunning) return "skip";
   patchCheckRunning = true;
-  if (otaUpdatePanel) otaUpdatePanel.classList.remove("hidden");
-  if (otaUpdateButton) {
-    otaUpdateButton.disabled = true;
-    otaUpdateButton.textContent = "Comprobando…";
+  if (mandatoryUpdateScreen) mandatoryUpdateScreen.classList.remove("hidden");
+  hideLoadingScreen();
+  if (mandatoryUpdateButton) {
+    mandatoryUpdateButton.disabled = true;
+    mandatoryUpdateButton.textContent = "Comprobando…";
   }
-  showOtaMessage("Buscando actualizaciones remotas…");
+  showMandatoryUpdateStatus("Buscando actualizaciones obligatorias…");
   try {
     const response = await fetch(PATCH_MANIFEST_URL, {
       cache: "no-store",
       headers: { Accept: "application/json" }
     });
-    if (!response.ok) throw new Error("No se pudo consultar el servidor de parches (HTTP " + response.status + ").");
+    if (!response.ok) throw new Error("El servidor respondió con HTTP " + response.status + ".");
     const manifest = await response.json();
     if (
       manifest.nativeApi !== PATCH_NATIVE_API ||
@@ -92,7 +118,7 @@ async function checkForRemotePatch() {
       typeof manifest.url !== "string" ||
       typeof manifest.checksum !== "string" ||
       !/^[a-f0-9]{64}$/i.test(manifest.checksum)
-    ) throw new Error("El manifiesto OTA no tiene un formato válido.");
+    ) throw new Error("El manifiesto de actualización no tiene un formato válido.");
 
     const patchUrl = new URL(manifest.url);
     if (
@@ -105,28 +131,39 @@ async function checkForRemotePatch() {
     const installedVersion = current?.bundle?.id === "builtin"
       ? PATCH_BUILTIN_VERSION
       : (current?.bundle?.version || current?.bundle?.id || PATCH_BUILTIN_VERSION);
+
     if (installedVersion === manifest.version) {
       otaPatchManifest = null;
-      showOtaMessage("La aplicación ya tiene el parche más reciente (" + manifest.version + ").");
-      if (otaUpdateButton) {
-        otaUpdateButton.disabled = false;
-        otaUpdateButton.textContent = "Comprobar de nuevo";
-      }
-      return;
+      if (mandatoryUpdateScreen) mandatoryUpdateScreen.classList.add("hidden");
+      return "current";
     }
+
     otaPatchManifest = manifest;
-    showOtaMessage("Parche " + manifest.version + " disponible. Puedes descargarlo ahora.");
-    if (otaUpdateButton) {
-      otaUpdateButton.disabled = false;
-      otaUpdateButton.textContent = "Descargar parche";
+    showMandatoryUpdate(manifest);
+    showMandatoryUpdateStatus("Hay una actualización pendiente. Debes instalarla para entrar a CL4N TB3ST.");
+    if (mandatoryUpdateButton) {
+      mandatoryUpdateButton.disabled = false;
+      mandatoryUpdateButton.textContent = "Descargar e instalar";
     }
+    return "available";
   } catch (error) {
-    showOtaMessage("No se pudo comprobar el parche: " + (error.message || "Error desconocido"));
-    if (otaUpdateButton) {
-      otaUpdateButton.disabled = false;
-      otaUpdateButton.textContent = "Reintentar";
+    otaPatchManifest = null;
+    if (mandatoryUpdateScreen) mandatoryUpdateScreen.classList.remove("hidden");
+    if (mandatoryUpdateVersion) mandatoryUpdateVersion.textContent = "No se pudo verificar la versión";
+    if (mandatoryUpdateNotes) mandatoryUpdateNotes.textContent = "La aplicación necesita conectarse al servidor para comprobar e instalar el parche obligatorio.";
+    if (mandatoryUpdateChanges) {
+      mandatoryUpdateChanges.replaceChildren();
+      const item = document.createElement("li");
+      item.textContent = "Conecta el teléfono a internet y vuelve a intentarlo.";
+      mandatoryUpdateChanges.appendChild(item);
     }
-    console.warn("No se pudo comprobar el parche remoto:", error);
+    showMandatoryUpdateStatus("Error al comprobar la actualización: " + (error.message || "Error desconocido"));
+    if (mandatoryUpdateButton) {
+      mandatoryUpdateButton.disabled = false;
+      mandatoryUpdateButton.textContent = "Reintentar comprobación";
+    }
+    console.warn("No se pudo comprobar el parche obligatorio:", error);
+    return "error";
   } finally {
     patchCheckRunning = false;
   }
@@ -139,32 +176,35 @@ async function downloadRemotePatch() {
     return;
   }
   otaPatchBusy = true;
-  if (otaUpdateButton) otaUpdateButton.disabled = true;
+  if (mandatoryUpdateButton) {
+    mandatoryUpdateButton.disabled = true;
+    mandatoryUpdateButton.textContent = "Descargando…";
+  }
   try {
-    showOtaMessage("Descargando y verificando el parche…");
-    if (!otaPatchManifest.url || !otaPatchManifest.checksum) throw new Error("Faltan datos del parche.");
+    showMandatoryUpdateStatus("Descargando el parche. No cierres la aplicación…");
     const downloaded = await CapacitorUpdater.download({
       version: otaPatchManifest.version,
       url: otaPatchManifest.url,
       checksum: otaPatchManifest.checksum
     });
     if (!downloaded?.id) throw new Error("La descarga no devolvió un identificador válido.");
-    showOtaMessage("Descarga completa. Aplicando " + otaPatchManifest.version + "…");
+    showMandatoryUpdateStatus("Descarga verificada. Instalando " + otaPatchManifest.version + "…");
+    if (mandatoryUpdateButton) mandatoryUpdateButton.textContent = "Instalando…";
     await CapacitorUpdater.set({ id: downloaded.id });
-    showOtaMessage("Parche aplicado. La aplicación se reiniciará.");
+    showMandatoryUpdateStatus("Parche aplicado. Reiniciando la aplicación…");
   } catch (error) {
-    showOtaMessage("No se pudo instalar el parche: " + (error.message || "Error desconocido"));
-    console.warn("No se pudo aplicar el parche remoto:", error);
+    showMandatoryUpdateStatus("No se pudo descargar o instalar: " + (error.message || "Error desconocido"));
+    console.warn("No se pudo aplicar el parche obligatorio:", error);
+    if (mandatoryUpdateButton) {
+      mandatoryUpdateButton.disabled = false;
+      mandatoryUpdateButton.textContent = "Reintentar descarga";
+    }
   } finally {
     otaPatchBusy = false;
-    if (otaUpdateButton) {
-      otaUpdateButton.disabled = false;
-      otaUpdateButton.textContent = otaPatchManifest ? "Reintentar descarga" : "Comprobar de nuevo";
-    }
   }
 }
 
-if (otaUpdateButton) otaUpdateButton.addEventListener("click", downloadRemotePatch);
+if (mandatoryUpdateButton) mandatoryUpdateButton.addEventListener("click", downloadRemotePatch);
 
 const APK_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/apk-manifest.json";
 const apkUpdatePanel = $("#apk-update-panel");
@@ -306,15 +346,21 @@ async function downloadApkUpdate() {
 
 if (apkUpdateButton) apkUpdateButton.addEventListener("click", downloadApkUpdate);
 
-restoreSession().finally(async () => {
-  hideLoadingScreen();
+async function startApplication() {
   if (isNativeApp) {
-    try { await CapacitorUpdater.notifyAppReady(); }
-    catch (error) { console.warn("No se pudo confirmar que la app está lista para recibir parches:", error); }
-    await checkForRemotePatch();
-    await checkForApkUpdate();
+    try {
+      await CapacitorUpdater.notifyAppReady();
+    } catch (error) {
+      console.warn("No se pudo confirmar que la versión instalada está lista:", error);
+    }
+    const patchState = await checkForRemotePatch();
+    if (patchState !== "current") return;
   }
-});
+  await restoreSession();
+  hideLoadingScreen();
+  if (isNativeApp) await checkForApkUpdate();
+}
+startApplication();
 async function refreshSignedInProfile(){
   if(document.hidden)return;
   const {data:{session}}=await supabase.auth.getSession();
