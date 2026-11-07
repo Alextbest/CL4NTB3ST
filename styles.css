@@ -341,3 +341,8 @@ button:active{transform:none}
 .social-content{white-space:pre-wrap;overflow-wrap:anywhere}
 
 .music-toggle{font-size:11px;padding:7px 10px;white-space:nowrap}
+
+/* Insignias junto al nombre del integrante */
+.member-name-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
+.member-name-badges{display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
+.member-name-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;font-size:15px;line-height:1;cursor:help}
