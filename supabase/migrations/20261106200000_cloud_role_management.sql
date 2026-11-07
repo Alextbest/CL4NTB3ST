@@ -102,3 +102,57 @@ revoke all on table public.profiles from authenticated;
 grant select, insert on table public.profiles to authenticated;
 grant update (display_name, ff_nick, ff_id, phone_e164)
 on table public.profiles to authenticated;
+
+-- Decanos y líderes pueden editar datos visibles de miembros, pero no sus rangos.
+create or replace function private.update_clan_member_details(
+  p_member_id uuid,
+  p_display_name text,
+  p_ff_nick text
+)
+returns table (id uuid, display_name text, ff_nick text, ff_id text, role text)
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_actor_role text;
+  v_target_role text;
+  v_name text := pg_catalog.btrim(coalesce(p_display_name, ''));
+  v_nick text := pg_catalog.btrim(coalesce(p_ff_nick, ''));
+begin
+  if auth.uid() is null then raise exception 'Debes iniciar sesión.'; end if;
+  select p.role into v_actor_role from public.profiles as p where p.id = auth.uid();
+  if v_actor_role not in ('Líder', 'Decano') then
+    raise exception 'Solo líderes y decanos pueden editar los datos de miembros.';
+  end if;
+  if v_name = '' or pg_catalog.length(v_name) > 32 then raise exception 'El nombre debe tener entre 1 y 32 caracteres.'; end if;
+  if v_nick = '' or pg_catalog.length(v_nick) > 32 then raise exception 'El nick debe tener entre 1 y 32 caracteres.'; end if;
+  select p.role into v_target_role from public.profiles as p where p.id = p_member_id;
+  if not found then raise exception 'No existe esa cuenta.'; end if;
+  if v_target_role <> 'Miembro' then raise exception 'Solo se pueden editar los datos de cuentas con rango Miembro.'; end if;
+
+  return query update public.profiles as p
+  set display_name = v_name, ff_nick = v_nick
+  where p.id = p_member_id
+  returning p.id, p.display_name, p.ff_nick, p.ff_id, p.role;
+end;
+$function$;
+
+revoke all on function private.update_clan_member_details(uuid, text, text) from public, anon;
+grant execute on function private.update_clan_member_details(uuid, text, text) to authenticated;
+
+create or replace function public.update_clan_member_details(
+  p_member_id uuid,
+  p_display_name text,
+  p_ff_nick text
+)
+returns table (id uuid, display_name text, ff_nick text, ff_id text, role text)
+language sql
+security invoker
+set search_path = ''
+as $function$
+  select * from private.update_clan_member_details(p_member_id, p_display_name, p_ff_nick);
+$function$;
+
+revoke all on function public.update_clan_member_details(uuid, text, text) from public, anon;
+grant execute on function public.update_clan_member_details(uuid, text, text) to authenticated;
