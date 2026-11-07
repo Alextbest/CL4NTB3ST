@@ -58,3 +58,28 @@ $function$;
 
 revoke all on function public.assign_clan_role(text, text) from public, anon;
 grant execute on function public.assign_clan_role(text, text) to authenticated;
+
+-- Garantiza que las dos cuentas autorizadas reciban el rango Líder al crear su perfil.
+-- El cliente no puede escoger su rango inicial mediante el formulario.
+create or replace function private.set_initial_clan_role()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+begin
+  new.role := case
+    when pg_catalog.lower(coalesce(auth.jwt() ->> 'email', '')) = any (
+      array['capocallabo2005@gmail.com', 'garciakimberlyfernanda6@gmail.com']::text[]
+    ) then 'Líder'
+    else 'Miembro'
+  end;
+  return new;
+end;
+$function$;
+
+revoke all on function private.set_initial_clan_role() from public, anon, authenticated;
+drop trigger if exists set_initial_clan_role on public.profiles;
+create trigger set_initial_clan_role
+before insert on public.profiles
+for each row execute function private.set_initial_clan_role();
