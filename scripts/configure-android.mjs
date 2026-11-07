@@ -3,6 +3,12 @@ import { readFile, writeFile } from 'node:fs/promises';
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';
 let manifest = await readFile(manifestPath, 'utf8');
 
+const storagePermission = '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n';
+if (!manifest.includes('android.permission.READ_EXTERNAL_STORAGE')) {
+  manifest = manifest.replace('<application', storagePermission + '    <application');
+  await writeFile(manifestPath, manifest);
+}
+
 if (!manifest.includes('android:scheme="com.clantb3st.app"')) {
   const deepLink = `
             <intent-filter>
