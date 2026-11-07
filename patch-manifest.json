@@ -1,13 +1,13 @@
 {
-  "version": "ota-150",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-150/clantb3st-web-bundle.zip",
+  "version": "ota-157",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-157/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "bd549159f44cc39255f07823556ce606c30f3f65474efccbb06cc76b262d7696",
+  "checksum": "9f1d66d1b3f6d61f7605d71c004f10fa353a3ef8715f6b38903f98a5772da0c3",
   "notes": "TEMA MORADO Y AMARILLO. Superficies púrpura oscuras, texto blanco de alto contraste, acentos amarillos e iconos SVG consistentes.",
   "changes": [
     "Diseño unificado morado oscuro en paneles, tarjetas, encabezados y pantallas.",
     "Texto blanco y descripciones claras; campos oscuros con bordes violetas y foco amarillo.",
     "Iconos SVG normales con acentos amarillos y movimiento sutil en accesos rápidos.",
-    "Versiones de recursos sincronizadas y limpieza automática de cachés anteriores."
+    "Se sincronizan versiones de recursos y se elimina la caché anterior al activar el nuevo service worker."
   ]
 }
