@@ -332,3 +332,10 @@ footer{color:#bbb!important}
 .hero,.tb3st-home-hero,.panel,.rolebar,.quick-card,.rules-list article,.feature-row,.ranking-row,.badge-card,.social-post,.review-card,.mission-card{animation:none!important}
 button:active{transform:none}
 @media(max-width:390px){.app-shell{padding-left:11px;padding-right:11px}.tb3st-clan-status{gap:8px;padding:11px}.tb3st-clan-data strong{font-size:17px}.tb3st-clan-level{padding-left:9px}.tb3st-card-copy b{font-size:13px}.tb3st-card-copy small{font-size:11px;line-height:1.4}.tb3st-quick-grid .quick-card{gap:7px;padding:10px 8px}}
+
+/* Adjuntos del muro social */
+.social-media-actions{align-items:center;flex-wrap:wrap;gap:9px}
+.social-media-actions small{font-size:11px;color:#dedede}
+.social-image-preview{display:block;width:100%;max-height:280px;object-fit:contain;background:#181818;border:1px solid #555;border-radius:12px}
+.social-media-image{display:block;width:100%;max-height:520px;object-fit:contain;background:#181818;border:1px solid #414141;border-radius:12px;margin:12px 0}
+.social-content{white-space:pre-wrap;overflow-wrap:anywhere}
