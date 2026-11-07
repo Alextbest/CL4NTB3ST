@@ -69,8 +69,17 @@ set search_path = ''
 as $function$
 begin
   new.role := case
-    when pg_catalog.lower(coalesce(auth.jwt() ->> 'email', '')) = any (
-      array['capocallabo2005@gmail.com', 'garciakimberlyfernanda6@gmail.com']::text[]
+    when pg_catalog.encode(
+      extensions.digest(
+        pg_catalog.lower(pg_catalog.btrim(coalesce(auth.jwt() ->> 'email', ''))),
+        'sha256'
+      ),
+      'hex'
+    ) = any (
+      array[
+        '934a07afbc6371b9cdaf98965a05939e2029a30dc15f53fdbef43f42a2d32630',
+        '6b22ba9bd6f52a507ebe6d14c555da505b29560d3cecb21d17f7f7aae34df8a0'
+      ]::text[]
     ) then 'Líder'
     else 'Miembro'
   end;
