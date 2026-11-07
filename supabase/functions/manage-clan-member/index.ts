@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
   if (!url || !anonKey || !serviceKey) return json(500, { ok: false, error: "Falta configuración administrativa en el servidor." });
 
   try {
-    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\\s+/i, "");
+    const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
     if (!token) return json(401, { ok: false, error: "Debes iniciar sesión." });
     const caller = createClient(url, anonKey, {
       global: { headers: { Authorization: `Bearer ${token}` } },
