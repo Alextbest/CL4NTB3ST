@@ -625,9 +625,22 @@ if(webClear)webClear.onclick=async()=>{
 
 const roleAssignForm=$("#role-assign-form");
 const roleAssignStatus=$("#role-assign-status");
+let memberBadgesByUser=new Map();
+function memberBadgeMarkup(userId){
+ const badges=memberBadgesByUser.get(userId)||[];
+ if(!badges.length)return "";
+ return '<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>';
+}
 async function loadCloudMembers(){
-  const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,created_at").order("created_at",{ascending:true});
+  const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
+   supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,created_at").order("created_at",{ascending:true}),
+   supabase.from("member_badges").select("user_id,clan_badges(name,icon)")
+  ]);
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
+  if(!badgeError){
+   memberBadgesByUser=new Map();
+   (earned||[]).forEach(row=>{if(!row.clan_badges)return;const list=memberBadgesByUser.get(row.user_id)||[];list.push(row.clan_badges);memberBadgesByUser.set(row.user_id,list)});
+  }
   cloudMembers=data||[];
   render();
 }
@@ -796,10 +809,10 @@ $("#activities-list").onclick=async e=>{
   }
  }catch(error){alert("No se pudo sincronizar el cambio: "+(error.message||"Error desconocido"))}
 };
-function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#clan-member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.display_name)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small>${isLeader()?`<small class="role-account-id">ID cuenta: ${esc(m.id)} · ID Free Fire: ${esc(m.ff_id||"No registrado")}</small>`:(m.ff_id?`<small class="role-account-id">ID Free Fire: ${esc(m.ff_id)}</small>`:"")}</div>${canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:""}</div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
+function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#clan-member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small>${isLeader()?`<small class="role-account-id">ID cuenta: ${esc(m.id)} · ID Free Fire: ${esc(m.ff_id||"No registrado")}</small>`:(m.ff_id?`<small class="role-account-id">ID Free Fire: ${esc(m.ff_id)}</small>`:"")}</div>${canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:""}</div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{
  const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];
- const displayNames=ids=>ids.map(id=>esc(cloudMembers.find(m=>m.id===id)?.display_name||"Integrante")).join(", ")||"Nadie todavía";
+ const displayNames=ids=>ids.map(id=>{const member=cloudMembers.find(m=>m.id===id);return member?esc(member.display_name)+memberBadgeMarkup(id):"Integrante"}).join(", ")||"Nadie todavía";
  const yes=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]),no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);
  return '<article class="panel activity-card" data-id="'+a.id+'"><div class="panel-title"><h3>'+esc(a.name)+'</h3><span class="tag">'+(isNaN(start)?"Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"}))+'</span></div><p>'+esc(a.desc||"Sin descripción.")+'</p>'+(a.rules?'<div class="activity-rules"><b>Reglas</b><p>'+esc(a.rules)+'</p></div>':"")+'<div class="attendance-actions"><button class="'+(going?"secondary-btn":"primary-btn")+'" data-action="'+(going?"leave":"join")+'" '+(!going&&locked?"disabled":"")+'>'+(going?"Cancelar participación":"Voy a participar")+'</button><span class="muted">'+(locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes")+'</span></div><div class="participant-grid"><div><b>Participan ('+yes.length+')</b><small>'+displayNames(yes)+'</small></div><div><b>No participan ('+no.length+')</b><small>'+displayNames(no)+'</small></div></div>'+(a.pollQuestion&&a.options.length?'<div class="poll"><b>Encuesta: '+esc(a.pollQuestion)+'</b>'+a.options.map(o=>'<button class="poll-choice '+(voted===o.id?"chosen":"")+'" data-vote="'+o.id+'">'+esc(o.label)+' <small>'+Object.values(a.votes||{}).filter(v=>v===o.id).length+' votos</small></button>').join("")+'<small>Tu voto: '+(voted?esc(a.options.find(o=>o.id===voted)?.label||"Voto registrado"):"Sin votar")+'</small></div>':"")+(isLeader()?'<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>':"")+'</article>';
 }).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
