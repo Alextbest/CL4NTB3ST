@@ -1,8 +1,8 @@
-const CACHE = "tb3st-v27";
+const CACHE = "tb3st-v28";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=27",
+  "./styles.css?v=28",
   "./app.js?v=18",
   "./supabaseClient.js",
   "./manifest.webmanifest",
