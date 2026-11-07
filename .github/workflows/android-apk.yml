@@ -52,6 +52,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Audit resolved dependency tree
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync('npm-audit-report.json', 'utf8'));
+          console.log('Dependency audit summary:', JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+          for (const [name, issue] of Object.entries(report.vulnerabilities ?? {})) {
+            console.log(JSON.stringify({ package: name, severity: issue.severity, direct: issue.isDirect, range: issue.range, fixAvailable: issue.fixAvailable, via: issue.via }));
+          }
+          NODE
+
       - name: Prepare web and icon assets
         run: |
           npm run prepare:assets
