@@ -89,7 +89,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           title:missionForm.elements.title.value.trim(),
           description:missionForm.elements.description.value.trim(),
           instructions:missionForm.elements.instructions.value.trim(),
-          points:Number(missionForm.elements.points.value),
+          gold_reward:Number(missionForm.elements.gold_reward.value),
           cadence:missionForm.elements.cadence.value,
           starts_at:missionForm.elements.starts_at.value ? new Date(missionForm.elements.starts_at.value).toISOString() : new Date().toISOString(),
           ends_at:missionForm.elements.ends_at.value ? new Date(missionForm.elements.ends_at.value).toISOString() : null,
@@ -108,7 +108,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const host = $("#missions-list");
     if (!host) return;
     const { data: missions, error } = await supabase.from("clan_missions")
-      .select("id,title,description,instructions,points,cadence,starts_at,ends_at,is_active,created_at")
+      .select("id,title,description,instructions,gold_reward,cadence,starts_at,ends_at,is_active,created_at")
       .order("created_at",{ascending:false});
     if (error) { host.innerHTML='<p class="muted">No se pudieron cargar las misiones: '+esc(error.message)+'</p>'; return; }
     const ids = (missions || []).map(m=>m.id);
@@ -122,7 +122,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     }
     if (isModerator()) {
       const reviewResult = await supabase.from("mission_submissions")
-        .select("id,mission_id,user_id,evidence_path,note,submitted_at,profiles(display_name,ff_nick),clan_missions(title,points)")
+        .select("id,mission_id,user_id,evidence_path,note,submitted_at,profiles(display_name,ff_nick),clan_missions(title,gold_reward)")
         .eq("status","pending").order("submitted_at",{ascending:true});
       if (!reviewResult.error) pending = reviewResult.data || [];
     }
@@ -131,7 +131,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       const state = submission ? (submission.status==="pending"?"En revisión":submission.status==="approved"?"Aprobada":"Rechazada") : "Sin entregar";
       const statusClass = submission ? submission.status : "none";
       const active = m.is_active && new Date(m.starts_at)<=new Date() && (!m.ends_at || new Date(m.ends_at)>=new Date());
-      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${m.points} pts</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
+      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${Number(m.gold_reward||0).toLocaleString("es-PA")} oro</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
     }).join("") || '<div class="panel muted">Todavía no hay misiones publicadas.</div>';
 
     const reviewHost = $("#mission-review-list");
@@ -143,7 +143,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           const { data } = await supabase.storage.from("mission-evidence").createSignedUrl(s.evidence_path,1800);
           return {...s, evidenceUrl:data?.signedUrl || ""};
         }));
-        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.points || 0} pts</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions"><button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button><button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
+        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${Number(s.clan_missions?.gold_reward || 0).toLocaleString("es-PA")} oro</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions"><button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button><button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
       }
     }
   }
@@ -424,15 +424,75 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     });
   }
 
+
+  async function loadWallet(){
+    const host=$("#gold-ledger-list"); if(!host)return;
+    const {data,error}=await supabase.from("clan_gold_ledger").select("id,amount,reason,source_type,created_at").eq("user_id",userId()).order("created_at",{ascending:false}).limit(50);
+    if(error){host.innerHTML='<p class="muted">No se pudo cargar la cartera: '+esc(error.message)+'</p>';return}
+    const rows=data||[], balance=rows.reduce((sum,row)=>sum+Number(row.amount||0),0);
+    $("#gold-balance").textContent=balance.toLocaleString("es-PA")+" oro";
+    host.innerHTML=rows.map(row=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(row.reason)+'</b><small>'+dateText(row.created_at)+' · '+esc(row.source_type)+'</small></div><strong class="'+(row.amount>0?"gold-positive":"gold-negative")+'">'+(row.amount>0?"+":"")+Number(row.amount).toLocaleString("es-PA")+' oro</strong></article>').join("")||'<p class="muted">Todavía no tienes movimientos de oro.</p>';
+    const select=$("#gold-award-form select[name=user_id]");
+    if(isLeader()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("")}
+    $("#gold-award-form")?.classList.toggle("hidden",!isLeader());
+  }
+  const goldAwardForm=$("#gold-award-form");
+  if(goldAwardForm)goldAwardForm.onsubmit=async e=>{
+    e.preventDefault();if(!isLeader())return;
+    const button=goldAwardForm.querySelector('button[type="submit"]');button.disabled=true;
+    $("#gold-award-status").textContent="Registrando oro…";
+    const {error}=await supabase.rpc("grant_clan_gold",{p_user_id:goldAwardForm.elements.user_id.value,p_amount:Number(goldAwardForm.elements.amount.value),p_reason:goldAwardForm.elements.reason.value.trim(),p_source_type:goldAwardForm.elements.source_type.value,p_source_id:null});
+    $("#gold-award-status").textContent=error?"No se pudo otorgar oro: "+error.message:"Oro otorgado correctamente.";
+    button.disabled=false;if(!error){goldAwardForm.elements.amount.value="";goldAwardForm.elements.reason.value="";await loadWallet();}
+  };
+  async function loadRewards(){
+    const host=$("#rewards-list");if(!host)return;
+    const {data,error}=await supabase.from("clan_rewards").select("id,title,description,gold_cost,is_active,created_at").order("created_at",{ascending:false});
+    if(error){host.innerHTML='<p class="muted">No se pudieron cargar las recompensas: '+esc(error.message)+'</p>';return}
+    host.innerHTML=(data||[]).map(r=>'<article class="panel reward-card"><div class="panel-title"><h3>'+esc(r.title)+'</h3><strong>'+Number(r.gold_cost).toLocaleString("es-PA")+' oro</strong></div><p>'+esc(r.description||"Sin descripción.")+'</p>'+(!r.is_active?'<small class="muted">No disponible</small>':'<button class="primary-btn" type="button" data-redeem-reward="'+r.id+'">Canjear recompensa</button>')+'</article>').join("")||'<div class="panel muted">Todavía no hay recompensas publicadas.</div>';
+    $("#reward-create-form")?.classList.toggle("hidden",!isLeader());
+  }
+  const rewardForm=$("#reward-create-form");
+  if(rewardForm)rewardForm.onsubmit=async e=>{
+    e.preventDefault();if(!isLeader())return;
+    const button=rewardForm.querySelector('button[type="submit"]');button.disabled=true;
+    $("#reward-create-status").textContent="Publicando recompensa…";
+    const {error}=await supabase.from("clan_rewards").insert({title:rewardForm.elements.title.value.trim(),description:rewardForm.elements.description.value.trim(),gold_cost:Number(rewardForm.elements.gold_cost.value),created_by:userId()});
+    $("#reward-create-status").textContent=error?"No se pudo crear: "+error.message:"Recompensa publicada.";
+    button.disabled=false;if(!error){rewardForm.reset();await loadRewards();}
+  };
+  const rewardsHost=$("#rewards-list");
+  if(rewardsHost&&!rewardsHost.dataset.bound){
+    rewardsHost.dataset.bound="1";
+    rewardsHost.addEventListener("click",async e=>{
+      const button=e.target.closest("[data-redeem-reward]");if(!button)return;
+      if(!confirm("¿Confirmas el canje de esta recompensa?"))return;
+      button.disabled=true;$("#rewards-status").textContent="Procesando canje…";
+      const {error}=await supabase.rpc("redeem_clan_reward",{p_reward_id:button.dataset.redeemReward});
+      if(error){const insufficient=(error.message||"").toLowerCase().includes("monedas insuficientes");$("#rewards-status").textContent=insufficient?"Monedas insuficientes. Necesitas más oro para canjear esta recompensa.":"No se pudo completar el canje: "+error.message;button.disabled=false;return}
+      $("#rewards-status").textContent="Premio canjeado con éxito";
+      await Promise.all([loadWallet(),loadRewards(),loadRedemptionNotifications()]);
+    });
+  }
+  async function loadRedemptionNotifications(){
+    const host=$("#redemption-notifications");if(!host)return;
+    const {data,error}=await supabase.from("clan_reward_redemptions").select("id,gold_spent,created_at,profiles(display_name,ff_nick,ff_id,phone_e164),clan_rewards(title)").order("created_at",{ascending:false}).limit(100);
+    if(error){host.innerHTML='<p class="muted">No se pudieron cargar los canjes: '+esc(error.message)+'</p>';return}
+    host.innerHTML=(data||[]).map(r=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(r.profiles?.display_name||"Integrante")+' canjeó '+esc(r.clan_rewards?.title||"una recompensa")+'</b><small>Nick: '+esc(r.profiles?.ff_nick||"—")+' · ID Free Fire: '+esc(r.profiles?.ff_id||"—")+'</small><small>Teléfono: '+esc(r.profiles?.phone_e164||"—")+'</small><small>'+dateText(r.created_at)+' · '+Number(r.gold_spent).toLocaleString("es-PA")+' oro descontado</small></div></article>').join("")||'<p class="muted">Todavía no hay canjes registrados.</p>';
+  }
+
   const refreshAll = async () => {
-    await Promise.all([loadPresence(),loadMissions(),loadRanking(),loadBadges(),loadWall()]);
+    await Promise.all([loadPresence(),loadMissions(),loadRanking(),loadBadges(),loadWall(),loadWallet(),loadRewards(),loadRedemptionNotifications()]);
   };
   if (featureChannels.length === 0) {
     featureChannels.push(
       supabase.channel("tb3st-presence-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"member_presence"},loadPresence).subscribe(),
       supabase.channel("tb3st-social-live")
-        .on("postgres_changes",{event:"*",schema:"public",table:"social_posts"},loadWall).subscribe()
+        .on("postgres_changes",{event:"*",schema:"public",table:"social_posts"},loadWall).subscribe(),
+      supabase.channel("tb3st-gold-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_gold_ledger"},()=>{loadWallet();loadRedemptionNotifications()}).subscribe(),
+      supabase.channel("tb3st-rewards-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_rewards"},loadRewards).subscribe(),
+      supabase.channel("tb3st-redemptions-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_reward_redemptions"},loadRedemptionNotifications).subscribe()
     );
   }
   refreshAll();
