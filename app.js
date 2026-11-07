@@ -44,7 +44,7 @@ let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
 function showAccess(){authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
 function showRegistration(){authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
-function showApp(profile,session){currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers()}
+function showApp(profile,session){currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadClanSite();subscribeClanSite()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164,role").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function setAuthMode(mode){authMode=mode;const signup=mode==="signup";authTitle.textContent=signup?"Crear cuenta en CL4N TB3ST":"Entrar a CL4N TB3ST";authDescription.textContent=signup?"Regístrate con un correo y una contraseña exclusiva para esta aplicación.":"Inicia sesión con el correo y la contraseña de tu cuenta del clan.";authSubmit.textContent=signup?"Crear cuenta":"Iniciar sesión";authToggle.textContent=signup?"Ya tengo cuenta":"Crear cuenta nueva";$("#auth-password").autocomplete=signup?"new-password":"current-password";$("#auth-password").value="";authForgot.classList.toggle("hidden",signup);sessionMessage.textContent=""}
@@ -541,16 +541,85 @@ if (newsBack) newsBack.onclick = () => {
   $(".news-slide-hint")?.classList.remove("hidden");
 };
 
-const WEB_LINK_KEY="tb3st-web-link";
+let cloudWebUrl = "";
+let clanSiteChannel = null;
+let cloudWebLoading = false;
 const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty"), webOpen=$("#web-open"), webReload=$("#web-reload"), webClear=$("#web-clear");
 function validWebUrl(value){try{const u=new URL(value);return u.protocol==="https:"?u.href:null}catch{return null}}
-function renderWeb(){const saved=localStorage.getItem(WEB_LINK_KEY)||"",url=validWebUrl(saved);if(webInput)webInput.value=isLeader()?saved:"";if(webForm)webForm.classList.toggle("hidden",!isLeader());webFrame.classList.add("hidden");webFrame.removeAttribute("src");webReload.classList.add("hidden");webOpen.classList.toggle("hidden",!url);webEmpty.classList.toggle("hidden",!!url);$("#web-view-title").textContent=url?"Sitio privado del clan":"Sitio privado del clan"}
-if(webForm)webForm.onsubmit=e=>{e.preventDefault();if(!isLeader())return;const url=validWebUrl(webInput.value.trim());if(!url){alert("Introduce un enlace HTTPS válido.");return}localStorage.setItem(WEB_LINK_KEY,url);renderWeb();alert("Enlace guardado en este dispositivo.")};
-if(webOpen)webOpen.onclick=()=>{const url=validWebUrl(localStorage.getItem(WEB_LINK_KEY)||"");if(!url)return;webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")};
-if(webOpen){["contextmenu","selectstart","dragstart"].forEach(type=>webOpen.addEventListener(type,e=>e.preventDefault()));}
+function renderWeb(){
+  const url=validWebUrl(cloudWebUrl);
+  if(webInput && isLeader() && document.activeElement!==webInput) webInput.value=cloudWebUrl;
+  if(webForm) webForm.classList.toggle("hidden",!isLeader());
+  webOpen.classList.toggle("hidden",!!webFrame.src || !url);
+  webEmpty.classList.toggle("hidden",!!url);
+  if(webEmpty) webEmpty.textContent="El líder todavía no ha configurado un sitio web.";
+  if($("#web-view-title")) $("#web-view-title").textContent="Sitio privado del clan";
+}
+async function loadClanSite(){
+  if(cloudWebLoading)return;
+  cloudWebLoading=true;
+  try{
+    const {data,error}=await supabase.from("clan_site_settings").select("site_url").eq("id",1).maybeSingle();
+    if(error)throw error;
+    const nextUrl=validWebUrl(data?.site_url||"")||"";
+    if(nextUrl!==cloudWebUrl){
+      cloudWebUrl=nextUrl;
+      if(webFrame){webFrame.removeAttribute("src");webFrame.classList.add("hidden")}
+      if(webReload)webReload.classList.add("hidden");
+      if(webOpen)webOpen.classList.remove("hidden");
+      renderWeb();
+    }else if(webInput && isLeader() && document.activeElement!==webInput){webInput.value=cloudWebUrl}
+  }catch(error){
+    console.warn("No se pudo cargar el sitio compartido:",error);
+    if(webEmpty){webEmpty.classList.remove("hidden");webEmpty.textContent="No se pudo cargar el sitio compartido. Comprueba tu conexión e inténtalo de nuevo."}
+  }finally{cloudWebLoading=false}
+}
+function subscribeClanSite(){
+  if(clanSiteChannel)return;
+  clanSiteChannel=supabase.channel("clan-site-settings-live")
+    .on("postgres_changes",{event:"*",schema:"public",table:"clan_site_settings"},()=>loadClanSite())
+    .subscribe(status=>{if(status==="SUBSCRIBED")loadClanSite()});
+}
+if(webForm)webForm.onsubmit=async e=>{
+  e.preventDefault();
+  if(!isLeader())return;
+  const url=validWebUrl(webInput.value.trim());
+  if(!url){alert("Introduce un enlace HTTPS válido.");return}
+  const submit=webForm.querySelector('button[type="submit"]');
+  if(submit){submit.disabled=true;submit.textContent="Guardando…"}
+  try{
+    const {data:{user},error:userError}=await supabase.auth.getUser();
+    if(userError||!user)throw userError||new Error("Tu sesión expiró. Inicia sesión otra vez.");
+    const {error}=await supabase.from("clan_site_settings").upsert({id:1,site_url:url,updated_by:user.id,updated_at:new Date().toISOString()},{onConflict:"id"});
+    if(error)throw error;
+    await loadClanSite();
+    alert("Sitio web guardado y compartido con todo el clan.");
+  }catch(error){alert("No se pudo guardar el sitio: "+(error.message||"Error desconocido"))}
+  finally{if(submit){submit.disabled=false;submit.textContent="Guardar enlace"}}
+};
+if(webOpen)webOpen.onclick=()=>{
+  const url=validWebUrl(cloudWebUrl);
+  if(!url)return;
+  webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")
+};
+if(webOpen){["contextmenu","selectstart","dragstart"].forEach(type=>webOpen.addEventListener(type,e=>e.preventDefault()))}
 if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
- if(webClear)webClear.onclick=()=>{if(!isLeader())return;if(!localStorage.getItem(WEB_LINK_KEY)){if(webInput)webInput.value="";renderWeb();return}if(!confirm("¿Eliminar el sitio web configurado en este dispositivo?"))return;localStorage.removeItem(WEB_LINK_KEY);if(webInput)webInput.value="";renderWeb();alert("Sitio web eliminado. El apartado quedó vacío.")};
-
+if(webClear)webClear.onclick=async()=>{
+  if(!isLeader())return;
+  if(!cloudWebUrl){if(webInput)webInput.value="";return}
+  if(!confirm("¿Eliminar el sitio web para TODOS los integrantes del clan?"))return;
+  webClear.disabled=true;webClear.textContent="Eliminando…";
+  try{
+    const {data:{user},error:userError}=await supabase.auth.getUser();
+    if(userError||!user)throw userError||new Error("Tu sesión expiró. Inicia sesión otra vez.");
+    const {error}=await supabase.from("clan_site_settings").upsert({id:1,site_url:null,updated_by:user.id,updated_at:new Date().toISOString()},{onConflict:"id"});
+    if(error)throw error;
+    await loadClanSite();
+    if(webInput)webInput.value="";
+    alert("Sitio eliminado. El apartado quedó vacío para todos los integrantes.");
+  }catch(error){alert("No se pudo eliminar el sitio: "+(error.message||"Error desconocido"))}
+  finally{webClear.disabled=false;webClear.textContent="Limpiar / eliminar sitio"}
+};
 
 
 const roleAssignForm=$("#role-assign-form");
@@ -630,7 +699,7 @@ function getBackupPayload() {
     data: {
       members: read("tb3st-members", []),
       activities: read("tb3st-activities", []),
-      webLink: localStorage.getItem(WEB_LINK_KEY) || ""
+      webLink: ""
     }
   };
 }
@@ -639,7 +708,7 @@ function validateBackup(payload) {
   if (!payload || payload.format !== "CL4NTB3ST_BACKUP" || payload.version !== 1 || !payload.data) {
     throw new Error("El archivo no es una copia válida de CL4N TB3ST.");
   }
-  if (!Array.isArray(payload.data.members) || !Array.isArray(payload.data.activities) || typeof payload.data.webLink !== "string") {
+  if (!Array.isArray(payload.data.members) || !Array.isArray(payload.data.activities)) {
     throw new Error("La copia está incompleta o dañada.");
   }
   return payload;
@@ -717,7 +786,6 @@ if (backupRestoreButton) backupRestoreButton.onclick = async () => {
     const { payload } = await fetchCloudBackup();
     localStorage.setItem("tb3st-members", JSON.stringify(payload.data.members));
     localStorage.setItem("tb3st-activities", JSON.stringify(payload.data.activities));
-    localStorage.setItem(WEB_LINK_KEY, payload.data.webLink);
     members = payload.data.members;
     activities = payload.data.activities;
     render();
