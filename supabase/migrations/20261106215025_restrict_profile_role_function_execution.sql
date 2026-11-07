@@ -1,0 +1,1 @@
+-- Superseded by 20261106200000_cloud_role_management.sql, which revokes public/anon execution and grants authenticated access only to the invoker wrapper.
