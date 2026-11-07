@@ -35,3 +35,13 @@ The app passes this callback explicitly for email confirmation and password rese
 - No Netlify deployment is part of the Android build workflow.
 
 The APK is installed locally on Android. Supabase remains the cloud backend, so registration, login, and synchronized clan data require internet access.
+
+## Supabase database setup
+
+For a brand-new Supabase project, run `supabase/schema.sql` once in the SQL Editor to create the core profile and activity tables. Then apply every file in `supabase/migrations` in timestamp order. The migration directory is kept aligned with the production migration history; do not run the core schema file again on an already active project.
+
+The app uses private Storage buckets for mission evidence and social media. Do not make either bucket public. Profile role changes are restricted to server-side functions; the client cannot assign itself a leader or decano role.
+
+## Auth security setting
+
+In the Supabase Dashboard, open Authentication → Security and Protection and enable leaked-password protection. This is an Auth service setting and cannot be enabled by a SQL migration.
