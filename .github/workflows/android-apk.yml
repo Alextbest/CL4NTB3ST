@@ -56,6 +56,8 @@ jobs:
         run: |
           npm run prepare:assets
           npm run build:web
+          PATCH_TAG="ota-${GITHUB_RUN_NUMBER}"
+          sed -i "s/__CL4NTB3ST_PATCH_VERSION__/${PATCH_TAG}/g" www/app.js
 
       - name: Package remote web patch
         run: |
