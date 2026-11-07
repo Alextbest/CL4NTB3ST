@@ -172,3 +172,5 @@ input:focus,textarea:focus,select:focus{
 
 /* Cloud account role management */
 .role-account-id{display:block;overflow-wrap:anywhere;opacity:.72;font-size:.72rem;margin-top:3px}
+
+.member-info .role-account-id{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.35}
