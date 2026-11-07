@@ -404,3 +404,29 @@ input[type="checkbox"],input[type="radio"]{
   :is(button,.tab,.quick-card,.poll-choice,.news-slide,.rule-remove,.web-open-btn){animation:none!important}
   :is(button,.tab,.quick-card,.poll-choice,.news-slide,.rule-remove,.web-open-btn)::before{animation:none!important}
 }
+
+
+/* PARCHE NEON + BOTONES NEGROS — tema negro integral de toda la aplicación. */
+:root{color-scheme:dark;--bg:#000;--panel:#080808;--line:#351010;--text:#f5f5f5;--muted:#aaa;--blue:#ff4545;--red:#ff2020}
+html,body{min-height:100%;background:#000!important;color:#f5f5f5!important}
+body{background:#000!important;background-image:none!important}
+.app-shell,#app,.page,.auth-gate,#auth-gate,.topbar,.brand,.section-heading,.quick-grid,.activity-list,.member-list,.rules-list,.news-carousel-wrap,.news-carousel,footer{background-color:#000!important;color:#f5f5f5!important}
+.app-shell{background:#000!important}
+.hero,.panel,.auth-panel,.rolebar,.quick-card,.notice,.security-note,.activity-rules,.participant-grid>div,.member-row,.rules-list article,.news-intro,.news-detail,.web-frame,.web-empty,.apk-update-panel,.mandatory-update-card,.mandatory-update-changes-wrap,.status,.tag,.count-pill,.tabs{background:#070707!important;background-image:none!important;color:#f5f5f5!important;border-color:#541010!important}
+.hero{background:#050505!important;box-shadow:0 0 14px #ff171722,inset 0 0 22px #ff17170b!important}
+.tabs{background:#030303!important}
+.tab{background:#050505!important}
+.tab.active{background:#180000!important}
+.quick-card{background:#050505!important}
+.quick-card .quick-icon,.quick-card .quick-icon.blue,.quick-card .quick-icon.red{background:#090909!important}
+.panel-title,.subheading,.section-heading h2,.hero h1,.hero p,.brand b,.brand small,.member-info,.activity-card,.rules-list,.notice p,.security-note p,.news-intro p{color:#f5f5f5}
+.muted,.footnote,small{color:#aaa}
+input,textarea,select{background:#030303!important;color:#f5f5f5!important;border-color:#681313!important}
+hr,.divider{border-color:#351010!important}
+.loading-screen{background:#000!important;color:#f5f5f5!important}
+.mandatory-update-screen{background:#000!important;color:#f5f5f5!important}
+.mandatory-update-card{background:#070707!important;border-color:#681313!important}
+.mandatory-update-mark{background:#160000!important;color:#ff4545!important}
+.mandatory-update-changes-wrap{background:#030303!important}
+.news-slide{background:#050505!important}
+.news-shade{background:linear-gradient(180deg,#0009 0%,#0008 28%,#000f 100%)!important}
