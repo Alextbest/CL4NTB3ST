@@ -542,6 +542,7 @@ if (newsBack) newsBack.onclick = () => {
 };
 
 let cloudWebUrl = "";
+let webFrameOpen = false;
 let clanSiteChannel = null;
 let cloudWebLoading = false;
 const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty"), webOpen=$("#web-open"), webReload=$("#web-reload"), webClear=$("#web-clear");
@@ -550,7 +551,7 @@ function renderWeb(){
   const url=validWebUrl(cloudWebUrl);
   if(webInput && isLeader() && document.activeElement!==webInput) webInput.value=cloudWebUrl;
   if(webForm) webForm.classList.toggle("hidden",!isLeader());
-  webOpen.classList.toggle("hidden",!!webFrame.src || !url);
+  webOpen.classList.toggle("hidden",webFrameOpen || !url);
   webEmpty.classList.toggle("hidden",!!url);
   if(webEmpty) webEmpty.textContent="El líder todavía no ha configurado un sitio web.";
   if($("#web-view-title")) $("#web-view-title").textContent="Sitio privado del clan";
@@ -564,6 +565,7 @@ async function loadClanSite(){
     const nextUrl=validWebUrl(data?.site_url||"")||"";
     if(nextUrl!==cloudWebUrl){
       cloudWebUrl=nextUrl;
+      webFrameOpen=false;
       if(webFrame){webFrame.removeAttribute("src");webFrame.classList.add("hidden")}
       if(webReload)webReload.classList.add("hidden");
       if(webOpen)webOpen.classList.remove("hidden");
@@ -600,7 +602,7 @@ if(webForm)webForm.onsubmit=async e=>{
 if(webOpen)webOpen.onclick=()=>{
   const url=validWebUrl(cloudWebUrl);
   if(!url)return;
-  webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")
+  webFrameOpen=true;webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")
 };
 if(webOpen){["contextmenu","selectstart","dragstart"].forEach(type=>webOpen.addEventListener(type,e=>e.preventDefault()))}
 if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
