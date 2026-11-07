@@ -88,7 +88,8 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return json(401, { ok: false, error: "Sesión no válida." });
 
-    await ensureBucketCors();\n    const body = await req.json();
+    await ensureBucketCors();
+    const body = await req.json();
     if (body.action === "create-upload") {
       const contentType = String(body.contentType || "").toLowerCase();
       const size = Number(body.size);
