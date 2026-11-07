@@ -17,7 +17,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const userId = () => featureContext.profile.id;
   let memberBadgesByUser = new Map();
   async function loadMemberBadgeMap(){
-    const {data,error}=await supabase.from("member_badges").select("user_id,clan_badges(name,icon)");
+    const {data,error}=await supabase.from("member_badges").select("user_id,clan_badges(name,icon,rarity)");
     if(error)throw error;
     const next=new Map();
     (data||[]).forEach(row=>{
@@ -30,7 +30,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   }
   const memberBadgeMarkup = id => {
     const badges=memberBadgesByUser.get(id)||[];
-    return badges.length?'<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>':"";
+    return badges.length?'<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge rarity-'+esc(b.rarity||"common")+'" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>':"";
   };
 
 
@@ -229,7 +229,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       (earned||[]).forEach(row=>{if(!row.clan_badges)return;const list=next.get(row.user_id)||[];list.push(row.clan_badges);next.set(row.user_id,list)});
       memberBadgesByUser=next;
     }
-    catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity}"><span class="badge-icon">${esc(b.icon)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
+    catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity||"common"}"><span class="badge-icon rarity-${b.rarity||"common"}">${esc(b.icon)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
     earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small">${esc(e.clan_badges?.icon||"🏅")}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div></article>`).join("")||'<p class="muted">Todavía no se han otorgado insignias.</p>';
     const badgeSelect=$("#badge-award-form select[name=badge_id]");
     if(badgeSelect) badgeSelect.innerHTML=(badges||[]).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
