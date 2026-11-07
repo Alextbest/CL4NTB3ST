@@ -45,8 +45,8 @@ let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
 function showAccess(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
 function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
-function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic()}
-async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data)showApp(data,session);else showRegistration()}
+function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus()}
+async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data&&data.membership_status!=="active"){currentProfile=null;role="Miembro";showAccess();sessionMessage.textContent=data.membership_status==="banned"?"Tu cuenta está vetada y no puede acceder a CL4NTB3ST. Contacta al líder si necesitas solicitar una revisión.":"Tu acceso al clan fue retirado. Contacta al líder si necesitas solicitar tu reincorporación.";await supabase.auth.signOut();return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function passwordChecks(value){return {length:value.length>=8,lower:/[a-z]/.test(value),upper:/[A-Z]/.test(value),number:/[0-9]/.test(value),symbol:/[^A-Za-z0-9\s]/.test(value)}}
 function updatePasswordRules(){const input=$("#auth-password"),checks=passwordChecks(input.value);for(const [key,ok] of Object.entries(checks)){const item=$("#pw-"+key);if(item){item.textContent=(ok?"✓ ":"○ ")+({length:"Al menos 8 caracteres",lower:"Una letra minúscula",upper:"Una letra mayúscula",number:"Un número",symbol:"Un símbolo (por ejemplo: !, @, # o $)"}[key]);item.classList.toggle("password-rule-met",ok)}}return Object.values(checks).every(Boolean)}
@@ -451,6 +451,17 @@ function renderRules() {
   if (updated) updated.textContent = clanRulesUpdatedAt ? "Última actualización: " + new Date(clanRulesUpdatedAt).toLocaleString("es-PA") : "Normas oficiales del clan.";
 }
 let cloudMembers=[];
+let memberStatusChannel=null;
+function subscribeMemberStatus(){
+ if(memberStatusChannel)supabase.removeChannel(memberStatusChannel);
+ if(!currentProfile)return;
+ const memberId=currentProfile.id;
+ memberStatusChannel=supabase.channel("member-status-"+memberId)
+  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles",filter:"id=eq."+memberId},async()=>{
+   const {data:{session}}=await supabase.auth.getSession();
+   if(session)await loadProfile(session);
+  }).subscribe();
+}
 async function loadClanRules() {
   const { data, error } = await supabase.from("clan_rules").select("rules,updated_at").eq("id", 1).maybeSingle();
   if (error) {
@@ -637,7 +648,7 @@ function memberBadgeMarkup(userId){
 }
 async function loadCloudMembers(){
   const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
-   supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,created_at").order("created_at",{ascending:true}),
+   supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,created_at").order("created_at",{ascending:true}),
    supabase.from("member_badges").select("user_id,clan_badges(name,icon,rarity)")
   ]);
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
@@ -651,6 +662,30 @@ async function loadCloudMembers(){
 window.addEventListener("clan-badges-updated",()=>{loadCloudMembers()});
 const membersStatus=$("#members-status");
 $("#member-list").onclick=async e=>{
+  const actionButton=e.target.closest("[data-member-action]");
+  if(actionButton){
+    if(!isLeader())return;
+    const target=cloudMembers.find(m=>m.id===actionButton.dataset.memberId);
+    const action=actionButton.dataset.memberAction;
+    if(!target||target.role==="Líder"||!["remove","ban","restore"].includes(action))return;
+    const prompts={
+      remove:"¿Expulsar a "+target.display_name+" del clan? Su cuenta seguirá existiendo, pero perderá el acceso a CL4NTB3ST.",
+      ban:"¿VETAR a "+target.display_name+"? Se bloqueará su acceso al clan y también el inicio de sesión en esta aplicación.",
+      restore:"¿Restaurar el acceso de "+target.display_name+" a CL4NTB3ST?"
+    };
+    if(!confirm(prompts[action]))return;
+    actionButton.disabled=true;
+    if(membersStatus)membersStatus.textContent="Aplicando la medida de administración…";
+    try{
+      const {data,error}=await supabase.functions.invoke("manage-clan-member",{body:{target_user_id:target.id,action}});
+      if(error)throw error;
+      if(!data?.ok)throw new Error(data?.error||"No se pudo completar la acción.");
+      if(membersStatus)membersStatus.textContent=action==="remove"?target.display_name+" fue expulsado del clan.":action==="ban"?target.display_name+" quedó vetado.":target.display_name+" recuperó el acceso.";
+      await loadCloudMembers();
+    }catch(error){if(membersStatus)membersStatus.textContent=error.message||"No se pudo administrar la cuenta."}
+    finally{actionButton.disabled=false}
+    return;
+  }
   const button=e.target.closest("[data-edit-profile]");
   if(!button||!canManageMembers())return;
   const target=cloudMembers.find(m=>m.id===button.dataset.editProfile);
@@ -814,7 +849,18 @@ $("#activities-list").onclick=async e=>{
   }
  }catch(error){alert("No se pudo sincronizar el cambio: "+(error.message||"Error desconocido"))}
 };
-function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#clan-member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small></div>${canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:""}</div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
+function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#clan-member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>{
+ const status=m.membership_status||"active";
+ const statusLabel=status==="banned"?"VETADO":status==="removed"?"EXPULSADO":"ACTIVO";
+ const statusClass=status==="banned"?"banned":status==="removed"?"removed":"active";
+ const edit=canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:"";
+ let moderation="";
+ if(isLeader()&&m.role!=="Líder"){
+  if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
+  else moderation=`<button class="secondary-btn" data-member-action="restore" data-member-id="${esc(m.id)}" type="button">${status==="banned"?"Quitar veto":"Reintegrar"}</button>`;
+ }
+ return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small></div><div class="member-actions">${edit}${moderation}</div></div>`;
+}).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{
  const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];
  const displayNames=ids=>ids.map(id=>{const member=cloudMembers.find(m=>m.id===id);return member?esc(member.display_name)+memberBadgeMarkup(id):"Integrante"}).join(", ")||"Nadie todavía";

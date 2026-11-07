@@ -312,3 +312,13 @@ button:active{transform:none}
 .account-summary .stats{margin-top:9px;padding-top:9px}
 .account-summary .stats strong{font-size:19px}
 .account-summary .stats span{font-size:9px}
+
+
+/* Acciones de administración de integrantes */
+.member-row{flex-wrap:wrap}
+.member-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap;margin-left:auto}
+.member-actions button{font-size:11px;padding:7px 9px;min-height:32px}
+.member-status{font-size:10px;font-weight:700;letter-spacing:.05em}
+.member-status.active{color:#c9d8c9}
+.member-status.removed{color:#e0c38c}
+.member-status.banned{color:#f0a0a0}

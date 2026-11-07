@@ -88,6 +88,12 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return json(401, { ok: false, error: "Sesión no válida." });
 
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles").select("membership_status").eq("id", user.id).maybeSingle();
+    if (profileError || profile?.membership_status !== "active") {
+      return json(403, { ok: false, error: "Tu acceso al clan no está activo." });
+    }
+
     await ensureBucketCors();
     const body = await req.json();
     if (body.action === "create-upload") {
