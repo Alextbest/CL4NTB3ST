@@ -479,3 +479,63 @@ body *::placeholder{color:#fff!important;-webkit-text-stroke:.35px #000}
 .web-config-actions button{min-width:0}
 #web-clear{background:#080808!important;color:#fff!important;border:1px solid #aaa!important}
 @media(max-width:380px){.web-config-actions{grid-template-columns:1fr}}
+
+
+/* AJUSTE FINAL CL4N TB3ST: letras negras con contorno blanco; interfaz negra y botones blanco-neón. */
+body,body *:not(svg):not(path):not(iframe){
+  font-family:'Metal Mania','DM Sans',system-ui,sans-serif!important;
+  font-weight:700!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  -webkit-text-stroke:1px #fff;
+  paint-order:stroke fill;
+  text-shadow:0 0 4px #fff9;
+}
+body *::placeholder{
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  -webkit-text-stroke:.8px #fff;
+  text-shadow:0 0 4px #fff9;
+}
+html,body,.app-shell,#app,.page,.auth-gate,#auth-gate,
+.hero,.panel,.auth-panel,.rolebar,.notice,.security-note,.activity-rules,
+.participant-grid>div,.member-row,.rules-list article,.news-intro,.news-detail,
+.web-frame,.web-empty,.apk-update-panel,.mandatory-update-card,
+.mandatory-update-changes-wrap,.status,.tag,.count-pill,.tabs,.tab,.quick-card,
+.news-slide,input,textarea,select{
+  background-color:#000!important;
+}
+:is(button,.tab,.quick-card,.poll-choice,.news-slide,.rule-remove,.web-open-btn){
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  -webkit-text-stroke:1px #fff!important;
+  background:#000!important;
+  border:1px solid #fff!important;
+  box-shadow:0 0 7px #fff,0 0 16px #fff9,inset 0 0 10px #fff2!important;
+  animation:red-neon-glow 2.8s ease-in-out infinite!important;
+}
+:is(button,.tab,.quick-card,.poll-choice,.news-slide,.rule-remove,.web-open-btn)::before{
+  background:var(--neon-spectrum)!important;
+  background-size:300% 300%!important;
+  animation:red-neon-border-flow 3.2s linear infinite!important;
+  opacity:1!important;
+}
+:is(input:not([type="checkbox"]):not([type="radio"]),textarea,select){
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  -webkit-text-stroke:.8px #fff!important;
+  background:#000!important;
+  border:1px solid #fff!important;
+  box-shadow:0 0 7px #fff9,inset 0 0 10px #fff2!important;
+  caret-color:#fff!important;
+}
+:is(input:not([type="checkbox"]):not([type="radio"]),textarea,select):focus{
+  outline:1px solid #fff!important;
+  border-color:#fff!important;
+  box-shadow:0 0 12px #fff,0 0 22px #fff9!important;
+}
+.tab.active{background:#111!important;box-shadow:0 0 14px #fff,0 0 24px #fff8!important}
+.quick-card .quick-icon,.quick-card .quick-icon.blue,.quick-card .quick-icon.red{
+  background:#000!important;border-color:#fff!important;
+}
+#web-clear{background:#000!important;border:1px solid #fff!important}
