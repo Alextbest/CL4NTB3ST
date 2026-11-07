@@ -982,3 +982,49 @@ select option{background:#11151d!important;color:#fff!important}
 }
 .social-comment{background:#0d1219!important}
 .review-card>a,.text-action{color:#ff858c!important;-webkit-text-fill-color:#ff858c!important}
+
+
+/* HOME REDISEÑADO — CL4N TB3ST, estilo competitivo negro/rojo */
+#page-home{padding-bottom:22px}
+.tb3st-home-hero{position:relative;overflow:hidden;margin:-2px -2px 14px;padding:15px 16px 18px;border:1px solid #55232d;border-radius:18px;background:radial-gradient(ellipse at 88% 40%,#57121f 0%,#241018 30%,#090b10 72%);box-shadow:0 12px 30px #000a,inset 0 0 30px #e21e3214}
+.tb3st-home-hero:before,.tb3st-home-hero:after{content:"";position:absolute;pointer-events:none;transform:rotate(-28deg);background:linear-gradient(90deg,transparent,#ec263b66,transparent);height:2px;width:70%;right:-18%;top:34%}
+.tb3st-home-hero:after{top:70%;right:-28%;width:90%;opacity:.55}
+.tb3st-home-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}
+.tb3st-menu-mark,.tb3st-crown{width:38px;height:38px;display:grid;place-items:center;border:1px solid #592630;border-radius:12px;background:#0b0d12;color:#ff626a;font-size:22px}
+.tb3st-brand-lockup{display:flex;align-items:center;gap:9px}
+.tb3st-brand-lockup img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 0 8px #ff293c88)}
+.tb3st-brand-lockup strong{display:block;font:900 19px Impact,"Arial Narrow",sans-serif;letter-spacing:1.2px;color:#fff}
+.tb3st-brand-lockup small{display:block;color:#ff747c;font-size:9px;font-weight:900;letter-spacing:2px;text-align:center}
+.tb3st-hero-art{min-height:165px;display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;z-index:1;padding:10px 0 0}
+.tb3st-emblem{width:43%;display:grid;place-items:center;min-width:0}
+.tb3st-emblem img{width:min(100%,190px);max-height:165px;object-fit:contain;filter:drop-shadow(0 0 13px #ed293977)}
+.tb3st-hero-copy{flex:1;text-align:right}
+.tb3st-hero-copy h1{font:900 clamp(30px,8vw,45px)/.92 Impact,"Arial Narrow",sans-serif!important;letter-spacing:1px!important;margin:9px 0;color:#fff;text-shadow:2px 3px 0 #711b27,0 0 17px #ed293944}
+.tb3st-hero-copy p{font-size:11px;color:#d0d3da!important;margin:9px 0 0}
+.tb3st-clan-status{display:flex;align-items:center;gap:12px;padding:13px 14px;margin:0 0 11px;border:1px solid #85313e;border-radius:13px;background:linear-gradient(110deg,#17151a,#0d1016 68%,#291018);box-shadow:0 0 15px #ed293922,inset 3px 0 #f02d40}
+.tb3st-clan-symbol{font-size:34px;color:#ffbd42!important;text-shadow:0 0 12px #ffb52a66}
+.tb3st-clan-data{flex:1;min-width:0}
+.tb3st-clan-data strong{display:block;font:900 19px Impact,"Arial Narrow",sans-serif;letter-spacing:.6px}
+.tb3st-clan-data span{display:block;font-size:12px;margin-top:4px;color:#f4f4f4}
+.tb3st-clan-data small{display:block;font-size:10px;color:#aeb5c1!important;margin-top:3px}
+.tb3st-clan-level{border-left:1px solid #63303a;padding-left:13px;text-align:center}
+.tb3st-clan-level small{display:block;font-size:9px;color:#c0c7d2!important;letter-spacing:1px}
+.tb3st-clan-level b{font:900 19px Impact,sans-serif;color:#ff626a!important}
+.tb3st-slogan{text-align:center;padding:9px 5px;margin:0 0 19px;border-top:1px solid #40232a;border-bottom:1px solid #40232a;color:#e9e9eb!important;font-size:12px;font-weight:800;letter-spacing:1px;text-shadow:0 0 9px #ed293944}
+.tb3st-section-heading{margin-bottom:12px}
+.tb3st-quick-grid{gap:10px}
+.tb3st-quick-grid .quick-card{position:relative;display:flex;align-items:center;gap:10px;min-height:91px;padding:12px 10px;border:1px solid #73303b!important;border-radius:13px!important;background:linear-gradient(145deg,#171920,#0c0f15 78%)!important;box-shadow:0 7px 18px #0008,inset 0 0 16px #ed29390b!important;overflow:hidden}
+.tb3st-quick-grid .quick-card:after{content:"";position:absolute;inset:0 auto 0 0;width:2px;background:linear-gradient(transparent,#ff424e,transparent);box-shadow:0 0 9px #ff293c}
+.tb3st-quick-grid .quick-icon{width:42px;height:42px;flex:none;display:grid;place-items:center;margin:0;border-radius:11px!important;font-size:21px;background:linear-gradient(145deg,#421923,#211117)!important;color:#ff737c!important;border:1px solid #a83b49!important;box-shadow:0 0 12px #ed293955!important}
+.tb3st-card-copy{flex:1;min-width:0}
+.tb3st-card-copy b{display:block;font:800 13px "DM Sans",sans-serif!important;line-height:1.2}
+.tb3st-card-copy small{display:block;color:#c0c7d2!important;font-size:10px!important;line-height:1.3;margin-top:5px}
+.tb3st-chevron{font-size:25px;color:#aeb5c1!important;line-height:1}
+.tb3st-announcement{display:flex;align-items:center;gap:12px;margin-top:17px;padding:12px;border:1px solid #a33340;border-radius:13px;background:linear-gradient(100deg,#211217,#10131a 75%);box-shadow:0 0 16px #ed293922}
+.tb3st-announcement-icon{width:52px;height:52px;flex:none;display:grid;place-items:center;border-radius:9px;background:#35151d;font-size:25px}
+.tb3st-announcement>div:nth-child(2){flex:1;min-width:0}
+.tb3st-announcement strong{display:block;font-size:13px;margin:4px 0}
+.tb3st-announcement p{margin:0;color:#c0c7d2!important;font-size:11px;line-height:1.4}
+.tb3st-announcement-arrow{font-size:28px;color:#ff626a!important}
+.tb3st-activity-panel{margin-top:13px}
+@media(max-width:390px){.tb3st-hero-art{min-height:140px}.tb3st-emblem img{max-height:135px}.tb3st-quick-grid .quick-card{gap:7px;padding:10px 8px}.tb3st-quick-grid .quick-icon{width:36px;height:36px}.tb3st-card-copy b{font-size:12px!important}.tb3st-card-copy small{font-size:9px!important}}
