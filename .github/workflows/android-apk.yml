@@ -69,8 +69,8 @@ jobs:
           const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
           const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
           if (duplicates.length) throw new Error('Duplicate HTML IDs: ' + duplicates.join(', '));
-          const css = html.match(/href="(styles\.css\\?v=\\d+)"/)?.[1];
-          const app = html.match(/src="(app\.js\\?v=\\d+)"/)?.[1];
+          const css = html.match(/href="(styles\.css\?v=\d+)"/)?.[1];
+          const app = html.match(/src="(app\.js\?v=\d+)"/)?.[1];
           if (!css || !app || !sw.includes('./' + css) || !sw.includes('./' + app)) {
             throw new Error('HTML and service-worker asset versions are out of sync.');
           }
