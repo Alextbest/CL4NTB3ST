@@ -1,11 +1,12 @@
 {
-  "version": "ota-168",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-168/clantb3st-web-bundle.zip",
+  "version": "ota-175",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-175/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "dda1bc501ecab96e9c8f8975ed27b617c291687b479065ec36f5495f491c94dc",
-  "notes": "Interfaz separada de acceso y aplicación; tema oscuro y gris con texto blanco.",
+  "checksum": "150ec7c0583a478f348e103d2fbd89b76a281c05d3405019de9bf1e229893a81",
+  "notes": "Acceso separado, diseño oscuro y gris, y publicación de imágenes en el muro.",
   "changes": [
     "Diseño unificado en tonos oscuros y grises.",
+    "Adjuntar, previsualizar y publicar imágenes en el muro con almacenamiento privado.",
     "Texto blanco y descripciones claras; campos grises con bordes neutros.",
     "Iconos sencillos, sin neón ni animaciones exageradas.",
     "Se sincronizan versiones de recursos y se elimina la caché anterior al activar el nuevo service worker."
