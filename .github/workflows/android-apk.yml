@@ -153,7 +153,7 @@ jobs:
         with:
           tag_name: ota-${{ github.run_number }}
           name: PARCHE OTA — MURO CON IMÁGENES
-          body: "TEMA MORADO Y AMARILLO — superficies púrpura oscuras, texto de alto contraste, acentos amarillos e iconos SVG consistentes. Se instala desde la aplicación."
+          body: "Parche de CL4N TB3ST: acceso con correo y contraseña, interfaz oscura y gris, sincronización en la nube y mejoras del muro social."
           files: |
             clantb3st-web-bundle.zip
             patch-manifest.json
