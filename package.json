@@ -16,7 +16,8 @@
     "@capacitor/app": "8.1.2",
     "@capacitor/core": "8.6.0",
     "@capacitor/splash-screen": "8.0.2",
-    "@supabase/supabase-js": "^2.57.4"
+    "@supabase/supabase-js": "^2.57.4",
+    "@capgo/capacitor-updater": "8.54.2"
   },
   "devDependencies": {
     "@capacitor/assets": "^4.0.0",
