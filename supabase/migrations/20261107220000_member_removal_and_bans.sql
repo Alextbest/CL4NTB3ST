@@ -31,13 +31,31 @@ $$;
 revoke all on function public.is_active_clan_member() from public;
 grant execute on function public.is_active_clan_member() to authenticated;
 
+create or replace function public.is_active_clan_leader()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid())
+      and p.role = 'Líder'
+      and p.membership_status = 'active'
+  );
+$;
+
+revoke all on function public.is_active_clan_leader() from public;
+grant execute on function public.is_active_clan_leader() to authenticated;
+
 drop policy if exists "profiles readable by clan" on public.profiles;
 create policy "profiles readable by clan"
 on public.profiles for select to authenticated
 using (
   membership_status = 'active'
   or id = (select auth.uid())
-  or (select public.current_clan_role()) = 'Líder'
+  or (select public.is_active_clan_leader())
 );
 
 drop policy if exists "profiles active owner update" on public.profiles;
