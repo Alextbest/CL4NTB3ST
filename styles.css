@@ -346,3 +346,17 @@ button:active{transform:none}
 .member-name-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
 .member-name-badges{display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
 .member-name-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;font-size:15px;line-height:1;cursor:help}
+
+
+/* Brillo por valor de insignia: halo externo que conserva visible el icono */
+.member-name-badge,.badge-icon{position:relative;isolation:isolate}
+.badge-icon.rarity-common,.member-name-badge.rarity-common{filter:drop-shadow(0 0 1px rgba(255,255,255,.22))}
+.badge-icon.rarity-rare,.member-name-badge.rarity-rare{filter:drop-shadow(0 0 3px rgba(90,175,255,.72)) drop-shadow(0 0 6px rgba(90,175,255,.28))}
+.badge-icon.rarity-epic,.member-name-badge.rarity-epic{filter:drop-shadow(0 0 4px rgba(190,125,255,.9)) drop-shadow(0 0 9px rgba(160,95,255,.45))}
+.badge-icon.rarity-legendary,.member-name-badge.rarity-legendary{filter:drop-shadow(0 0 5px rgba(255,195,65,.98)) drop-shadow(0 0 11px rgba(255,170,35,.62)) drop-shadow(0 0 17px rgba(255,225,130,.28))}
+.badge-card.rarity-common{border-color:#666!important}
+.badge-card.rarity-rare{border-color:#5aaeff!important;box-shadow:0 0 7px rgba(90,175,255,.22)!important}
+.badge-card.rarity-epic{border-color:#bd82ff!important;box-shadow:0 0 10px rgba(180,115,255,.32)!important}
+.badge-card.rarity-legendary{border-color:#e8b84d!important;box-shadow:0 0 12px rgba(255,190,55,.42),inset 0 0 12px rgba(255,190,55,.08)!important}
+.badge-icon{display:inline-flex;align-items:center;justify-content:center;min-width:26px;min-height:26px}
+.badge-icon.small{min-width:22px;min-height:22px}
