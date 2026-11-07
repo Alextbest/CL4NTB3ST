@@ -231,8 +231,10 @@ export function initClanFeatures(supabase, profile, role) {
   const pointsForm=$("#points-award-form");
   if(pointsForm){
     pointsForm.classList.toggle("hidden",!isModerator());
-    const {data:members}=await supabase.from("profiles").select("id,display_name").order("display_name");
-    pointsForm.elements.user_id.innerHTML=(members||[]).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+    supabase.from("profiles").select("id,display_name").order("display_name").then(({data:members,error})=>{
+      if(error){$("#points-award-status").textContent="No se pudo cargar la lista de integrantes: "+error.message;return;}
+      pointsForm.elements.user_id.innerHTML=(members||[]).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+    });
     pointsForm.onsubmit=async e=>{
       e.preventDefault();if(!isModerator())return;
       const button=pointsForm.querySelector('button[type="submit"]');button.disabled=true;
