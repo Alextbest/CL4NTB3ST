@@ -1,8 +1,8 @@
 {
-  "version": "ota-157",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-157/clantb3st-web-bundle.zip",
+  "version": "ota-160",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-160/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "9f1d66d1b3f6d61f7605d71c004f10fa353a3ef8715f6b38903f98a5772da0c3",
+  "checksum": "6c4ce195ce033cb11782ddb2287ea729a10dd875f586a3c0da8ac0ac549ac16e",
   "notes": "TEMA MORADO Y AMARILLO. Superficies púrpura oscuras, texto blanco de alto contraste, acentos amarillos e iconos SVG consistentes.",
   "changes": [
     "Diseño unificado morado oscuro en paneles, tarjetas, encabezados y pantallas.",
