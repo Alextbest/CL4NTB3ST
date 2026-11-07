@@ -1,8 +1,8 @@
 {
-  "version": "ota-175",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-175/clantb3st-web-bundle.zip",
+  "version": "ota-189",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-189/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "150ec7c0583a478f348e103d2fbd89b76a281c05d3405019de9bf1e229893a81",
+  "checksum": "6b46266ed56fa57e986982ff6be9105ba7bb9aaac9953c895f6e23486dbfd60e",
   "notes": "Acceso separado, diseño oscuro y gris, y publicación de imágenes en el muro.",
   "changes": [
     "Diseño unificado en tonos oscuros y grises.",
