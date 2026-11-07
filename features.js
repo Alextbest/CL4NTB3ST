@@ -429,8 +429,10 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const host=$("#gold-ledger-list"); if(!host)return;
     const {data,error}=await supabase.from("clan_gold_ledger").select("id,amount,reason,source_type,created_at").eq("user_id",userId()).order("created_at",{ascending:false}).limit(50);
     if(error){host.innerHTML='<p class="muted">No se pudo cargar la cartera: '+esc(error.message)+'</p>';return}
-    const rows=data||[], balance=rows.reduce((sum,row)=>sum+Number(row.amount||0),0);
-    $("#gold-balance").textContent=balance.toLocaleString("es-PA")+" oro";
+    const rows=data||[];
+    const {data:balanceData,error:balanceError}=await supabase.rpc("get_my_clan_gold_balance");
+    if(balanceError){host.innerHTML='<p class="muted">No se pudo calcular el saldo: '+esc(balanceError.message)+'</p>';return}
+    $("#gold-balance").textContent=Number(balanceData||0).toLocaleString("es-PA")+" oro";
     host.innerHTML=rows.map(row=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(row.reason)+'</b><small>'+dateText(row.created_at)+' · '+esc(row.source_type)+'</small></div><strong class="'+(row.amount>0?"gold-positive":"gold-negative")+'">'+(row.amount>0?"+":"")+Number(row.amount).toLocaleString("es-PA")+' oro</strong></article>').join("")||'<p class="muted">Todavía no tienes movimientos de oro.</p>';
     const select=$("#gold-award-form select[name=user_id]");
     if(isLeader()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("")}
