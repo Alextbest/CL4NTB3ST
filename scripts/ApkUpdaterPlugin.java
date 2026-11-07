@@ -60,7 +60,7 @@ public class ApkUpdaterPlugin extends Plugin {
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setAllowedOverMetered(true);
             request.setAllowedOverRoaming(false);
-            request.setDestinationInExternalFilesDir(getContext(), Environment.DIRECTORY_DOWNLOADS, "clantb3st-update.apk");
+            request.setDestinationInExternalFilesDir(getContext(), Environment.DIRECTORY_DOWNLOADS, "clantb3st-update-" + System.currentTimeMillis() + ".apk");
             long id = manager.enqueue(request);
             getContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putString("sha256_" + id, checksum.toLowerCase(Locale.ROOT)).apply();
@@ -74,7 +74,7 @@ public class ApkUpdaterPlugin extends Plugin {
 
     @PluginMethod
     public void getDownloadStatus(PluginCall call) {
-        long id = call.getLong("downloadId", -1L);
+        long id = call.getData().optLong("downloadId", -1L);
         if (id < 0) {
             call.reject("Identificador de descarga no válido.");
             return;
