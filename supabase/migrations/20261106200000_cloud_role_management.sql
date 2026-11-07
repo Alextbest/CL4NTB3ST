@@ -96,3 +96,9 @@ as $function$
 $function$;
 revoke all on function public.current_clan_role() from public, anon;
 grant execute on function public.current_clan_role() to authenticated;
+
+revoke all on table public.profiles from anon;
+revoke all on table public.profiles from authenticated;
+grant select, insert on table public.profiles to authenticated;
+grant update (display_name, ff_nick, ff_id, phone_e164)
+on table public.profiles to authenticated;
