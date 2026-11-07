@@ -4,7 +4,6 @@ const manifestPath = 'android/app/src/main/AndroidManifest.xml';
 let manifest = await readFile(manifestPath, 'utf8');
 
 const permissions = [
-  '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />',
   '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
 ];
 for (const permission of permissions) {
