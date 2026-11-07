@@ -11,7 +11,7 @@ const config: CapacitorConfig = {
   plugins: {
     CapacitorUpdater: {
       autoUpdate: 'off',
-      appReadyTimeout: 10000,
+      appReadyTimeout: 60000,
       resetWhenUpdate: true
     },
     SplashScreen: {
