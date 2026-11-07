@@ -985,7 +985,7 @@ function decorateInterfaceButtons(root=document){
  const candidates=[];
  if(root.matches?.("button"))candidates.push(root);
  candidates.push(...root.querySelectorAll("button"));
- const pageIcons={home:"home",members:"users",activities:"calendar",presence:"users",missions:"swords",ranking:"chart",badges:"award",social:"message",news:"newspaper",web:"globe",rules:"shield-check"};
+ const pageIcons={home:"home",members:"users",activities:"calendar",presence:"users",missions:"swords",gold:"coins",rewards:"gift",notifications:"bell",ranking:"chart",badges:"award",social:"message",news:"newspaper",web:"globe",rules:"shield-check"};
  candidates.forEach(button=>{
   if(button.dataset.iconDecorated==="true")return;
   const page=button.dataset.page,go=button.dataset.go;
