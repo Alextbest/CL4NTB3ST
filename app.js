@@ -854,6 +854,9 @@ const interfaceIconPaths = {
  newspaper:'<path d="M4 4h16v17H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
  swords:'<path d="m14.5 5.5 4-4 4 4-4 4M5.5 14.5l-4 4 4 4 4-4M14 10 4 20M10 14 20 4"/>',
+ chart:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 6-7"/>',
+ award:'<circle cx="12" cy="8" r="6"/><path d="m8.2 13-1.2 9 5-3 5 3-1.2-9"/>',
+ message:'<path d="M21 11.5a8.5 8.5 0 0 1-9 8.5 9.5 9.5 0 0 1-4-.9L3 21l1.9-4.4A8.5 8.5 0 1 1 21 11.5Z"/><path d="M8 11h8M8 15h5"/>',
  'shield-check':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
  cloud:'<path d="M20 16.2A4.5 4.5 0 0 0 18 7.5a6 6 0 0 0-11.6 1.8A4 4 0 0 0 7 17h12"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
@@ -879,7 +882,7 @@ function decorateInterfaceButtons(root=document){
  const candidates=[];
  if(root.matches?.("button"))candidates.push(root);
  candidates.push(...root.querySelectorAll("button"));
- const pageIcons={home:"home",members:"users",activities:"calendar",news:"newspaper",web:"globe",rules:"shield-check",backup:"cloud"};
+ const pageIcons={home:"home",members:"users",activities:"calendar",presence:"users",missions:"swords",ranking:"chart",badges:"award",social:"message",news:"newspaper",web:"globe",rules:"shield-check",backup:"cloud"};
  candidates.forEach(button=>{
   if(button.dataset.iconDecorated==="true")return;
   const page=button.dataset.page,go=button.dataset.go;
@@ -911,7 +914,7 @@ function decorateInterfaceButtons(root=document){
    else if(label.includes("participación")||label.includes("participar"))icon="check";
   }
   if(!icon||!interfaceIconPaths[icon])return;
-  let span=button.querySelector(":scope > .nav-icon[data-icon]");
+  let span=button.querySelector(":scope > .nav-icon");
   if(!span){
    span=document.createElement("span");
    span.className=button.classList.contains("tab")?"nav-icon":"ui-icon";
