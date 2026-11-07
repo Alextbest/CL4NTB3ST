@@ -675,28 +675,43 @@ if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
 let legacyActivityMigrationDone=false;
 async function migrateLegacyActivities(){
  if(legacyActivityMigrationDone||!currentProfile||!isLeader())return;
- legacyActivityMigrationDone=true;
  const raw=localStorage.getItem("tb3st-activities");
- if(!raw)return;
+ if(!raw){legacyActivityMigrationDone=true;return}
  let legacy=[];
- try{legacy=JSON.parse(raw)}catch{localStorage.removeItem("tb3st-activities");return}
- if(!Array.isArray(legacy)||!legacy.length){localStorage.removeItem("tb3st-activities");return}
- const existing=await supabase.from("activities").select("id",{count:"exact",head:true});
+ try{legacy=JSON.parse(raw)}catch(error){console.warn("Se conserva la lista local de actividades porque no se pudo leer:",error);return}
+ if(!Array.isArray(legacy)||!legacy.length){localStorage.removeItem("tb3st-activities");legacyActivityMigrationDone=true;return}
+ const existing=await supabase.from("activities").select("id,title,starts_at");
  if(existing.error)throw existing.error;
- if((existing.count||0)>0){localStorage.removeItem("tb3st-activities");return}
+ const known=existing.data||[];
+ const invalid=[];
  for(const old of legacy){
-  if(!old?.name||!old?.date)continue;
-  const created=await supabase.from("activities").insert({title:String(old.name).slice(0,60),starts_at:new Date(old.date).toISOString(),description:String(old.desc||""),rules:String(old.rules||""),created_by:currentProfile.id}).select("id").single();
-  if(created.error)throw created.error;
-  const labels=Array.isArray(old.options)?old.options.filter(x=>typeof x==="string"&&x.trim()).slice(0,6):[];
-  if(old.pollQuestion&&labels.length>=2){
-   const poll=await supabase.from("activity_polls").insert({activity_id:created.data.id,question:String(old.pollQuestion).slice(0,100)}).select("id").single();
-   if(poll.error)throw poll.error;
-   const opts=await supabase.from("activity_poll_options").insert(labels.map((label,index)=>({poll_id:poll.data.id,label:label.slice(0,50),position:index})));
-   if(opts.error)throw opts.error;
+  if(!old?.name||!old?.date){invalid.push(old);continue}
+  const startsAt=new Date(old.date);
+  if(Number.isNaN(startsAt.getTime())){invalid.push(old);continue}
+  const title=String(old.name).slice(0,60), iso=startsAt.toISOString();
+  let match=known.find(item=>item.title===title&&new Date(item.starts_at).getTime()===startsAt.getTime());
+  let activityId=match?.id;
+  if(!activityId){
+   const created=await supabase.from("activities").insert({title,starts_at:iso,description:String(old.desc||""),rules:String(old.rules||""),created_by:currentProfile.id}).select("id").single();
+   if(created.error)throw created.error;
+   activityId=created.data.id;
+   known.push({id:activityId,title,starts_at:iso});
+  }
+  if(old.pollQuestion&&Array.isArray(old.options)&&old.options.filter(x=>typeof x==="string"&&x.trim()).length>=2){
+   const existingPoll=await supabase.from("activity_polls").select("id").eq("activity_id",activityId).maybeSingle();
+   if(existingPoll.error)throw existingPoll.error;
+   if(!existingPoll.data){
+    const poll=await supabase.from("activity_polls").insert({activity_id:activityId,question:String(old.pollQuestion).slice(0,100)}).select("id").single();
+    if(poll.error)throw poll.error;
+    const labels=old.options.filter(x=>typeof x==="string"&&x.trim()).slice(0,6);
+    const opts=await supabase.from("activity_poll_options").insert(labels.map((label,index)=>({poll_id:poll.data.id,label:label.slice(0,50),position:index})));
+    if(opts.error)throw opts.error;
+   }
   }
  }
- localStorage.removeItem("tb3st-activities");
+ if(invalid.length)localStorage.setItem("tb3st-activities",JSON.stringify(invalid));
+ else localStorage.removeItem("tb3st-activities");
+ legacyActivityMigrationDone=true;
 }
 
 async function loadCloudActivities(){
@@ -855,7 +870,7 @@ function decorateInterfaceButtons(root=document){
  const candidates=[];
  if(root.matches?.("button"))candidates.push(root);
  candidates.push(...root.querySelectorAll("button"));
- const pageIcons={home:"home",members:"users",activities:"calendar",presence:"users",missions:"swords",ranking:"chart",badges:"award",social:"message",news:"newspaper",web:"globe",rules:"shield-check",backup:"cloud"};
+ const pageIcons={home:"home",members:"users",activities:"calendar",presence:"users",missions:"swords",ranking:"chart",badges:"award",social:"message",news:"newspaper",web:"globe",rules:"shield-check"};
  candidates.forEach(button=>{
   if(button.dataset.iconDecorated==="true")return;
   const page=button.dataset.page,go=button.dataset.go;
