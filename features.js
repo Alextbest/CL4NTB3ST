@@ -279,73 +279,85 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const socialImageRemove=$("#social-image-remove");
   const socialImagePick=$("#social-image-pick");
   const socialPostStatus=$("#social-post-status");
-  const SOCIAL_MEDIA_BUCKET="social-post-media";
-  let selectedPostImage=null, selectedPostPreviewUrl=null;
+  let selectedPostMedia=null, selectedPostPreviewUrl=null;
 
   function clearPostImage(){
     if(selectedPostPreviewUrl)URL.revokeObjectURL(selectedPostPreviewUrl);
-    selectedPostPreviewUrl=null;selectedPostImage=null;
-    if(socialImagePreview){socialImagePreview.removeAttribute("src");socialImagePreview.classList.add("hidden")}
+    selectedPostPreviewUrl=null;selectedPostMedia=null;
+    if(socialImagePreview){socialImagePreview.innerHTML="";socialImagePreview.classList.add("hidden")}
     socialImageRemove?.classList.add("hidden");
     if(socialImageInput)socialImageInput.value="";
   }
   function setPostImage(file){
     if(!file)return;
-    const allowed=["image/jpeg","image/png","image/webp"];
-    if(!allowed.includes(file.type)||file.size>5*1024*1024){
-      if(socialPostStatus)socialPostStatus.textContent="Usa una imagen JPG, PNG o WEBP de máximo 5 MB.";
+    const allowed=["image/jpeg","image/png","image/webp","video/mp4","video/webm","video/quicktime"];
+    const isVideo=file.type.startsWith("video/");
+    const maxBytes=isVideo?50*1024*1024:5*1024*1024;
+    if(!allowed.includes(file.type)||file.size>maxBytes){
+      if(socialPostStatus)socialPostStatus.textContent=isVideo?"El vídeo supera 50 MB o el formato no es compatible.":"Usa JPG, PNG o WEBP de máximo 5 MB.";
       return;
     }
     if(selectedPostPreviewUrl)URL.revokeObjectURL(selectedPostPreviewUrl);
-    selectedPostImage=file;selectedPostPreviewUrl=URL.createObjectURL(file);
-    if(socialImagePreview){socialImagePreview.src=selectedPostPreviewUrl;socialImagePreview.classList.remove("hidden")}
+    selectedPostMedia=file;selectedPostPreviewUrl=URL.createObjectURL(file);
+    if(socialImagePreview){
+      const preview=document.createElement(isVideo?"video":"img");
+      preview.className="social-image-preview";
+      preview.src=selectedPostPreviewUrl;
+      if(isVideo){preview.controls=true;preview.playsInline=true}
+      else preview.alt="Vista previa del archivo que se publicará";
+      socialImagePreview.replaceChildren(preview);
+      socialImagePreview.classList.remove("hidden");
+    }
     socialImageRemove?.classList.remove("hidden");
-    if(socialPostStatus)socialPostStatus.textContent="Imagen lista para publicar.";
+    if(socialPostStatus)socialPostStatus.textContent=isVideo?"Vídeo listo para publicar.":"Imagen lista para publicar.";
   }
   if(socialImagePick)socialImagePick.onclick=async()=>{
-    if(isNativeApp&&FilePicker?.pickImages){
+    if(isNativeApp&&FilePicker?.pickMedia){
       socialImagePick.disabled=true;
       try{
-        const result=await FilePicker.pickImages({limit:1});
+        const result=await FilePicker.pickMedia({limit:1});
         const picked=result.files?.[0];
         if(picked?.webPath){
           const response=await fetch(picked.webPath);
-          if(!response.ok)throw new Error("No se pudo leer la imagen seleccionada.");
+          if(!response.ok)throw new Error("No se pudo leer el archivo seleccionado.");
           const blob=await response.blob();
-          const extension=(picked.name||"").split(".").pop()?.toLowerCase();
-          const inferred=extension==="png"?"image/png":extension==="webp"?"image/webp":"image/jpeg";
-          setPostImage(new File([blob],picked.name||"foto.jpg",{type:picked.mimeType||blob.type||inferred}));
+          const inferred=picked.mimeType||blob.type||"";
+          setPostImage(new File([blob],picked.name||"archivo",{type:inferred}));
         }
-      }catch(error){if(socialPostStatus)socialPostStatus.textContent="No se pudo seleccionar la foto: "+(error.message||"Error");}
+      }catch(error){if(socialPostStatus)socialPostStatus.textContent="No se pudo seleccionar el archivo: "+(error.message||"Error");}
       finally{socialImagePick.disabled=false;}
     }else socialImageInput?.click();
   };
   if(socialImageInput)socialImageInput.onchange=()=>setPostImage(socialImageInput.files?.[0]);
   if(socialImageRemove)socialImageRemove.onclick=clearPostImage;
 
+  async function requestSocialMediaUrls(action,payload){
+    const {data,error}=await supabase.functions.invoke("social-media",{body:{action,...payload}});
+    if(error)throw error;
+    if(!data?.ok)throw new Error(data?.error||"No se pudo preparar el archivo.");
+    return data;
+  }
+
   if(postForm)postForm.onsubmit=async e=>{
     e.preventDefault();
     const button=postForm.querySelector('button[type="submit"]');
     const content=postForm.elements.content.value.trim();
-    if(!content&&!selectedPostImage){socialPostStatus.textContent="Escribe algo o adjunta una imagen.";return;}
+    if(!content&&!selectedPostMedia){socialPostStatus.textContent="Escribe algo o adjunta una foto o vídeo.";return;}
     button.disabled=true;socialPostStatus.textContent="Publicando…";
     let mediaPath=null;
     try{
-      if(selectedPostImage){
-        const ext=selectedPostImage.type==="image/png"?"png":selectedPostImage.type==="image/webp"?"webp":"jpg";
-        mediaPath=userId()+"/"+crypto.randomUUID()+"."+ext;
-        const {error:uploadError}=await supabase.storage.from(SOCIAL_MEDIA_BUCKET).upload(mediaPath,selectedPostImage,{
-          contentType:selectedPostImage.type,upsert:false,cacheControl:"3600"
+      if(selectedPostMedia){
+        const {uploadUrl,path}=await requestSocialMediaUrls("create-upload",{
+          contentType:selectedPostMedia.type,size:selectedPostMedia.size
         });
-        if(uploadError)throw uploadError;
+        const upload=await fetch(uploadUrl,{method:"PUT",headers:{"Content-Type":selectedPostMedia.type},body:selectedPostMedia});
+        if(!upload.ok)throw new Error("Backblaze no aceptó el archivo ("+upload.status+").");
+        mediaPath=path;
       }
       const {error}=await supabase.from("social_posts").insert({
         user_id:userId(),content,media_path:mediaPath
       });
-      if(error){
-        if(mediaPath)await supabase.storage.from(SOCIAL_MEDIA_BUCKET).remove([mediaPath]);
-        throw error;
-      }
+      if(error)throw error;
       postForm.reset();clearPostImage();socialPostStatus.textContent="Publicación compartida con el clan.";
       await loadWall();
     }catch(error){
@@ -364,14 +376,18 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const mediaPaths=posts.map(post=>post.media_path).filter(Boolean);
     const signedUrls=new Map();
     if(mediaPaths.length){
-      const {data:urls,error:urlError}=await supabase.storage.from(SOCIAL_MEDIA_BUCKET).createSignedUrls(mediaPaths,3600);
-      if(!urlError)(urls||[]).forEach(item=>{if(item.path&&item.signedUrl)signedUrls.set(item.path,item.signedUrl)});
+      try{
+        const result=await requestSocialMediaUrls("create-downloads",{paths:mediaPaths});
+        (result.files||[]).forEach(item=>signedUrls.set(item.path,item.url));
+      }catch(urlError){console.error("No se pudieron firmar medios del muro:",urlError)}
     }
     host.innerHTML=posts.map(post=>{
       const comments=post.social_comments||[], reactions=post.social_reactions||[];
       const counts={like:0,fire:0,gg:0,clap:0};reactions.forEach(r=>counts[r.reaction]=(counts[r.reaction]||0)+1);
-      const imageUrl=post.media_path?signedUrls.get(post.media_path):null;
-      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b class="member-name-line">${esc(post.profiles?.display_name||"Integrante")}${memberBadgeMarkup(post.user_id)}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${imageUrl?`<img class="social-media-image" src="${esc(imageUrl)}" alt="Imagen compartida en el muro" loading="lazy">`:""}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b class="member-name-line">${esc(c.profiles?.display_name||"Integrante")}${memberBadgeMarkup(c.user_id)}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
+      const mediaUrl=post.media_path?signedUrls.get(post.media_path):null;
+      const isVideo=!!post.media_path&&/\.(mp4|webm|mov)$/i.test(post.media_path);
+      const mediaMarkup=mediaUrl?(isVideo?'<video class="social-media-image" src="'+esc(mediaUrl)+'" controls playsinline preload="metadata"></video>':'<img class="social-media-image" src="'+esc(mediaUrl)+'" alt="Imagen compartida en el muro" loading="lazy">'):'';
+      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b class="member-name-line">${esc(post.profiles?.display_name||"Integrante")}${memberBadgeMarkup(post.user_id)}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${mediaMarkup}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b class="member-name-line">${esc(c.profiles?.display_name||"Integrante")}${memberBadgeMarkup(c.user_id)}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
     }).join("")||'<div class="panel muted">El muro está vacío. Publica algo para iniciar la conversación.</div>';
   }
 
