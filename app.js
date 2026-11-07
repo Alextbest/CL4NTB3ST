@@ -2,6 +2,7 @@ import { supabase } from "./supabaseClient.js";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { FilePicker } from "@capawesome/capacitor-file-picker";
 
 const isNativeApp = Capacitor.isNativePlatform();
 const authRedirectUrl = isNativeApp ? "com.clantb3st.app://auth-callback" : window.location.origin;
@@ -442,3 +443,48 @@ if (backupRestoreButton) backupRestoreButton.onclick = async () => {
     backupRestoreButton.disabled = false;
   }
 };
+
+
+// Acceso a archivos mediante los selectores nativos de Android.
+// Android entrega acceso solo a los elementos elegidos; no se solicita acceso total al almacenamiento.
+const pickMediaButton = $("#pick-media");
+const pickDocumentsButton = $("#pick-documents");
+const fileAccessStatus = $("#file-access-status");
+
+if (pickMediaButton) pickMediaButton.addEventListener("click", async () => {
+  pickMediaButton.disabled = true;
+  fileAccessStatus.textContent = "Abriendo la galería del teléfono…";
+  try {
+    const result = await FilePicker.pickMedia({ limit: 0 });
+    const count = result.files?.length || 0;
+    fileAccessStatus.textContent = count
+      ? count + " archivo(s) multimedia seleccionado(s): " + result.files.map(file => file.name || "Archivo").join(", ")
+      : "No se seleccionaron archivos.";
+  } catch (error) {
+    fileAccessStatus.textContent = "No se pudo abrir la galería: " + (error.message || "Operación cancelada.");
+  } finally {
+    pickMediaButton.disabled = false;
+  }
+});
+
+if (pickDocumentsButton) pickDocumentsButton.addEventListener("click", async () => {
+  pickDocumentsButton.disabled = true;
+  fileAccessStatus.textContent = "Abriendo el selector de documentos…";
+  try {
+    if (isNativeApp) {
+      const permission = await FilePicker.requestPermissions({ permissions: ["readExternalStorage"] });
+      if (permission.readExternalStorage === "denied") {
+        fileAccessStatus.textContent = "El permiso de lectura fue denegado. El selector del sistema puede seguir permitiendo elegir archivos.";
+      }
+    }
+    const result = await FilePicker.pickFiles({ multiple: true });
+    const count = result.files?.length || 0;
+    fileAccessStatus.textContent = count
+      ? count + " documento(s) seleccionado(s): " + result.files.map(file => file.name || "Archivo").join(", ")
+      : "No se seleccionaron documentos.";
+  } catch (error) {
+    fileAccessStatus.textContent = "No se pudo abrir el selector: " + (error.message || "Operación cancelada.");
+  } finally {
+    pickDocumentsButton.disabled = false;
+  }
+});
