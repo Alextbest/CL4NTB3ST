@@ -911,3 +911,74 @@ h1,h2,h3,h4,b,strong,.brand b,.tab-label,.panel-title h3,
 .nav-icon,.ui-icon{color:#ff626a!important;-webkit-text-fill-color:#ff626a!important}
 .tab{color:#aeb6c4!important;-webkit-text-fill-color:#aeb6c4!important}
 .tab.active{color:#fff!important;-webkit-text-fill-color:#fff!important}
+
+
+/* PALETA FINAL CL4N TB3ST — texto blanco y contraste alto */
+:root{
+  color-scheme:dark!important;
+  --bg:#080a0f;--panel:#11151d;--line:#303846;
+  --text:#ffffff;--muted:#c0c7d2;
+}
+html,body,body *{
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+}
+html,body,.app-shell,#app,.page,.auth-gate,#auth-gate{
+  background-color:#080a0f!important;
+}
+.hero,.panel,.auth-panel,.rolebar,.notice,.security-note,.activity-rules,
+.participant-grid>div,.member-row,.rules-list article,.news-intro,
+.news-detail,.web-empty,.apk-update-panel,.mandatory-update-card,
+.mandatory-update-changes-wrap,.status,.tag,.count-pill,.tabs,
+.feature-row,.ranking-row,.badge-card,.social-post,.social-comment,
+.feature-note,.review-card,.web-viewer-panel,.backup-panel{
+  background-color:#11151d!important;
+  color:#fff!important;
+}
+small,.muted,.footnote,.eyebrow,.section-heading .eyebrow,
+.feature-row small,.feature-row-main small,.feature-meta,
+.badge-card small,.social-comment small,footer,
+.hero p,.hero .stats span,.presence-form label{
+  color:#c0c7d2!important;
+  -webkit-text-fill-color:#c0c7d2!important;
+}
+h1,h2,h3,h4,b,strong,.brand b,.tab-label,.panel-title h3,
+.section-heading h2,.hero h1,.quick-card b{
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+button,.tab,.quick-card,.poll-choice,.news-slide,.rule-remove,
+.web-open-btn,.secondary-btn,.danger-btn,.primary-btn{
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+input:not([type="checkbox"]):not([type="radio"]),textarea,select{
+  background:#090d13!important;color:#fff!important;
+  -webkit-text-fill-color:#fff!important;border:1px solid #465164!important;
+}
+input::placeholder,textarea::placeholder{
+  color:#aeb8c7!important;-webkit-text-fill-color:#aeb8c7!important;opacity:1!important;
+}
+select option{background:#11151d!important;color:#fff!important}
+.feature-row,.ranking-row,.badge-card,.member-row,.rules-list article,
+.news-intro,.news-detail,.web-viewer-panel,.backup-panel,.auth-panel{
+  border-color:#303846!important;
+}
+.feature-row-main p,.feature-note p,.social-comment p,.social-content,
+.mission-submit-form label,.feature-section h3,.review-card{
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+}
+.quick-icon,.quick-icon.blue,.quick-icon.red{
+  background:linear-gradient(145deg,#421923,#241219)!important;
+  color:#ff737c!important;-webkit-text-fill-color:#ff737c!important;
+  border:1px solid #a83b49!important;
+  box-shadow:0 0 12px #ed293977,inset 0 0 14px #ed293933!important;
+}
+.nav-icon,.ui-icon,.live-dot{
+  color:#ff626a!important;-webkit-text-fill-color:#ff626a!important;
+}
+.tab{color:#d1d6df!important;-webkit-text-fill-color:#d1d6df!important}
+.tab.active{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.notice,.security-note,.activity-rules,.feature-note{
+  background:#19151a!important;border-color:#59313b!important;
+}
+.social-comment{background:#0d1219!important}
+.review-card>a,.text-action{color:#ff858c!important;-webkit-text-fill-color:#ff858c!important}
