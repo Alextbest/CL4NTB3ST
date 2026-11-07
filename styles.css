@@ -857,3 +857,57 @@ button:disabled{opacity:.42!important;filter:grayscale(.5)}
   .hero{padding:19px!important}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* FIX CONTRASTE — parche visual CL4N TB3ST */
+html,body,.app-shell,#app,.page,.auth-gate,#auth-gate{
+  background-color:#080a0f!important;
+  color:#f4f5f7!important;
+}
+body *:not(svg):not(path):not(iframe){
+  color:inherit!important;
+  -webkit-text-fill-color:currentColor!important;
+  -webkit-text-stroke:0!important;
+}
+body{color:#f4f5f7!important}
+small,.muted,.footnote,.eyebrow,.section-heading .eyebrow,
+.feature-row small,.feature-row-main small,.feature-meta,
+.badge-card small,.social-comment small,footer{
+  color:#9ba5b4!important;
+  -webkit-text-fill-color:#9ba5b4!important;
+}
+h1,h2,h3,h4,b,strong,.brand b,.tab-label,.panel-title h3,
+.section-heading h2,.hero h1{color:#f4f5f7!important;-webkit-text-fill-color:#f4f5f7!important}
+.hero,.panel,.auth-panel,.rolebar,.notice,.security-note,.activity-rules,
+.participant-grid>div,.member-row,.rules-list article,.news-intro,
+.news-detail,.web-empty,.apk-update-panel,.mandatory-update-card,
+.mandatory-update-changes-wrap,.status,.tag,.count-pill,.tabs,
+.feature-row,.ranking-row,.badge-card,.social-post,.social-comment,
+.feature-note,.review-card,.web-viewer-panel,.backup-panel{
+  background-color:#11151d!important;
+  color:#f4f5f7!important;
+}
+.feature-row,.ranking-row,.badge-card,.member-row,.rules-list article,
+.news-intro,.news-detail,.web-viewer-panel,.backup-panel,.auth-panel{
+  border-color:#303846!important;
+}
+:is(input:not([type="checkbox"]):not([type="radio"]),textarea,select){
+  background:#090d13!important;color:#f5f6f8!important;
+  -webkit-text-fill-color:#f5f6f8!important;border-color:#343d4c!important;
+}
+:is(input,textarea,select)::placeholder{
+  color:#737e8e!important;-webkit-text-fill-color:#737e8e!important;
+}
+.review-card>a,.text-action{color:#ff747c!important;-webkit-text-fill-color:#ff747c!important}
+.social-comment p,.feature-row-main p,.feature-note p,
+.social-content,.mission-submit-form label,.feature-section h3{
+  color:#e7eaf0!important;-webkit-text-fill-color:#e7eaf0!important;
+}
+.quick-icon,.quick-icon.blue,.quick-icon.red{
+  background:#32171e!important;color:#ff737c!important;
+  border:1px solid #873441!important;
+  box-shadow:0 0 10px #ed293955, inset 0 0 12px #ed293922!important;
+}
+.nav-icon,.ui-icon{color:#ff626a!important;-webkit-text-fill-color:#ff626a!important}
+.tab{color:#aeb6c4!important;-webkit-text-fill-color:#aeb6c4!important}
+.tab.active{color:#fff!important;-webkit-text-fill-color:#fff!important}
