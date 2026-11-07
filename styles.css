@@ -539,3 +539,111 @@ html,body,.app-shell,#app,.page,.auth-gate,#auth-gate,
   background:#000!important;border-color:#fff!important;
 }
 #web-clear{background:#000!important;border:1px solid #fff!important}
+
+
+/* TEMA CLARO PROFESIONAL CL4N TB3ST */
+:root{
+  color-scheme:light;
+  --app-bg:#ffffff;
+  --app-surface:#ffffff;
+  --app-text:#111111;
+  --app-muted:#555555;
+  --app-border:#171717;
+}
+html,body,.app-shell,#app,.page,.auth-gate,#auth-gate{
+  background:#fff!important;
+  color:#111!important;
+}
+body,body *:not(svg):not(path):not(iframe):not(.quick-icon):not(.quick-icon *):not(.nav-icon):not(.nav-icon *):not(.ui-icon):not(.ui-icon *){
+  font-family:Inter,"Segoe UI",Roboto,Arial,sans-serif!important;
+  font-weight:400!important;
+  color:#111!important;
+  -webkit-text-fill-color:currentColor!important;
+  -webkit-text-stroke:0!important;
+  text-shadow:none!important;
+  paint-order:normal;
+}
+h1,h2,h3,h4,b,strong,.brand b,.tab-label{
+  font-weight:650!important;
+}
+small,.muted,.footnote,.eyebrow,.section-heading .eyebrow{
+  color:#555!important;
+}
+html,body,.app-shell,#app,.page,.auth-gate,#auth-gate,
+.hero,.panel,.auth-panel,.rolebar,.notice,.security-note,.activity-rules,
+.participant-grid>div,.member-row,.rules-list article,.news-intro,.news-detail,
+.web-empty,.apk-update-panel,.mandatory-update-card,
+.mandatory-update-changes-wrap,.status,.tag,.count-pill,.tabs{
+  background-color:#fff!important;
+  color:#111!important;
+}
+.panel,.hero,.notice,.security-note,.member-row,.rules-list article,
+.news-intro,.news-detail,.web-viewer-panel,.backup-panel,.auth-panel{
+  border:1px solid #d8d8d8!important;
+  box-shadow:0 2px 12px #0000000a!important;
+}
+:is(button,.tab,.quick-card,.poll-choice,.news-slide,.rule-remove,.web-open-btn,
+input,textarea,select,.switch,.toggle,.role-select){
+  border:1px solid #171717!important;
+  border-radius:10px;
+}
+:is(button,.tab,.quick-card,.poll-choice,.rule-remove,.web-open-btn){
+  background:#fff!important;
+  color:#111!important;
+  -webkit-text-fill-color:#111!important;
+  -webkit-text-stroke:0!important;
+  box-shadow:none!important;
+  text-shadow:none!important;
+  animation:none!important;
+}
+:is(button,.tab,.quick-card,.poll-choice,.rule-remove,.web-open-btn)::before{
+  content:none!important;
+  display:none!important;
+  animation:none!important;
+}
+:is(button,.tab,.quick-card,.poll-choice,.rule-remove,.web-open-btn):focus-visible{
+  outline:2px solid #111!important;
+  outline-offset:2px;
+}
+:is(input:not([type="checkbox"]):not([type="radio"]),textarea,select){
+  background:#fff!important;
+  color:#111!important;
+  -webkit-text-fill-color:#111!important;
+  border:1px solid #171717!important;
+  box-shadow:none!important;
+  caret-color:#111!important;
+}
+:is(input,textarea,select)::placeholder{
+  color:#666!important;
+  -webkit-text-fill-color:#666!important;
+  opacity:1!important;
+}
+:is(input,textarea,select):focus{
+  outline:2px solid #111!important;
+  outline-offset:1px;
+  border-color:#111!important;
+  box-shadow:none!important;
+}
+input[type="checkbox"],input[type="radio"]{
+  accent-color:#111!important;
+}
+.tab.active{
+  background:#f1f1f1!important;
+  color:#111!important;
+  box-shadow:inset 0 -2px #111!important;
+}
+.status,.tag,.count-pill,.live-dot{
+  color:#111!important;
+  border-color:#171717!important;
+}
+.hero p,.hero .eyebrow,.hero .stats span,.hero .stats strong{
+  color:#111!important;
+}
+#web-clear{
+  background:#fff!important;
+  color:#111!important;
+  border:1px solid #171717!important;
+}
+.web-config-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.web-config-actions button{min-width:0}
+@media(max-width:380px){.web-config-actions{grid-template-columns:1fr}}
