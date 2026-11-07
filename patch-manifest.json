@@ -1,8 +1,8 @@
 {
-  "version": "ota-110",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-110/clantb3st-web-bundle.zip",
+  "version": "ota-112",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-112/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "8962cd3f1a221924e6917dfc8d20fbb44fcbb23cf8740157211c5b55f2a7ccd9",
+  "checksum": "6811623fcd6a283b2d3b6e867fe285dd508bf69e1eab44143070a46516f513f9",
   "notes": "PARCHE NEON + BOTONES NEGROS. Ahora toda la aplicación utiliza un tema negro integral con bordes de neón rojo animados.",
   "changes": [
     "Fondos negros en toda la aplicación: paneles, tarjetas, encabezados y pantallas.",
