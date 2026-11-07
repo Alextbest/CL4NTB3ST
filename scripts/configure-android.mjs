@@ -26,6 +26,7 @@ if (!activity.includes('registerPlugin(ApkUpdaterPlugin.class)')) {
         registerPlugin(ApkUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
         getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+        setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
     }
 `;
   if (!activity.includes('public class MainActivity extends BridgeActivity')) {
