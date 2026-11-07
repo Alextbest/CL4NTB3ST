@@ -130,6 +130,14 @@ jobs:
           draft: false
           prerelease: false
 
+      - name: Publish stable OTA manifest to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add patch-manifest.json
+          git commit -m "Publish OTA manifest ota-${GITHUB_RUN_NUMBER} [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Create APK update manifest
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
