@@ -530,6 +530,10 @@ function decorateInterfaceButtons(root=document){
   let icon=button.dataset.icon||pageIcons[page]||pageIcons[go]||"";
   const id=button.id||"";
   const label=(button.textContent||"").trim().toLowerCase();
+  if(button.classList.contains("quick-card")){
+   const quickIcon=button.querySelector(".quick-icon");
+   if(quickIcon&&icon&&interfaceIconPaths[icon]){quickIcon.innerHTML=iconSvg(icon);quickIcon.dataset.iconDecorated="true";button.dataset.iconDecorated="true";return;}
+  }
   if(!icon){
    if(/signout|logout/.test(id)||label.includes("cerrar sesión"))icon="logout";
    else if(/auth-submit|login/.test(id)||label.includes("iniciar sesión"))icon="login";
