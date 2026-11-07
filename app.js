@@ -488,3 +488,76 @@ if (pickDocumentsButton) pickDocumentsButton.addEventListener("click", async () 
     pickDocumentsButton.disabled = false;
   }
 });
+
+
+// Iconografía coherente para acciones y controles de toda la interfaz.
+const interfaceIconPaths = {
+ home:'<path d="m3 10 9-7 9 7"/><path d="M5 9v11h14V9M9 20v-6h6v6"/>',
+ users:'<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+ calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/>',
+ newspaper:'<path d="M4 4h16v17H4z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+ globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>',
+ swords:'<path d="m14.5 5.5 4-4 4 4-4 4M5.5 14.5l-4 4 4 4 4-4M14 10 4 20M10 14 20 4"/>',
+ 'shield-check':'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>',
+ cloud:'<path d="M20 16.2A4.5 4.5 0 0 0 18 7.5a6 6 0 0 0-11.6 1.8A4 4 0 0 0 7 17h12"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ save:'<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+ download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/>',
+ upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/>',
+ image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+ file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8"/>',
+ lock:'<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/>',
+ login:'<path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/>',
+ logout:'<path d="M14 17l5-5-5-5M19 12H7"/><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5"/>',
+ edit:'<path d="m16 4 4 4L8 20H4v-4z"/><path d="m14 6 4 4"/>',
+ refresh:'<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.6 9A7 7 0 0 1 18 6l2 6M4 12l2 6a7 7 0 0 0 12.4-3"/>',
+ back:'<path d="m15 18-6-6 6-6M9 12h12"/>',
+ check:'<path d="m5 12 4 4L19 6"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>'
+};
+function iconSvg(name){
+ const path=interfaceIconPaths[name]||interfaceIconPaths.info;
+ return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+path+'</svg>';
+}
+function decorateInterfaceButtons(root=document){
+ root.querySelectorAll("button").forEach(button=>{
+  if(button.dataset.iconDecorated==="true")return;
+  const page=button.dataset.page,go=button.dataset.go;
+  let icon=page||go||button.dataset.icon||"";
+  const id=button.id||"";
+  const label=(button.textContent||"").trim().toLowerCase();
+  if(!icon){
+   if(/signout|logout/.test(id)||label.includes("cerrar sesión"))icon="logout";
+   else if(/auth-submit|login/.test(id)||label.includes("iniciar sesión"))icon="login";
+   else if(/forgot/.test(id)||label.includes("contraseña"))icon="lock";
+   else if(/poll-option/.test(id)||label.includes("añadir opción")||label.includes("agregar norma"))icon="plus";
+   else if(/save|submit|guardar|publicar|completar registro/.test(id+" "+label))icon="save";
+   else if(/upload/.test(id)||label.includes("subir copia"))icon="upload";
+   else if(/download/.test(id)||label.includes("descargar"))icon="download";
+   else if(/restore/.test(id)||label.includes("restaurar"))icon="refresh";
+   else if(/media/.test(id)||label.includes("fotos")||label.includes("vídeos"))icon="image";
+   else if(/document/.test(id)||label.includes("documentos"))icon="file";
+   else if(/reload/.test(id)||label.includes("recargar"))icon="refresh";
+   else if(/edit/.test(id)||label.includes("editar"))icon="edit";
+   else if(/back/.test(id)||label.includes("volver"))icon="back";
+   else if(/cancel/.test(id)||label.includes("cancelar"))icon="back";
+   else if(/news/.test(id)||label.includes("información"))icon="newspaper";
+   else if(/web-open/.test(id)||label.includes("entrar al sitio"))icon="globe";
+   else if(/role-assign/.test(id)||label.includes("rango"))icon="shield-check";
+   else if(label.includes("participación")||label.includes("participar"))icon="check";
+  }
+  if(!icon||!interfaceIconPaths[icon])return;
+  const span=document.createElement("span");
+  span.className=button.classList.contains("tab")?"nav-icon":"ui-icon";
+  span.setAttribute("aria-hidden","true");
+  span.innerHTML=iconSvg(icon);
+  if(button.classList.contains("tab"))button.insertBefore(span,button.firstChild);
+  else button.insertBefore(span,button.firstChild);
+  button.dataset.iconDecorated="true";
+ });
+}
+decorateInterfaceButtons();
+const interfaceIconObserver=new MutationObserver(records=>{
+ for(const record of records)for(const node of record.addedNodes)if(node.nodeType===1)decorateInterfaceButtons(node);
+});
+interfaceIconObserver.observe(document.body,{childList:true,subtree:true});
