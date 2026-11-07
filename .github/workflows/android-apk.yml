@@ -50,7 +50,12 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Audit resolved dependency tree
         run: |
@@ -219,3 +224,17 @@ jobs:
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 90
+
+      - name: Commit generated dependency lockfile
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "No package-lock.json was generated; skipping."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: lock npm dependencies [skip ci]"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi
