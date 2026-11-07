@@ -520,10 +520,14 @@ function iconSvg(name){
  return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+path+'</svg>';
 }
 function decorateInterfaceButtons(root=document){
- root.querySelectorAll("button").forEach(button=>{
+ const candidates=[];
+ if(root.matches?.("button"))candidates.push(root);
+ candidates.push(...root.querySelectorAll("button"));
+ const pageIcons={home:"home",members:"users",activities:"calendar",news:"newspaper",web:"globe",challenges:"swords",rules:"shield-check",backup:"cloud"};
+ candidates.forEach(button=>{
   if(button.dataset.iconDecorated==="true")return;
   const page=button.dataset.page,go=button.dataset.go;
-  let icon=page||go||button.dataset.icon||"";
+  let icon=button.dataset.icon||pageIcons[page]||pageIcons[go]||"";
   const id=button.id||"";
   const label=(button.textContent||"").trim().toLowerCase();
   if(!icon){
@@ -547,12 +551,14 @@ function decorateInterfaceButtons(root=document){
    else if(label.includes("participación")||label.includes("participar"))icon="check";
   }
   if(!icon||!interfaceIconPaths[icon])return;
-  const span=document.createElement("span");
-  span.className=button.classList.contains("tab")?"nav-icon":"ui-icon";
-  span.setAttribute("aria-hidden","true");
+  let span=button.querySelector(":scope > .nav-icon[data-icon]");
+  if(!span){
+   span=document.createElement("span");
+   span.className=button.classList.contains("tab")?"nav-icon":"ui-icon";
+   span.setAttribute("aria-hidden","true");
+   button.insertBefore(span,button.firstChild);
+  }
   span.innerHTML=iconSvg(icon);
-  if(button.classList.contains("tab"))button.insertBefore(span,button.firstChild);
-  else button.insertBefore(span,button.firstChild);
   button.dataset.iconDecorated="true";
  });
 }
