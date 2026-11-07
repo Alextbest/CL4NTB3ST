@@ -1402,3 +1402,38 @@ footer,footer span{color:#d5deea!important;-webkit-text-fill-color:#d5deea!impor
  .tb3st-card-copy b{font-size:13px!important}
  .tb3st-card-copy small{font-size:11px!important;line-height:1.4!important}
 }
+
+
+/* CL4NTB3ST — CONTRASTE REAL PARA LA NUEVA APK */
+html,body{background:#354256!important;color:#fff!important;color-scheme:dark!important}
+body{background:#354256!important}
+body,body *{color:#fff!important;-webkit-text-fill-color:#fff!important;text-shadow:none!important}
+.app-shell,.page,.section-heading,.panel-title{background:transparent!important}
+.hero,.tb3st-home-hero,.topbar,.tabs,.panel,.auth-panel,.rolebar,
+.quick-card,.tb3st-clan-status,.tb3st-announcement,.tb3st-activity-panel,
+.rules-list article,.member-row,.participant-grid>div,.social-comment,
+.activity-rules,.notice,.security-note,.feature-row,.ranking-row,
+.badge-card,.social-post,.review-card,.mission-card,.backup-panel,
+.web-viewer-panel,.mandatory-update-card,.mandatory-update-screen,
+.poll-choice,.web-empty,.news-slide,.feature-note,.tb3st-card,
+.tb3st-clan-level,.tb3st-slogan{
+ background:#46566d!important;
+ color:#fff!important;
+ border-color:#8293aa!important;
+}
+.member-row,.participant-grid>div,.social-comment,.activity-rules,
+.notice,.security-note,.poll-choice,.web-empty{
+ background:#3d4b60!important;
+}
+input,textarea,select,input::placeholder,textarea::placeholder,
+select option,label,small,p,strong,b,h1,h2,h3,span,a,li{
+ color:#fff!important;-webkit-text-fill-color:#fff!important;opacity:1!important
+}
+input,textarea,select{background:#303e52!important;border:1px solid #aab8ca!important}
+.tab,.tab.active,.primary-btn,.secondary-btn,.danger-btn{
+ background:#526782!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+ border:1px solid #b2c0d2!important
+}
+.tab.active{background:#657d9d!important}
+.quick-icon,.quick-icon.blue,.quick-icon.red{color:#fff!important;-webkit-text-fill-color:#fff!important}
+footer{background:transparent!important;color:#fff!important}
