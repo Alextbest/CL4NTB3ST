@@ -542,13 +542,14 @@ if (newsBack) newsBack.onclick = () => {
 };
 
 const WEB_LINK_KEY="tb3st-web-link";
-const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty"), webOpen=$("#web-open"), webReload=$("#web-reload");
+const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty"), webOpen=$("#web-open"), webReload=$("#web-reload"), webClear=$("#web-clear");
 function validWebUrl(value){try{const u=new URL(value);return u.protocol==="https:"?u.href:null}catch{return null}}
 function renderWeb(){const saved=localStorage.getItem(WEB_LINK_KEY)||"",url=validWebUrl(saved);if(webInput)webInput.value=isLeader()?saved:"";if(webForm)webForm.classList.toggle("hidden",!isLeader());webFrame.classList.add("hidden");webFrame.removeAttribute("src");webReload.classList.add("hidden");webOpen.classList.toggle("hidden",!url);webEmpty.classList.toggle("hidden",!!url);$("#web-view-title").textContent=url?"Sitio privado del clan":"Sitio privado del clan"}
 if(webForm)webForm.onsubmit=e=>{e.preventDefault();if(!isLeader())return;const url=validWebUrl(webInput.value.trim());if(!url){alert("Introduce un enlace HTTPS válido.");return}localStorage.setItem(WEB_LINK_KEY,url);renderWeb();alert("Enlace guardado en este dispositivo.")};
 if(webOpen)webOpen.onclick=()=>{const url=validWebUrl(localStorage.getItem(WEB_LINK_KEY)||"");if(!url)return;webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")};
 if(webOpen){["contextmenu","selectstart","dragstart"].forEach(type=>webOpen.addEventListener(type,e=>e.preventDefault()));}
 if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
+ if(webClear)webClear.onclick=()=>{if(!isLeader())return;if(!localStorage.getItem(WEB_LINK_KEY)){if(webInput)webInput.value="";renderWeb();return}if(!confirm("¿Eliminar el sitio web configurado en este dispositivo?"))return;localStorage.removeItem(WEB_LINK_KEY);if(webInput)webInput.value="";renderWeb();alert("Sitio web eliminado. El apartado quedó vacío.")};
 
 
 
