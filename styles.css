@@ -362,3 +362,4 @@ button:active{transform:none}
 .badge-card.rarity-legendary{border-color:#e8b84d!important;box-shadow:0 0 12px rgba(255,190,55,.42),inset 0 0 12px rgba(255,190,55,.08)!important}
 .badge-icon{display:inline-flex;align-items:center;justify-content:center;min-width:26px;min-height:26px}
 .badge-icon.small{min-width:22px;min-height:22px}
+\n/* Requisitos de contraseña durante el registro */\n#password-rules ul{margin:8px 0 6px;padding-left:20px;display:grid;gap:5px}#password-rules li{color:var(--muted,#aaa);font-size:.9rem}#password-rules li.password-rule-met{color:#d7e6d8}\n
