@@ -15,6 +15,6 @@ await copyFile(resolve(root, 'assets/icon-512.png'), resolve(webDir, 'icon-512.p
 
 const audioDir = resolve(webDir, 'audio');
 await mkdir(audioDir, { recursive: true });
-await copyFile(resolve(root, 'audio/world-series-i.mp3'), resolve(audioDir, 'world-series-i.mp3'));
+await copyFile(resolve(root, 'audio/06. Free Fire Lobby - World Series I.mp3'), resolve(audioDir, 'world-series-i.mp3'));
 
 console.log('Web assets copied to www/. Bundling app dependencies is handled by the build:web script.');
