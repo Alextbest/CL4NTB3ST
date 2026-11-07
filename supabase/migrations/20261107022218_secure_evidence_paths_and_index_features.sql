@@ -1,0 +1,1 @@
+-- Private evidence/social buckets, owner-scoped object policies, evidence path validation and indexes are consolidated in 20261107022005_clan_features_phase_one.sql.
