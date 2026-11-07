@@ -1437,3 +1437,33 @@ input,textarea,select{background:#303e52!important;border:1px solid #aab8ca!impo
 .tab.active{background:#657d9d!important}
 .quick-icon,.quick-icon.blue,.quick-icon.red{color:#fff!important;-webkit-text-fill-color:#fff!important}
 footer{background:transparent!important;color:#fff!important}
+
+
+/* CL4NTB3ST — PRIORIDAD ABSOLUTA A LA LECTURA */
+body{font-size:16px!important;line-height:1.55!important;background:#354256!important}
+body *{text-shadow:none!important}
+p,small,.muted,.footnote,.member-info small,.quick-card small,
+.tb3st-card-copy small,.feature-row small,.feature-row-main small,
+.tb3st-announcement p,.tb3st-clan-data span,.tb3st-clan-data small{
+ color:#fff!important;-webkit-text-fill-color:#fff!important;
+ opacity:1!important;font-size:14px!important;line-height:1.5!important
+}
+h1,h2,h3,.section-heading h2,.panel-title h3,
+.quick-card b,.member-info b,.feature-row-main b,
+.tb3st-card-copy b,.tb3st-clan-data strong{
+ color:#fff!important;-webkit-text-fill-color:#fff!important;
+ font-weight:800!important;line-height:1.25!important
+}
+.section-heading h2{font-size:25px!important}
+.panel h3,.panel-title h3{font-size:19px!important}
+.quick-card b,.member-info b,.feature-row-main b{font-size:16px!important}
+.quick-card small{font-size:14px!important}
+.tag,.count-pill,.status,.eyebrow,.subheading{
+ color:#fff!important;-webkit-text-fill-color:#fff!important;
+ font-size:12px!important;letter-spacing:.5px!important
+}
+.quick-icon{font-size:19px!important;box-shadow:none!important}
+.hero,.tb3st-home-hero{box-shadow:none!important}
+.quick-card,.panel,.rolebar,.member-row,.rules-list article{
+ box-shadow:none!important;border-width:1px!important
+}
