@@ -25,6 +25,7 @@ if (!activity.includes('registerPlugin(ApkUpdaterPlugin.class)')) {
     public void onCreate(android.os.Bundle savedInstanceState) {
         registerPlugin(ApkUpdaterPlugin.class);
         super.onCreate(savedInstanceState);
+        getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
     }
 `;
   if (!activity.includes('public class MainActivity extends BridgeActivity')) {
