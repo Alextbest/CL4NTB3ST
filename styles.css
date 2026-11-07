@@ -647,3 +647,38 @@ input[type="checkbox"],input[type="radio"]{
 .web-config-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .web-config-actions button{min-width:0}
 @media(max-width:380px){.web-config-actions{grid-template-columns:1fr}}
+
+/* Módulos sociales y competitivos de CL4N TB3ST */
+.feature-list{display:grid;gap:10px;margin-top:12px}
+.feature-row,.ranking-row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #ddd;border-radius:12px;background:#fff}
+.feature-row-main{display:grid;gap:3px;min-width:0;flex:1}
+.feature-row-main small,.feature-row small{font-size:11px;color:#555}
+.feature-row-main p{margin:4px 0 0;font-size:12px}
+.presence-indicator{width:11px;height:11px;border-radius:50%;background:#16a34a;flex:0 0 auto}
+.presence-indicator.busy{background:#e59a20}.presence-indicator.looking_for_squad{background:#3182ce}.presence-indicator.stale{background:#aaa}
+.feature-note{padding:10px;border:1px solid #ddd;border-radius:10px;margin:10px 0}
+.feature-note p{margin:5px 0 0;font-size:12px}
+.feature-meta{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;font-size:11px;color:#555}
+.submission-state{font-weight:700}.submission-state.approved{color:#16803c}.submission-state.rejected{color:#b42318}.submission-state.pending{color:#9a6700}
+.mission-submit-form{display:grid;gap:9px;border-top:1px solid #ddd;padding-top:12px;margin-top:12px}
+.mission-submit-form label{font-size:12px;font-weight:600}
+.review-card>a{display:inline-block;margin:8px 0;color:#111;text-decoration:underline;font-size:12px}
+.review-card textarea{width:100%;margin:10px 0}
+.ranking-position{font-size:18px;min-width:40px}.ranking-points{white-space:nowrap;font-size:13px}
+.ranking-row.is-self{border:2px solid #111;background:#f7f7f7}
+.badge-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.badge-card{display:grid;gap:7px;align-content:start;padding:12px;border:1px solid #ddd;border-radius:12px;background:#fff}
+.badge-icon{font-size:25px}.badge-icon.small{font-size:21px}
+.badge-card small{font-size:11px;line-height:1.45;color:#555}.badge-card .tag{justify-self:start}
+.rarity-rare{border-color:#8ab4e8}.rarity-epic{border-color:#a78bfa}.rarity-legendary{border-color:#d6a63a}
+.social-post{padding:14px}.social-post .panel-title>div{display:grid;gap:3px}
+.social-content{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.social-reactions{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}.social-reactions button{padding:7px 10px;font-size:12px}
+.social-comments{border-top:1px solid #ddd;padding-top:10px;display:grid;gap:9px}
+.social-comment{padding:8px 10px;border-radius:9px;background:#f7f7f7}
+.social-comment p{margin:5px 0;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.social-comment small{font-size:10px;color:#666}.comment-form{display:flex;gap:8px}
+.comment-form input{min-width:0;flex:1}.comment-form button{white-space:nowrap}
+.text-action{border:0!important;background:transparent!important;text-decoration:underline;padding:2px 0!important;font-size:11px}
+.feature-section{margin-top:22px}.feature-section h3{margin:0}
+@media(max-width:420px){.badge-grid{grid-template-columns:1fr 1fr}.ranking-points{font-size:11px}.feature-row{align-items:flex-start}.comment-form{flex-wrap:wrap}.comment-form button{width:100%}}
