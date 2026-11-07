@@ -307,7 +307,6 @@ body.authenticated #auth-gate{display:none!important}
 
 
 /* Reglas finales de la interfaz: una sola paleta gris y texto blanco */
-:root{color-scheme:dark;--bg:#151515;--panel:#242424;--line:#414141;--text:#fff;--muted:#dedede;--blue:#fff;--red:#fff;--accent:#fff}
 html,body{background:#151515!important;color:#fff!important}
 .hero,.tb3st-home-hero,.panel,.rolebar,.quick-card,.rules-list article,.feature-row,.ranking-row,.badge-card,.social-post,.review-card,.mission-card,.member-row,.activity-rules,.participant-grid>div,.notice,.security-note,.mandatory-update-changes-wrap,.tb3st-clan-status,.tb3st-announcement,.web-viewer-panel,.backup-panel,.activity-card,.news-detail,.news-intro,.mandatory-update-card{background:#242424!important;background-image:none!important;border-color:#414141!important;box-shadow:none!important;color:#fff!important}
 .hero h1,.tb3st-home-hero h1,.section-heading h2,.panel h3,.panel-title h3,.quick-card b,.member-info b,.tb3st-clan-data strong{color:#fff!important}
