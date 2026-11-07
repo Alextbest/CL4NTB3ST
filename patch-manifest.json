@@ -1,13 +1,13 @@
 {
-  "version": "ota-112",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-112/clantb3st-web-bundle.zip",
+  "version": "ota-113",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-113/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "6811623fcd6a283b2d3b6e867fe285dd508bf69e1eab44143070a46516f513f9",
-  "notes": "PARCHE NEON + BOTONES NEGROS. Ahora toda la aplicación utiliza un tema negro integral con bordes de neón rojo animados.",
+  "checksum": "3fff8f5f628b469f03644db64dc91fb8fe380c3e43c3cafab2b377f18e697426",
+  "notes": "INTERFAZ BLANCA PROFESIONAL. Diseño blanco limpio, texto negro y controles con bordes negros; se conservan los iconos animados del clan.",
   "changes": [
-    "Fondos negros en toda la aplicación: paneles, tarjetas, encabezados y pantallas.",
-    "Botones, opciones y campos en negro con texto claro.",
-    "Bordes de neón rojo animados y brillo rojo en los controles.",
-    "Mejor contraste y legibilidad en toda la interfaz."
+    "Interfaz blanca en paneles, tarjetas, encabezados y pantallas.",
+    "Botones, opciones y controles con bordes negros y texto legible.",
+    "Se conservan los iconos flotantes y animados del clan.",
+    "Se retira el acceso visual a Actualizaciones sin eliminar los mecanismos de actualización."
   ]
 }
