@@ -63,11 +63,13 @@ jobs:
           zip -r ../clantb3st-web-bundle.zip .
           cd ..
           TAG="ota-${GITHUB_RUN_NUMBER}"
+          CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
           cat > patch-manifest.json <<EOF
           {
             "version": "${TAG}",
             "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/clantb3st-web-bundle.zip",
             "nativeApi": 1,
+            "checksum": "${CHECKSUM}",
             "notes": "Actualización remota de CL4N TB3ST"
           }
           EOF
