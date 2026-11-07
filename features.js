@@ -357,7 +357,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const host=$("#social-wall");if(!host)return;
     try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
     const {data,error}=await supabase.from("social_posts")
-      .select("id,user_id,content,media_path,created_at,is_hidden,profiles(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles(display_name,role)),social_reactions(id,user_id,reaction)")
+      .select("id,user_id,content,media_path,created_at,is_hidden,profiles!social_posts_user_id_fkey(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles!social_comments_user_id_fkey(display_name,role)),social_reactions(id,user_id,reaction)")
       .order("created_at",{ascending:false}).limit(40);
     if(error){host.innerHTML='<p class="muted">No se pudo cargar el muro: '+esc(error.message)+'</p>';return}
     const posts=data||[];
