@@ -629,12 +629,12 @@ let memberBadgesByUser=new Map();
 function memberBadgeMarkup(userId){
  const badges=memberBadgesByUser.get(userId)||[];
  if(!badges.length)return "";
- return '<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>';
+ return '<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge rarity-'+esc(b.rarity||"common")+'" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>';
 }
 async function loadCloudMembers(){
   const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
    supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,created_at").order("created_at",{ascending:true}),
-   supabase.from("member_badges").select("user_id,clan_badges(name,icon)")
+   supabase.from("member_badges").select("user_id,clan_badges(name,icon,rarity)")
   ]);
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
   if(!badgeError){
