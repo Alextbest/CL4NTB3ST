@@ -7,9 +7,9 @@ The Android app packages the interface locally with Capacitor. The APK is built 
 1. Push changes to `feature/android-apk-capacitor`.
 2. Open the repository's **Actions** tab.
 3. Select **Build Android APK** and wait for the build to finish.
-4. Download the `CL4N-TB3ST-debug-apk` artifact from the completed run.
+4. Download the `CL4N-TB3ST-signed-release-apk` artifact from the completed run.
 
-The debug APK is suitable for installation/testing. A signed release APK/AAB requires a private Android signing key; never commit that key or its passwords.
+The workflow produces a signed release APK and verifies its signature before publishing it. The signing key and passwords are stored only as GitHub Actions secrets; never commit them to the repository.
 
 ## App identity
 
@@ -34,4 +34,4 @@ The app passes this callback explicitly for email confirmation and password rese
 - Supabase remains online and requires an internet connection.
 - No Netlify deployment is part of the Android build workflow.
 
-The first debug build is for testing. Use a securely signed release build before public distribution.
+The APK is installed locally on Android. Supabase remains the cloud backend, so registration, login, and synchronized clan data require internet access.
