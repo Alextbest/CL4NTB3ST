@@ -1,13 +1,13 @@
 {
-  "version": "ota-160",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-160/clantb3st-web-bundle.zip",
+  "version": "ota-168",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-168/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "6c4ce195ce033cb11782ddb2287ea729a10dd875f586a3c0da8ac0ac549ac16e",
-  "notes": "TEMA MORADO Y AMARILLO. Superficies púrpura oscuras, texto blanco de alto contraste, acentos amarillos e iconos SVG consistentes.",
+  "checksum": "dda1bc501ecab96e9c8f8975ed27b617c291687b479065ec36f5495f491c94dc",
+  "notes": "Interfaz separada de acceso y aplicación; tema oscuro y gris con texto blanco.",
   "changes": [
-    "Diseño unificado morado oscuro en paneles, tarjetas, encabezados y pantallas.",
-    "Texto blanco y descripciones claras; campos oscuros con bordes violetas y foco amarillo.",
-    "Iconos SVG normales con acentos amarillos y movimiento sutil en accesos rápidos.",
+    "Diseño unificado en tonos oscuros y grises.",
+    "Texto blanco y descripciones claras; campos grises con bordes neutros.",
+    "Iconos sencillos, sin neón ni animaciones exageradas.",
     "Se sincronizan versiones de recursos y se elimina la caché anterior al activar el nuevo service worker."
   ]
 }
