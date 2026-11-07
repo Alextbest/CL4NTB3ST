@@ -322,3 +322,17 @@ button:active{transform:none}
 .member-status.active{color:#c9d8c9}
 .member-status.removed{color:#e0c38c}
 .member-status.banned{color:#f0a0a0}
+
+
+/* Iconografía vectorial visible y proporcionada en navegación y acciones */
+.nav-icon,.ui-icon{color:#ff727c}
+.nav-icon svg{display:block;width:19px;height:19px;max-width:100%;max-height:100%}
+.ui-icon svg{display:block;width:17px;height:17px;max-width:100%;max-height:100%}
+.quick-icon{color:#ff727c!important}
+.quick-icon svg{display:block;width:23px;height:23px;max-width:100%;max-height:100%}
+.tab.active .nav-icon{color:#ff8991}
+.tab .tab-label{line-height:1.15}
+@media(max-width:390px){
+  .nav-icon{width:19px;height:19px}
+  .quick-icon svg{width:21px;height:21px}
+}
