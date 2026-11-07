@@ -53,6 +53,7 @@ profileForm.onsubmit=async e=>{e.preventDefault();const phone=$("#profile-phone"
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){showAccess();return}if(event==="SIGNED_IN"&&session){loadProfile(session)}});
 setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/patch-manifest.json";
+const PATCH_BUILTIN_VERSION = "__CL4NTB3ST_PATCH_VERSION__";
 const PATCH_NATIVE_API = 1;
 let patchCheckRunning = false;
 
@@ -84,7 +85,7 @@ async function checkForRemotePatch() {
     ) return;
 
     const current = await CapacitorUpdater.current();
-    const installedVersion = current?.bundle?.version || current?.bundle?.id || "";
+    const installedVersion = current?.bundle?.id === "builtin" ? PATCH_BUILTIN_VERSION : (current?.bundle?.version || current?.bundle?.id || PATCH_BUILTIN_VERSION);
     if (installedVersion === manifest.version) return;
 
     userAccepted = confirm(
