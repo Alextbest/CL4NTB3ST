@@ -187,7 +187,12 @@ async function checkForApkUpdate() {
 }
 
 async function downloadApkUpdate() {
-  if (!apkUpdateManifest || apkUpdateBusy) return;
+  if (apkUpdateBusy) return;
+  if (!apkUpdateManifest && (apkUpdateState === "current" || apkUpdateState === "error")) {
+    await checkForApkUpdate();
+    return;
+  }
+  if (!apkUpdateManifest) return;
   apkUpdateBusy = true;
   apkUpdateButton.disabled = true;
   try {

@@ -3,22 +3,21 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';
 let manifest = await readFile(manifestPath, 'utf8');
 
-const storagePermission = '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />\n';
-if (!manifest.includes('android.permission.READ_EXTERNAL_STORAGE')) {
-  manifest = manifest.replace('<application', storagePermission + '    <application');
-  await writeFile(manifestPath, manifest);
-}
-
-
-const installPermission = '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\\n';
-if (!manifest.includes('android.permission.REQUEST_INSTALL_PACKAGES')) {
-  manifest = manifest.replace('<application', installPermission + '    <application');
+const permissions = [
+  '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />',
+  '    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />'
+];
+for (const permission of permissions) {
+  if (!manifest.includes(permission)) {
+    manifest = manifest.replace('<application', permission + '\n    <application');
+  }
 }
 
 const javaDir = 'android/app/src/main/java/com/clantb3st/app';
 await mkdir(javaDir, { recursive: true });
 const pluginTemplate = await readFile('scripts/ApkUpdaterPlugin.java', 'utf8');
 await writeFile(javaDir + '/ApkUpdaterPlugin.java', pluginTemplate);
+
 const activityPath = javaDir + '/MainActivity.java';
 let activity = await readFile(activityPath, 'utf8');
 if (!activity.includes('registerPlugin(ApkUpdaterPlugin.class)')) {
@@ -32,7 +31,7 @@ if (!activity.includes('registerPlugin(ApkUpdaterPlugin.class)')) {
   if (!activity.includes('public class MainActivity extends BridgeActivity')) {
     throw new Error('Unexpected MainActivity template; cannot register ApkUpdaterPlugin safely.');
   }
-  activity = activity.replace(/public class MainActivity extends BridgeActivity\\s*\\{/, match => match + onCreate);
+  activity = activity.replace(/public class MainActivity extends BridgeActivity\s*\{/, match => match + onCreate);
   await writeFile(activityPath, activity);
 }
 
@@ -40,11 +39,11 @@ const versionCode = Number(process.env.GITHUB_RUN_NUMBER || 1);
 if (!Number.isSafeInteger(versionCode) || versionCode < 1) throw new Error('Invalid Android versionCode.');
 const gradlePath = 'android/app/build.gradle';
 let gradle = await readFile(gradlePath, 'utf8');
-if (!/versionCode\\s+\\d+/.test(gradle) || !/versionName\\s+["'][^"']+["']/.test(gradle)) {
+if (!/versionCode\s+\d+/.test(gradle) || !/versionName\s+["'][^"']+["']/.test(gradle)) {
   throw new Error('Could not locate Android versionCode/versionName in app/build.gradle.');
 }
-gradle = gradle.replace(/versionCode\\s+\\d+/, 'versionCode ' + versionCode);
-gradle = gradle.replace(/versionName\\s+["'][^"']+["']/, 'versionName "1.0.' + versionCode + '"');
+gradle = gradle.replace(/versionCode\s+\d+/, 'versionCode ' + versionCode);
+gradle = gradle.replace(/versionName\s+["'][^"']+["']/, 'versionName "1.0.' + versionCode + '"');
 await writeFile(gradlePath, gradle);
 
 if (!manifest.includes('android:scheme="com.clantb3st.app"')) {
@@ -58,7 +57,6 @@ if (!manifest.includes('android:scheme="com.clantb3st.app"')) {
   if (!manifest.includes('</activity>')) throw new Error('No Android activity found in AndroidManifest.xml');
   manifest = manifest.replace('</activity>', `${deepLink}
         </activity>`);
-  await writeFile(manifestPath, manifest);
 }
-
-console.log('Android Supabase auth deep link configured.');
+await writeFile(manifestPath, manifest);
+console.log('Android auth deep link and signed APK updater configured.');
