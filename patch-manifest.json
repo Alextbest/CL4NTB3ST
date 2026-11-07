@@ -1,8 +1,8 @@
 {
-  "version": "ota-135",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-135/clantb3st-web-bundle.zip",
+  "version": "ota-139",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-139/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "63ee0c792fcbf2b7453244fbdb682b4b3a78697de2341a8b4410d919fd4e9e51",
+  "checksum": "b18f2aae3db3631d75051bd9d2f0844d98f24a6f6ecfb6dfd1a069d5c6622611",
   "notes": "INTERFAZ BLANCA PROFESIONAL. Diseño blanco limpio, texto negro y controles con bordes negros; se conservan los iconos animados del clan.",
   "changes": [
     "Interfaz blanca en paneles, tarjetas, encabezados y pantallas.",
