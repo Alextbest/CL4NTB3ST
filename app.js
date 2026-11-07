@@ -40,7 +40,7 @@ let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
 function showAccess(){authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
 function showRegistration(){authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
-function showApp(profile,session){currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules()}
+function showApp(profile,session){currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164,role").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function setAuthMode(mode){authMode=mode;const signup=mode==="signup";authTitle.textContent=signup?"Crear cuenta en CL4N TB3ST":"Entrar a CL4N TB3ST";authDescription.textContent=signup?"Regístrate con un correo y una contraseña exclusiva para esta aplicación.":"Inicia sesión con el correo y la contraseña de tu cuenta del clan.";authSubmit.textContent=signup?"Crear cuenta":"Iniciar sesión";authToggle.textContent=signup?"Ya tengo cuenta":"Crear cuenta nueva";$("#auth-password").autocomplete=signup?"new-password":"current-password";$("#auth-password").value="";authForgot.classList.toggle("hidden",signup);sessionMessage.textContent=""}
@@ -52,6 +52,14 @@ profileForm.onsubmit=async e=>{e.preventDefault();const phone=$("#profile-phone"
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){showAccess();return}if(event==="SIGNED_IN"&&session){loadProfile(session)}});
 setAuthMode("signin");
 restoreSession().finally(hideLoadingScreen);
+async function refreshSignedInProfile(){
+  if(document.hidden)return;
+  const {data:{session}}=await supabase.auth.getSession();
+  if(session)await loadProfile(session);
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshSignedInProfile()});
+if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive)refreshSignedInProfile()});
+
 const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}, write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
 let members=read("tb3st-members",[{id:1,name:"Líder",nick:"",role:"Líder"},{id:2,name:"Lideresa",nick:"",role:"Líder"},{id:3,name:"Integrante 01",nick:"",role:"Miembro"},{id:4,name:"Integrante 02",nick:"",role:"Miembro"}]);
 let activities=read("tb3st-activities",[]), editing=null;
@@ -84,6 +92,7 @@ function renderRules() {
   const updated = $("#rules-updated");
   if (updated) updated.textContent = clanRulesUpdatedAt ? "Última actualización: " + new Date(clanRulesUpdatedAt).toLocaleString("es-PA") : "Normas oficiales del clan.";
 }
+let cloudMembers=[];
 async function loadClanRules() {
   const { data, error } = await supabase.from("clan_rules").select("rules,updated_at").eq("id", 1).maybeSingle();
   if (error) {
@@ -188,8 +197,32 @@ if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
 
 
 
-$("#member-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;members.push({id:Date.now(),name:$("#member-name").value.trim(),nick:$("#member-nick").value.trim(),role:$("#member-role").value});write("tb3st-members",members);e.target.reset();render()};
-$("#member-list").onclick=e=>{const id=Number(e.target.dataset.edit||e.target.dataset.delete);if(!id)return;const m=members.find(x=>x.id===id);if(e.target.dataset.delete){if(!isLeader()||!confirm("¿Eliminar integrante?"))return;members=members.filter(x=>x.id!==id)}else{if(!canManageMembers()||(!isLeader()&&m.role!=="Miembro"))return;const name=prompt("Nombre visible:",m.name);if(name===null)return;const nick=prompt("Nick de Free Fire:",m.nick||"");if(nick===null)return;m.name=name.trim()||m.name;m.nick=nick.trim();if(isLeader()){const next=prompt("Rango: Líder, Decano o Miembro",m.role);if(next&&["Líder","Decano","Miembro"].includes(next))m.role=next}}write("tb3st-members",members);render()};
+const roleAssignForm=$("#role-assign-form");
+const roleAssignStatus=$("#role-assign-status");
+async function loadCloudMembers(){
+  const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,created_at").order("created_at",{ascending:true});
+  if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
+  cloudMembers=data||[];
+  members=cloudMembers.map((p,i)=>({id:p.id,name:p.display_name,nick:p.ff_nick,role:p.role}));
+  render();
+}
+if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
+  e.preventDefault();
+  if(!isLeader()){roleAssignStatus.textContent="Solo los líderes pueden cambiar rangos.";return}
+  const identifier=$("#role-member-id").value.trim(),nextRole=$("#role-member-role").value,button=$("#role-assign-submit");
+  if(!identifier){roleAssignStatus.textContent="Escribe el ID de la cuenta.";return}
+  button.disabled=true;roleAssignStatus.textContent="Actualizando el rango en la nube…";
+  try{
+    const {data,error}=await supabase.rpc("assign_clan_role",{p_identifier:identifier,p_role:nextRole});
+    if(error)throw error;
+    const updated=Array.isArray(data)?data[0]:data;
+    if(!updated)throw new Error("No se encontró una cuenta para actualizar.");
+    roleAssignStatus.textContent="Rango actualizado: "+updated.display_name+" ahora es "+updated.role+". El cambio quedó guardado en Supabase.";
+    roleAssignForm.reset();
+    await loadCloudMembers();
+  }catch(error){roleAssignStatus.textContent=error.message||"No se pudo actualizar el rango."}
+  finally{button.disabled=false}
+};
 $("#add-poll-option").onclick=()=>{const n=document.querySelectorAll(".poll-option").length;if(n<6){const i=document.createElement("input");i.className="poll-option";i.maxLength=50;i.placeholder="Opción "+(n+1);$("#poll-options").append(i)}};
 $("#activity-form").onsubmit=e=>{e.preventDefault();if(!isLeader())return;const opts=[...document.querySelectorAll(".poll-option")].map(x=>x.value.trim()).filter(Boolean);const item={id:editing||Date.now(),name:$("#activity-name").value.trim(),date:$("#activity-date").value,desc:$("#activity-desc").value.trim(),rules:$("#activity-rules").value.trim(),pollQuestion:$("#poll-question").value.trim(),options:opts.length>=2?opts:[],votes:editing?(activities.find(a=>a.id===editing)?.votes||{}):{},participants:editing?(activities.find(a=>a.id===editing)?.participants||{}):{}};activities=editing?activities.map(a=>a.id===editing?item:a):[item,...activities];write("tb3st-activities",activities);resetActivityForm();render()};
 function resetActivityForm(){editing=null;$("#activity-form").reset();$("#activity-form-title").textContent="Crear actividad";$("#activity-submit").textContent="Publicar actividad";$("#cancel-edit").classList.add("hidden")}
@@ -199,8 +232,7 @@ if(e.target.dataset.action==="delete"&&isLeader()&&confirm("¿Eliminar esta acti
 if(e.target.dataset.action==="join"||e.target.dataset.action==="leave"){const going=e.target.dataset.action==="join";if(!going){const start=new Date(a.date).getTime();if(Date.now()>=start-60*60*1000){alert("Ya no puedes cancelar: el límite es una hora antes del inicio.");return}}a.participants[user]=going; }
 if(e.target.dataset.vote){a.votes[user]=e.target.dataset.vote}
 write("tb3st-activities",activities);render()};
-function render(){renderWeb();renderRules();const leaders=members.filter(m=>m.role==="Líder").length;$("#member-count").textContent=members.length;$("#member-pill").textContent=members.length+" miembros";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=members.length?Math.round(active/members.length*100)+"%":"0%";$("#member-form").classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=members.map(m=>`<div class="member-row"><div class="avatar">${esc(m.name.slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.name)}</b><small>${esc(m.role)} · ${esc(m.nick||"Sin nick")}</small></div>${canManageMembers()&&(isLeader()||m.role==="Miembro")?`<button class="secondary-btn" data-edit="${m.id}">Editar</button>`:""}${isLeader()?`<button class="remove" data-delete="${m.id}">×</button>`:""}</div>`).join("")||'<p class="muted">No hay integrantes.</p>';
-$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
+function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.display_name)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small><small class="role-account-id">ID cuenta: ${esc(m.id)} · ID Free Fire: ${esc(m.ff_id||"No registrado")}</small></div></div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[role],voted=a.votes?.[role];const participants=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]);const no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);return `<article class="panel activity-card" data-id="${a.id}"><div class="panel-title"><h3>${esc(a.name)}</h3><span class="tag">${isNaN(start)? "Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${esc(a.desc||"Sin descripción.")}</p>${a.rules?`<div class="activity-rules"><b>Reglas</b><p>${esc(a.rules)}</p></div>`:""}<div class="attendance-actions"><button class="${going?"secondary-btn":"primary-btn"}" data-action="${going?"leave":"join"}" ${!going&&locked?"disabled":""}>${going?"Cancelar participación":"Voy a participar"}</button><span class="muted">${locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes"}</span></div><div class="participant-grid"><div><b>Participan (${participants.length})</b><small>${participants.map(esc).join(", ")||"Nadie todavía"}</small></div><div><b>No participan (${no.length})</b><small>${no.map(esc).join(", ")||"Sin respuestas"}</small></div></div>${a.pollQuestion&&a.options?.length?`<div class="poll"><b>Encuesta: ${esc(a.pollQuestion)}</b>${a.options.map(o=>`<button class="poll-choice ${voted===o?"chosen":""}" data-vote="${esc(o)}">${esc(o)} <small>${Object.values(a.votes||{}).filter(v=>v===o).length} votos</small></button>`).join("")}<small>Tu voto: ${esc(voted||"Sin votar")}</small><p class="muted">Votos registrados: ${Object.entries(a.votes||{}).map(([u,v])=>esc(u)+": "+esc(v)).join(" · ")||"Ninguno"}</p></div>`:""}${isLeader()?`<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>`:""}</article>`}).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
 render();
 
