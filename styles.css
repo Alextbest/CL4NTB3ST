@@ -168,3 +168,7 @@ input:focus,textarea:focus,select:focus{
 .rules-editor-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .rules-editor-actions button{min-height:44px}
 @media(min-width:600px){.news-slide{flex-basis:300px}}
+
+
+/* Cloud account role management */
+.role-account-id{display:block;overflow-wrap:anywhere;opacity:.72;font-size:.72rem;margin-top:3px}
