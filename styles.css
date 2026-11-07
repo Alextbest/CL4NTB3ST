@@ -345,3 +345,11 @@ button:active{transform:none}
 
 /* Requisitos de contraseña durante el registro */
 #password-rules ul{margin:8px 0 6px;padding-left:20px;display:grid;gap:5px}#password-rules li{color:var(--muted,#aaa);font-size:.9rem}#password-rules li.password-rule-met{color:#d7e6d8}
+
+/* Iconos: flotamiento y brillo pulsante suave, una sola animacion */
+@keyframes tb3st-icon-float-glow{
+  0%,100%{transform:translateY(0);filter:drop-shadow(0 0 2px rgba(255,255,255,.28));opacity:.92}
+  50%{transform:translateY(-2px);filter:drop-shadow(0 0 5px rgba(255,255,255,.78)) drop-shadow(0 0 9px rgba(255,255,255,.32));opacity:1}
+}
+.nav-icon svg,.ui-icon svg,.quick-icon svg{animation:tb3st-icon-float-glow 3.6s ease-in-out infinite!important;filter:drop-shadow(0 0 2px rgba(255,255,255,.28));}
+@media(prefers-reduced-motion:reduce){.nav-icon svg,.ui-icon svg,.quick-icon svg{animation:none!important;filter:none!important}}
