@@ -96,9 +96,10 @@ jobs:
             "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/clantb3st-web-bundle.zip",
             "nativeApi": 1,
             "checksum": "${CHECKSUM}",
-            "notes": "Interfaz separada de acceso y aplicación; tema oscuro y gris con texto blanco.",
+            "notes": "Acceso separado, diseño oscuro y gris, y publicación de imágenes en el muro.",
             "changes": [
               "Diseño unificado en tonos oscuros y grises.",
+              "Adjuntar, previsualizar y publicar imágenes en el muro con almacenamiento privado.",
               "Texto blanco y descripciones claras; campos grises con bordes neutros.",
               "Iconos sencillos, sin neón ni animaciones exageradas.",
               "Se sincronizan versiones de recursos y se elimina la caché anterior al activar el nuevo service worker."
@@ -151,7 +152,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ota-${{ github.run_number }}
-          name: PARCHE OTA — TEMA OSCURO Y GRIS
+          name: PARCHE OTA — MURO CON IMÁGENES
           body: "TEMA MORADO Y AMARILLO — superficies púrpura oscuras, texto de alto contraste, acentos amarillos e iconos SVG consistentes. Se instala desde la aplicación."
           files: |
             clantb3st-web-bundle.zip
