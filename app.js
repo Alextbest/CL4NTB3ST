@@ -47,7 +47,7 @@ const authGate=$("#auth-gate"), appRoot=$("#app"), sessionMessage=$("#session-me
 const authTitle=$("#auth-title"), authDescription=$("#auth-description"), authSubmit=$("#auth-submit"), authToggle=$("#auth-mode-toggle"), authForgot=$("#auth-forgot"), signOutButton=$("#app-signout");
 let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
-function animateUiEntrance(element){if(!element)return;element.classList.remove("ui-entering");void element.offsetWidth;element.classList.add("ui-entering");element.addEventListener("animationend",()=>element.classList.remove("ui-entering"),{once:true})}
+function animateUiEntrance(element){if(!element)return;element.classList.remove("ui-entering");void element.offsetWidth;element.classList.add("ui-entering");element.addEventListener("animationend",()=>element.classList.remove("ui-entering"),{once:true});setTimeout(()=>element.classList.remove("ui-entering"),360)}
 function showAccess(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.add("hidden");animateUiEntrance(authGate)}
 function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden");passwordRecoveryStep.classList.add("hidden");animateUiEntrance(profileForm)}
 function showPasswordRecovery(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.remove("hidden");hideLoadingScreen();sessionMessage.textContent="Escribe y confirma tu nueva contraseña para CL4NTB3ST.";animateUiEntrance(passwordRecoveryStep)}
@@ -435,7 +435,7 @@ if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refr
 
 let activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder", canManageMembers=()=>isLeader()||role==="Decano";
-function nav(p){const target=document.getElementById("page-"+p);if(!target||target.classList.contains("active"))return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
+function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
 (function initUiMicrointeractions(){
