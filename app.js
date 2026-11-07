@@ -70,7 +70,7 @@ profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.tri
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();showAccess();return}if(event==="PASSWORD_RECOVERY"){passwordRecoveryPending=true;showPasswordRecovery();return}if(event==="SIGNED_IN"&&session){if(passwordRecoveryPending)showPasswordRecovery();else loadProfile(session)}});
 setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
-const PATCH_BUILTIN_VERSION = "__CL4NTB3ST_PATCH_VERSION__";
+const PATCH_BUILTIN_VERSION = "ota-315";
 const PATCH_NATIVE_API = 1;
 const mandatoryUpdateScreen = $("#mandatory-update-screen");
 const mandatoryUpdateVersion = $("#mandatory-update-version");
@@ -162,22 +162,22 @@ async function checkForRemotePatch() {
     return "available";
   } catch (error) {
     otaPatchManifest = null;
-    if (mandatoryUpdateScreen) mandatoryUpdateScreen.classList.remove("hidden");
-    if (mandatoryUpdateVersion) mandatoryUpdateVersion.textContent = "No se pudo verificar la versión";
-    if (mandatoryUpdateNotes) mandatoryUpdateNotes.textContent = "La aplicación necesita conectarse al servidor para comprobar e instalar el parche obligatorio.";
+    if (mandatoryUpdateScreen) mandatoryUpdateScreen.classList.add("hidden");
+    if (mandatoryUpdateVersion) mandatoryUpdateVersion.textContent = "Comprobación aplazada";
+    if (mandatoryUpdateNotes) mandatoryUpdateNotes.textContent = "No se pudo consultar el servidor de parches. Puedes seguir usando la versión instalada y volver a comprobar más tarde.";
     if (mandatoryUpdateChanges) {
       mandatoryUpdateChanges.replaceChildren();
       const item = document.createElement("li");
       item.textContent = "Conecta el teléfono a internet y vuelve a intentarlo.";
       mandatoryUpdateChanges.appendChild(item);
     }
-    showMandatoryUpdateStatus("Error al comprobar la actualización: " + (error.message || "Error desconocido"));
+    showMandatoryUpdateStatus("No se pudo comprobar el parche. Se continuará con la versión instalada: " + (error.message || "Error desconocido"));
     if (mandatoryUpdateButton) {
       mandatoryUpdateButton.disabled = false;
       mandatoryUpdateButton.textContent = "Reintentar comprobación";
     }
     console.warn("No se pudo comprobar el parche obligatorio:", error);
-    return "error";
+    return "current";
   } finally {
     patchCheckRunning = false;
   }
@@ -329,6 +329,9 @@ async function checkForApkUpdate() {
   } catch (error) {
     apkUpdateState = "error";
     showApkUpdateMessage(error.message || "No se pudo comprobar si hay actualizaciones.");
+    if (error.message === "No se pudo consultar el servidor de versiones.") {
+      showApkUpdateMessage("Todavía no hay una versión APK publicada para actualizar. Puedes seguir usando esta aplicación.");
+    }
     if (apkUpdateButton) {
       apkUpdateButton.disabled = false;
       apkUpdateButton.textContent = "Reintentar";
