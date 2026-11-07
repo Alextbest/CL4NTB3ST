@@ -174,3 +174,42 @@ input:focus,textarea:focus,select:focus{
 .role-account-id{display:block;overflow-wrap:anywhere;opacity:.72;font-size:.72rem;margin-top:3px}
 
 .member-info .role-account-id{white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.35}
+
+
+/* Acabado visual refinado: menos neón, más jerarquía y legibilidad */
+:root{--bg:#0b0e16;--panel:#141a27;--line:#293246;--text:#f4f5f8;--muted:#9aa5b8;--blue:#b6a1f7;--red:#e8a4ae}
+body{background:radial-gradient(ellipse at 50% -20%,#24243a 0%,#0b0e16 58%);letter-spacing:0}
+.app-shell{max-width:820px;padding:18px 16px 32px}
+.topbar{margin-bottom:18px}
+.brand-logo{animation:none;box-shadow:0 4px 18px #0005}
+.hero{background:linear-gradient(125deg,#202b42,#171c2b 72%,#252137);border-color:#39465f;box-shadow:0 12px 32px #0003}
+.panel,.rolebar,.quick-card,.rules-list article{animation:none!important;box-shadow:0 8px 24px #0002}
+.tabs{gap:3px;background:#101522;border-color:#273146;box-shadow:0 8px 24px #0004;backdrop-filter:blur(16px)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:66px;padding:9px 7px;color:#a5afc1;font-size:10px;letter-spacing:.1px}
+.tab.active{background:linear-gradient(145deg,#3c355a,#25283c);color:#fff;box-shadow:inset 0 0 0 1px #71658f}
+.nav-icon{display:grid;place-items:center;width:19px;height:19px;color:currentColor}
+.nav-icon svg,.ui-icon svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab-label{white-space:nowrap}
+.primary-btn{background:linear-gradient(135deg,#c8b6ff,#9c8bd7);color:#171426;box-shadow:none}
+.secondary-btn{background:#242a3b;border-color:#3b455d;color:#e2e5ef;box-shadow:none}
+.danger-btn{box-shadow:none}
+.primary-btn,.secondary-btn,.danger-btn,.tab,.poll-choice,.web-open-btn{animation:none!important;transition:background .18s ease,border-color .18s ease,transform .18s ease,filter .18s ease}
+button:focus-visible{outline:2px solid #c8b6ff;outline-offset:2px}
+.quick-card{background:linear-gradient(145deg,#171f30,#121825);min-height:116px}
+.quick-icon{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:#29243d;color:#c8b6ff;font-size:20px}
+.news-intro{background:linear-gradient(130deg,#211f35,#171a27);border-color:#39344e}
+.news-carousel{gap:13px;padding:3px 2px 16px}
+.news-slide{position:relative;isolation:isolate;overflow:hidden;flex:0 0 min(84%,340px);min-height:236px;justify-content:flex-end;gap:9px;padding:17px;border-color:#454158;background:#191b28;box-shadow:0 9px 24px #0005}
+.news-cover,.news-shade{position:absolute;inset:0;width:100%;height:100%;z-index:-2}
+.news-cover{object-fit:cover;transition:transform .35s ease}
+.news-slide:hover .news-cover{transform:scale(1.035)}
+.news-shade{z-index:-1;background:linear-gradient(180deg,#0b0d16a8 0%,#0b0d1699 28%,#0b0d16e8 100%)}
+.news-slide .news-kicker{color:#d6c9ff;text-shadow:0 1px 5px #000}
+.news-slide strong{font-size:21px;text-shadow:0 2px 10px #000}
+.news-slide .news-slide-desc{font-size:12px;line-height:1.45;color:#e1e2eb}
+.news-slide b{color:#f2dca0}
+.news-detail{border-color:#39344e}
+.news-main-link{background:linear-gradient(135deg,#c8b6ff,#9c8bd7);color:#171426}
+footer{letter-spacing:1.5px}
+@media(max-width:390px){.app-shell{padding-left:12px;padding-right:12px}.tab{min-width:60px;padding:8px 5px}.tabs{gap:1px}.news-slide{flex-basis:88%}}
+@media(prefers-reduced-motion:reduce){.news-cover{transition:none}}
