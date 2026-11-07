@@ -1273,3 +1273,132 @@ footer span{color:#a47a3c!important;-webkit-text-fill-color:#a47a3c!important}
 @media(prefers-reduced-motion:reduce){
   .quick-icon,.brand-logo,.tb3st-home-hero,.tb3st-clan-status{animation:none!important}
 }
+
+/* CL4N TB3ST — SIMPLE HIGH-CONTRAST DARK THEME */
+:root{color-scheme:dark!important;background:#151a23!important}
+html,body{
+  background:#151a23!important;
+  color:#fff!important;
+  color-scheme:dark!important;
+}
+body{
+  background:linear-gradient(180deg,#1b2230 0%,#151a23 42%,#11161e 100%)!important;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif!important;
+}
+body *:not(svg):not(path):not(iframe):not(img){
+  color:#fff!important;
+  -webkit-text-fill-color:#fff!important;
+  text-shadow:none!important;
+}
+.app-shell{background:transparent!important}
+.page{background:transparent!important}
+.topbar,.tabs,.panel,.auth-panel,.rolebar,.feature-row,.ranking-row,
+.badge-card,.social-post,.review-card,.rules-list article,.member-row,
+.participant-grid>div,.social-comment,.activity-rules,.notice,.security-note,
+.feature-note,.quick-card,.tb3st-announcement,.tb3st-clan-status,
+.web-viewer-panel,.backup-panel,.activity-card,.mission-card{
+  background:#252e3d!important;
+  border:1px solid #3b485c!important;
+  border-radius:14px!important;
+  color:#fff!important;
+  box-shadow:0 5px 16px #0005!important;
+}
+.section-heading,.panel-title{background:transparent!important}
+.section-heading h2,.section-heading h3,.panel h2,.panel h3,
+.panel-title h3,.quick-card b,.tb3st-card-copy b,
+.tb3st-announcement strong,.tb3st-clan-data strong,
+.member-info b,.feature-row-main b,.ranking-row b{
+  color:#fff!important;-webkit-text-fill-color:#fff!important
+}
+.muted,.footnote,.panel small,.feature-row small,.feature-row-main small,
+.feature-meta,.badge-card small,.social-comment small,
+.quick-card small,.tb3st-card-copy small,.tb3st-announcement p,
+.tb3st-clan-data span,.tb3st-clan-data small,.hero p{
+  color:#d5deea!important;-webkit-text-fill-color:#d5deea!important;
+  opacity:1!important
+}
+.eyebrow,.subheading,.tag,.count-pill,.status{
+  color:#c9d7ed!important;-webkit-text-fill-color:#c9d7ed!important;
+  background:#303c50!important;border:1px solid #52627a!important
+}
+.tb3st-home-hero,.hero{
+  background:linear-gradient(135deg,#293449 0%,#202a3a 65%,#303044 100%)!important;
+  border:1px solid #53627b!important;border-radius:18px!important;
+  box-shadow:0 10px 26px #0006!important
+}
+.tb3st-home-hero h1,.tb3st-home-hero h2,.tb3st-home-hero p,
+.tb3st-home-hero strong,.tb3st-home-hero small,
+.tb3st-brand-lockup strong,.tb3st-brand-lockup small,
+.tb3st-hero-copy h1,.tb3st-hero-copy p,.tb3st-hero-copy .eyebrow{
+  color:#fff!important;-webkit-text-fill-color:#fff!important
+}
+.tb3st-clan-status{background:#252e3d!important;border-color:#56647a!important}
+.tb3st-clan-symbol,.tb3st-clan-level b,.tb3st-announcement-icon,
+.tb3st-announcement-arrow,.tb3st-chevron{
+  color:#f2c879!important;-webkit-text-fill-color:#f2c879!important
+}
+.tb3st-clan-level{border-color:#56647a!important}
+.tb3st-slogan{color:#e1e8f2!important;-webkit-text-fill-color:#e1e8f2!important;border-color:#3b485c!important}
+.quick-card{background:#252e3d!important}
+.quick-icon,.quick-icon.blue,.quick-icon.red{
+  background:linear-gradient(145deg,#34445c,#293448)!important;
+  border:1px solid #7187a6!important;border-radius:12px!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;
+  box-shadow:0 0 12px #83b9ff55,0 0 24px #6c8fcf35!important
+}
+.tab{
+  background:#252e3d!important;color:#e6edf6!important;
+  -webkit-text-fill-color:#e6edf6!important;border:1px solid #3b485c!important
+}
+.tab.active{
+  background:#465a78!important;color:#fff!important;
+  -webkit-text-fill-color:#fff!important;border-color:#8da6ca!important
+}
+.tab.active *{color:#fff!important;-webkit-text-fill-color:#fff!important}
+input,textarea,select,
+input:not([type=checkbox]):not([type=radio]),textarea,select{
+  background:#192230!important;color:#fff!important;
+  -webkit-text-fill-color:#fff!important;border:1px solid #566780!important;
+  border-radius:10px!important;box-shadow:none!important
+}
+input::placeholder,textarea::placeholder{
+  color:#c0cada!important;-webkit-text-fill-color:#c0cada!important;opacity:1!important
+}
+select option{background:#192230!important;color:#fff!important}
+input:focus,textarea:focus,select:focus{
+  outline:2px solid #9ab7e1!important;border-color:#9ab7e1!important
+}
+.primary-btn,.secondary-btn,.danger-btn{
+  background:#40536e!important;color:#fff!important;
+  -webkit-text-fill-color:#fff!important;border:1px solid #8399b8!important;
+  box-shadow:0 4px 12px #0004!important
+}
+.secondary-btn{background:#303d51!important}
+.danger-btn{background:#663b45!important;border-color:#a96b78!important}
+button:disabled{opacity:.55!important}
+.member-row,.participant-grid>div,.social-comment,.activity-rules,
+.notice,.security-note,.feature-note,.poll-choice{
+  background:#1e2735!important;color:#fff!important;border:1px solid #3b485c!important
+}
+.member-info small,.social-comment small,.feature-meta,.footnote{
+  color:#d5deea!important;-webkit-text-fill-color:#d5deea!important
+}
+.poll-choice.chosen,.ranking-row.is-self{
+  background:#34445c!important;border-color:#8da6ca!important
+}
+.notice{border-left:3px solid #e3bd72!important}
+.news-slide{background:linear-gradient(135deg,#34445c,#202a3a)!important;border:1px solid #7187a6!important}
+.news-slide *{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.web-empty{background:#202a38!important;color:#e1e8f2!important;border-color:#53627b!important}
+.web-frame{border-color:#53627b!important}
+footer,footer span{color:#d5deea!important;-webkit-text-fill-color:#d5deea!important}
+.loading-screen{background:#151a23!important}
+.loading-text{color:#fff!important;-webkit-text-fill-color:#fff!important}
+.mandatory-update-screen{background:#151a23!important}
+.mandatory-update-card{background:#252e3d!important;color:#fff!important;border:1px solid #53627b!important}
+.mandatory-update-card *{color:#fff!important;-webkit-text-fill-color:#fff!important}
+@media(max-width:390px){
+ .app-shell{padding-left:11px!important;padding-right:11px!important}
+ .tb3st-card-copy b{font-size:13px!important}
+ .tb3st-card-copy small{font-size:11px!important;line-height:1.4!important}
+}
