@@ -348,3 +348,6 @@ button:active{transform:none}
 #presence-status option[value="do_not_disturb"]{color:#ff303b}#presence-status option[value="available"]{color:#b58a00}#presence-status option[value="invite_me"]{color:#079ac7}
 
 .presence-label{font-weight:800}.presence-label.status-do_not_disturb{color:#ff303b;text-shadow:0 0 5px #ff303b}.presence-label.status-available{color:#b58a00;text-shadow:0 0 4px #ffd43b}.presence-label.status-invite_me{color:#079ac7;text-shadow:0 0 5px #35cfff}
+
+/* Cartera de oro y recompensas */
+.gold-positive{color:#f4c542!important}.gold-negative{color:#ff7777!important}.reward-card{display:grid;gap:10px}.reward-card .panel-title{align-items:center}.reward-card .panel-title strong{white-space:nowrap;color:#f4c542}.reward-card p{margin:0;color:#ddd}
