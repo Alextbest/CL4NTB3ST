@@ -1,3 +1,1 @@
--- This historical production version is preserved below; the same idempotent constraint is also tracked at 20261107174500.
 CREATE UNIQUE INDEX IF NOT EXISTS profiles_ff_id_unique_idx ON public.profiles(ff_id) WHERE ff_id IS NOT NULL;
-DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='profiles_ff_id_format_check' AND conrelid='public.profiles'::regclass) THEN ALTER TABLE public.profiles ADD CONSTRAINT profiles_ff_id_format_check CHECK (ff_id IS NULL OR ff_id ~ '^[0-9]{1,11}$'); END IF; END $$;
