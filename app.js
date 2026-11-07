@@ -849,7 +849,7 @@ $("#activities-list").onclick=async e=>{
   }
  }catch(error){alert("No se pudo sincronizar el cambio: "+(error.message||"Error desconocido"))}
 };
-function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#clan-member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>{
+function render(){renderWeb();renderRules();const activeMembers=cloudMembers.filter(m=>(m.membership_status||"active")==="active").length;$("#member-count").textContent=activeMembers;$("#clan-member-count").textContent=activeMembers;$("#member-pill").textContent=activeMembers+" integrantes activos";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>{
  const status=m.membership_status||"active";
  const statusLabel=status==="banned"?"VETADO":status==="removed"?"EXPULSADO":"ACTIVO";
  const statusClass=status==="banned"?"banned":status==="removed"?"removed":"active";
