@@ -644,6 +644,7 @@ async function loadCloudMembers(){
   cloudMembers=data||[];
   render();
 }
+window.addEventListener("clan-badges-updated",()=>{loadCloudMembers()});
 const membersStatus=$("#members-status");
 $("#member-list").onclick=async e=>{
   const button=e.target.closest("[data-edit-profile]");
