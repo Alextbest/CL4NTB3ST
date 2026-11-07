@@ -36,19 +36,20 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
 
   const presenceForm = $("#presence-form");
   if (presenceForm) {
-    supabase.from("member_presence").select("status,message").eq("user_id",userId()).maybeSingle().then(({data,error})=>{
-      if(!error&&data){presenceForm.elements.status.value=data.status;presenceForm.elements.message.value=data.message||"";}
+    supabase.from("member_presence").select("status,message,gameplay_role").eq("user_id",userId()).maybeSingle().then(({data,error})=>{
+      if(!error&&data){presenceForm.elements.status.value=data.status;presenceForm.elements.message.value=data.message||"";presenceForm.elements.gameplay_role.value=data.gameplay_role||"";}
     });
     presenceForm.onsubmit = async e => {
       e.preventDefault();
       const status = presenceForm.elements.status.value;
       const message = presenceForm.elements.message.value.trim();
+      const gameplay_role = presenceForm.elements.gameplay_role.value || null;
       const button = presenceForm.querySelector('button[type="submit"]');
       button.disabled = true;
       $("#presence-status-message").textContent = "Actualizando tu presencia…";
       try {
         const { error } = await supabase.from("member_presence").upsert({
-          user_id:userId(), status, message, updated_at:new Date().toISOString()
+          user_id:userId(), status, message, gameplay_role, updated_at:new Date().toISOString()
         }, { onConflict:"user_id" });
         if (error) throw error;
         $("#presence-status-message").textContent = "Tu estado ya está actualizado.";
@@ -64,13 +65,13 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if (!host) return;
     try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
     const { data, error } = await supabase.from("member_presence")
-      .select("user_id,status,message,updated_at,profiles(display_name,ff_nick,role)")
+      .select("user_id,status,message,gameplay_role,updated_at,profiles(display_name,ff_nick,role)")
       .order("updated_at",{ascending:false});
     if (error) { host.innerHTML = '<p class="muted">No se pudo cargar la presencia: '+esc(error.message)+'</p>'; return; }
     const rows = data || [];
     host.innerHTML = rows.map(row => {
       const labels = {available:"Disponible",do_not_disturb:"No molestar",invite_me:"Inviten"};
-      return `<article class="feature-row"><span class="presence-indicator ${esc(row.status)}"></span><div class="feature-row-main"><b class="member-name-line">${esc(row.profiles?.display_name || "Integrante")}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.profiles?.ff_nick || "Sin nick")} · ${esc(row.profiles?.role || "Miembro")}</small><small class="connection-status offline" data-connection-user="${esc(row.user_id)}">Desconectado</small><p><b class="presence-label status-${esc(row.status)}">${labels[row.status] || "Disponible"}</b>${row.message ? " · "+esc(row.message):""}</p></div><small class="muted">${dateText(row.updated_at)}</small></article>`;
+      return `<article class="feature-row"><span class="presence-indicator ${esc(row.status)}"></span><div class="feature-row-main"><b class="member-name-line">${esc(row.profiles?.display_name || "Integrante")}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.profiles?.ff_nick || "Sin nick")} · ${esc(row.profiles?.role || "Miembro")}</small><small class="gameplay-role-label">${esc(row.gameplay_role || "Rol de jugabilidad sin seleccionar")}</small><small class="connection-status offline" data-connection-user="${esc(row.user_id)}">Desconectado</small><p><b class="presence-label status-${esc(row.status)}">${labels[row.status] || "Disponible"}</b>${row.message ? " · "+esc(row.message):""}</p></div><small class="muted">${dateText(row.updated_at)}</small></article>`;
     }).join("") || '<p class="muted">Todavía no hay estados publicados. Actualiza el tuyo.</p>';
     document.dispatchEvent(new CustomEvent("clan-presence-updated"));
   }
@@ -369,8 +370,8 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const host=$("#social-wall");if(!host)return;
     try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
     const {data,error}=await supabase.from("social_posts")
-      .select("id,user_id,content,media_path,created_at,is_hidden,profiles!social_posts_user_id_fkey(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles!social_comments_user_id_fkey(display_name,role)),social_reactions(id,user_id,reaction)")
-      .order("created_at",{ascending:false}).limit(40);
+      .select("id,user_id,content,media_path,created_at,is_hidden,pinned_order,profiles!social_posts_user_id_fkey(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles!social_comments_user_id_fkey(display_name,role)),social_reactions(id,user_id,reaction)")
+      .order("pinned_order",{ascending:true,nullsFirst:false}).order("created_at",{ascending:false}).limit(40);
     if(error){host.innerHTML='<p class="muted">No se pudo cargar el muro: '+esc(error.message)+'</p>';return}
     const posts=data||[];
     const mediaPaths=posts.map(post=>post.media_path).filter(Boolean);
@@ -387,7 +388,10 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       const mediaUrl=post.media_path?signedUrls.get(post.media_path):null;
       const isVideo=!!post.media_path&&/\.(mp4|webm|mov)$/i.test(post.media_path);
       const mediaMarkup=mediaUrl?(isVideo?'<video class="social-media-image" src="'+esc(mediaUrl)+'" controls playsinline preload="metadata"></video>':'<img class="social-media-image" src="'+esc(mediaUrl)+'" alt="Imagen compartida en el muro" loading="lazy">'):'';
-      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b class="member-name-line">${esc(post.profiles?.display_name||"Integrante")}${memberBadgeMarkup(post.user_id)}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${mediaMarkup}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b class="member-name-line">${esc(c.profiles?.display_name||"Integrante")}${memberBadgeMarkup(c.user_id)}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
+      const canManagePost=isLeader()||post.user_id===userId();
+      const pinTools=isLeader()?`<div class="social-pin-tools"><span class="pinned-tag">Fijada #${post.pinned_order||""}</span><button class="text-action" type="button" data-pin-move="${post.id}" data-direction="up" ${!post.pinned_order||post.pinned_order===1?"disabled":""}>Subir</button><button class="text-action" type="button" data-pin-move="${post.id}" data-direction="down" ${!post.pinned_order?"disabled":""}>Bajar</button></div>`:"";
+      const postTools=canManagePost?`<div class="social-post-tools"><button class="text-action" type="button" data-edit-post="${post.id}">Editar</button><button class="text-action danger-text" type="button" data-delete-post="${post.id}">Eliminar</button>${isLeader()?`<button class="text-action" type="button" data-pin-post="${post.id}" data-pinned="${post.pinned_order!=null}">${post.pinned_order!=null?"Desfijar":"Fijar"}</button>${pinTools}`:""}</div>`:"";
+      return `<article class="panel social-post ${post.pinned_order?"social-post-pinned":""}" data-post-id="${post.id}"><div class="panel-title"><div><b class="member-name-line">${esc(post.profiles?.display_name||"Integrante")}${memberBadgeMarkup(post.user_id)}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div><div class="social-post-head-actions">${post.pinned_order?`<span class="pinned-tag">FIJADA #${post.pinned_order}</span>`:""}${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div></div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${mediaMarkup}${postTools}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b class="member-name-line">${esc(c.profiles?.display_name||"Integrante")}${memberBadgeMarkup(c.user_id)}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
     }).join("")||'<div class="panel muted">El muro está vacío. Publica algo para iniciar la conversación.</div>';
   }
 
@@ -409,6 +413,36 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
         if(data)await supabase.from("social_reactions").delete().eq("id",data.id);
         else {const {error}=await supabase.from("social_reactions").insert({post_id:postId,user_id:userId(),reaction:type});if(error)alert(error.message)}
         await loadWall();return;
+      }
+      const editPost=e.target.closest("[data-edit-post]");
+      const deletePost=e.target.closest("[data-delete-post]");
+      const pinPost=e.target.closest("[data-pin-post]");
+      const movePin=e.target.closest("[data-pin-move]");
+      if(editPost){
+        const post=editPost.closest("[data-post-id]");
+        const original=post?.querySelector(".social-content")?.textContent||"";
+        const content=prompt("Edita el texto de tu publicación:",original);
+        if(content===null)return;
+        if(!content.trim()&&!post?.querySelector(".social-media-image")){alert("La publicación debe tener texto o un archivo adjunto.");return;}
+        const {error}=await supabase.from("social_posts").update({content:content.trim(),updated_at:new Date().toISOString()}).eq("id",editPost.dataset.editPost);
+        if(error)alert("No se pudo editar: "+error.message);else await loadWall();
+        return;
+      }
+      if(deletePost){
+        if(!confirm("¿Eliminar esta publicación y sus comentarios?"))return;
+        const {error}=await supabase.from("social_posts").delete().eq("id",deletePost.dataset.deletePost);
+        if(error)alert("No se pudo eliminar: "+error.message);else await loadWall();
+        return;
+      }
+      if(pinPost){
+        const {error}=await supabase.rpc("set_social_post_pin",{p_post_id:pinPost.dataset.pinPost,p_pinned:pinPost.dataset.pinned!=="true"});
+        if(error)alert("No se pudo cambiar la fijación: "+error.message);else await loadWall();
+        return;
+      }
+      if(movePin){
+        const {error}=await supabase.rpc("move_social_post_pin",{p_post_id:movePin.dataset.pinMove,p_direction:movePin.dataset.direction});
+        if(error)alert("No se pudo reordenar: "+error.message);else await loadWall();
+        return;
       }
       const postButton=e.target.closest("[data-moderate-post]");
       const commentButton=e.target.closest("[data-moderate-comment]");
