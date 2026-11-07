@@ -271,3 +271,41 @@ footer{letter-spacing:1.5px}
 .quick-card .quick-icon.red{color:#ff9da8;border-color:#ff8b9a55;background:linear-gradient(145deg,#633044,#321f35)}
 @keyframes quick-icon-float{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-3px) scale(1.045)}}
 @media(prefers-reduced-motion:reduce){.quick-card .quick-icon svg{animation:none}}
+
+
+/* Efecto neón multicolor recorriendo los bordes de toda la interfaz. */
+:root{--neon-spectrum:linear-gradient(115deg,#ff3cac,#784bff,#18d7ff,#39ffb6,#ffe45c,#ff7a36,#ff3cac)}
+@keyframes neon-border-flow{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+@keyframes neon-aura-pulse{0%,100%{box-shadow:0 0 5px #ff3cac35,0 0 12px #784bff22}50%{box-shadow:0 0 9px #18d7ff55,0 0 20px #39ffb633,0 0 28px #ff3cac22}}
+:is(button,.panel,.rolebar,.hero,.quick-card,.tabs,.auth-panel,.mandatory-update-card,.mandatory-update-changes-wrap,.notice,.rules-list article,.member-row,.activity-rules,.participant-grid>div,.security-note,.web-frame,.web-empty,.poll-choice,.status,.tag,.count-pill,.brand-logo){
+  position:relative;
+  isolation:isolate;
+  animation:neon-aura-pulse 4.8s ease-in-out infinite;
+}
+:is(button,.panel,.rolebar,.hero,.quick-card,.tabs,.auth-panel,.mandatory-update-card,.mandatory-update-changes-wrap,.notice,.rules-list article,.member-row,.activity-rules,.participant-grid>div,.security-note,.web-frame,.web-empty,.poll-choice,.status,.tag,.count-pill,.brand-logo)::before{
+  content:"";
+  position:absolute;
+  inset:-1.5px;
+  padding:1.5px;
+  border-radius:inherit;
+  background:var(--neon-spectrum);
+  background-size:300% 300%;
+  animation:neon-border-flow 7s linear infinite;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+  z-index:0;
+  opacity:.88;
+}
+:is(button,.panel,.rolebar,.hero,.quick-card,.tabs,.auth-panel,.mandatory-update-card,.mandatory-update-changes-wrap,.notice,.rules-list article,.member-row,.activity-rules,.participant-grid>div,.security-note,.web-frame,.web-empty,.poll-choice,.status,.tag,.count-pill,.brand-logo)>*{
+  position:relative;
+  z-index:1;
+}
+button:disabled{animation:none}
+button:disabled::before{opacity:.28;animation:none}
+.quick-card .quick-icon{isolation:isolate}
+@media(prefers-reduced-motion:reduce){
+  :is(button,.panel,.rolebar,.hero,.quick-card,.tabs,.auth-panel,.mandatory-update-card,.mandatory-update-changes-wrap,.notice,.rules-list article,.member-row,.activity-rules,.participant-grid>div,.security-note,.web-frame,.web-empty,.poll-choice,.status,.tag,.count-pill,.brand-logo){animation:none}
+  :is(button,.panel,.rolebar,.hero,.quick-card,.tabs,.auth-panel,.mandatory-update-card,.mandatory-update-changes-wrap,.notice,.rules-list article,.member-row,.activity-rules,.participant-grid>div,.security-note,.web-frame,.web-empty,.poll-choice,.status,.tag,.count-pill,.brand-logo)::before{animation:none}
+}
