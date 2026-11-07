@@ -343,6 +343,8 @@ button:active{transform:none}
 .music-toggle{font-size:11px;padding:7px 10px;white-space:nowrap}
 
 /* Insignias junto al nombre del integrante */
+
+.member-ff-id{display:inline-flex;align-items:center;margin-left:7px;padding:1px 6px;border:1px solid var(--line);border-radius:6px;color:var(--muted);font-size:.72em;font-weight:600;letter-spacing:.02em;vertical-align:middle}
 .member-name-line{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
 .member-name-badges{display:inline-flex;align-items:center;gap:3px;vertical-align:middle}
 .member-name-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;font-size:15px;line-height:1;cursor:help}
