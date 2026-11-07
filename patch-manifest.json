@@ -1,7 +1,7 @@
 {
-  "version": "ota-89",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-89/clantb3st-web-bundle.zip",
+  "version": "ota-92",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-92/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "f81f0513af9890282420050ffd854e9c5ccefad57ebe9798826534b54e85815d",
+  "checksum": "5e6e9abc5e5b09a8f03687e305695227ffbaad64bc7c35fa71fb445ac8c3dd3b",
   "notes": "Actualización remota de CL4N TB3ST"
 }
