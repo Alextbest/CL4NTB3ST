@@ -18,8 +18,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
 
   const presenceForm = $("#presence-form");
   if (presenceForm) {
-    const saved = localStorage.getItem("tb3st-presence-status");
-    if (saved && presenceForm.elements.status) presenceForm.elements.status.value = saved;
+    supabase.from("member_presence").select("status,message").eq("user_id",userId()).maybeSingle().then(({data,error})=>{
+      if(!error&&data){presenceForm.elements.status.value=data.status;presenceForm.elements.message.value=data.message||"";}
+    });
     presenceForm.onsubmit = async e => {
       e.preventDefault();
       const status = presenceForm.elements.status.value;
@@ -32,7 +33,6 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           user_id:userId(), status, message, updated_at:new Date().toISOString()
         }, { onConflict:"user_id" });
         if (error) throw error;
-        localStorage.setItem("tb3st-presence-status",status);
         $("#presence-status-message").textContent = "Tu estado ya está actualizado.";
         await loadPresence();
       } catch (err) {
