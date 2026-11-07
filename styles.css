@@ -302,7 +302,7 @@ input::placeholder,textarea::placeholder{color:#c8c8c8!important;opacity:1}
 .news-slide .news-shade{background:linear-gradient(180deg,#15151555 0%,#151515dd 100%)!important}
 .tb3st-menu-mark,.tb3st-crown,.tb3st-announcement-icon,.avatar,.quick-icon{background:#383838!important;border-color:#555!important;color:#fff!important;box-shadow:none!important}
 .tb3st-home-hero:before,.tb3st-home-hero:after,.quick-card:after{display:none!important}
-.brand-logo,.tb3st-emblem img,.quick-icon svg{filter:none!important;animation:none!important}
+.brand-logo,.tb3st-emblem img{filter:none!important}\n.quick-icon svg{filter:drop-shadow(0 0 3px #ffffffaa)!important;animation:tb3st-icon-float 4s ease-in-out infinite!important}\n@media(prefers-reduced-motion:reduce){.quick-icon svg{animation:none!important}}
 .mandatory-update-screen,.loading-screen{background:#151515!important}
 .mandatory-update-card{background:#242424!important;border:1px solid #414141!important}
 .mandatory-update-version,.mandatory-update-status,.mandatory-update-progress-heading strong{color:#fff!important}
