@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.clantb3st.app',
   appName: 'CL4N TB3ST',
   webDir: 'www',
-  backgroundColor: '#100b18',
+  backgroundColor: '#151515',
   android: {
     allowMixedContent: false
   },
@@ -17,7 +17,7 @@ const config: CapacitorConfig = {
     SplashScreen: {
       launchShowDuration: 1400,
       launchAutoHide: true,
-      backgroundColor: '#100b18',
+      backgroundColor: '#151515',
       androidScaleType: 'CENTER_INSIDE',
       showSpinner: false
     }
