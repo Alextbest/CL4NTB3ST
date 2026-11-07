@@ -68,6 +68,7 @@ jobs:
           const manifest = JSON.parse(readFileSync('www/manifest.webmanifest', 'utf8'));
           const cssText = readFileSync('www/styles.css', 'utf8');
           if (cssText.includes('\\n')) throw new Error('CSS contains a literal escaped newline sequence.');
+          if ((cssText.match(/:root\\s*\\{/g) || []).length !== 1) throw new Error('Stylesheet must contain exactly one canonical theme variable block.');
           const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
           const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
           if (duplicates.length) throw new Error('Duplicate HTML IDs: ' + duplicates.join(', '));
