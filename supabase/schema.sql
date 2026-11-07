@@ -68,26 +68,6 @@ as $$
   select p.role from public.profiles p where p.id = auth.uid()
 $$;
 
-create or replace function public.guard_profile_role()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-begin
-  if new.role is distinct from old.role
-     and coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
-    raise exception 'El rango solo puede cambiarlo un administrador autorizado';
-  end if;
-  return new;
-end;
-$$;
-
-drop trigger if exists profiles_role_guard on public.profiles;
-create trigger profiles_role_guard
-before update of role on public.profiles
-for each row execute function public.guard_profile_role();
-
 alter table public.profiles enable row level security;
 alter table public.activities enable row level security;
 alter table public.activity_participants enable row level security;
@@ -105,7 +85,7 @@ for update to authenticated using (id = auth.uid()) with check (id = auth.uid())
 
 drop policy if exists "profiles created by authenticated owner" on public.profiles;
 create policy "profiles created by authenticated owner" on public.profiles
-for insert to authenticated with check (id = auth.uid() and role = 'Miembro');
+for insert to authenticated with check (id = (select auth.uid()));
 
 drop policy if exists "activities readable by clan" on public.activities;
 create policy "activities readable by clan" on public.activities
@@ -167,7 +147,10 @@ create policy "members change own vote" on public.activity_poll_votes
 for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 grant usage on schema public to authenticated;
-grant select, insert, update on public.profiles to authenticated;
+revoke all on table public.profiles from authenticated;
+grant select (id, display_name, ff_nick, ff_id, role, created_at) on public.profiles to authenticated;
+grant insert (id, display_name, ff_nick, ff_id, phone_e164) on public.profiles to authenticated;
+grant update (display_name, ff_nick, ff_id, phone_e164) on public.profiles to authenticated;
 grant select, insert, update, delete on public.activities to authenticated;
 grant select, insert, update on public.activity_participants to authenticated;
 grant select, insert, update, delete on public.activity_polls to authenticated;
