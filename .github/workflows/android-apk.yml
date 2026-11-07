@@ -6,8 +6,12 @@ on:
       - feature/android-apk-capacitor
   workflow_dispatch:
 
+concurrency:
+  group: clantb3st-android-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -53,6 +57,21 @@ jobs:
           npm run prepare:assets
           npm run build:web
 
+      - name: Package remote web patch
+        run: |
+          cd www
+          zip -r ../clantb3st-web-bundle.zip .
+          cd ..
+          TAG="ota-${GITHUB_RUN_NUMBER}"
+          cat > patch-manifest.json <<EOF
+          {
+            "version": "${TAG}",
+            "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/clantb3st-web-bundle.zip",
+            "nativeApi": 1,
+            "notes": "Actualización remota de CL4N TB3ST"
+          }
+          EOF
+
       - name: Create Android project
         run: npx cap add android
 
@@ -93,6 +112,19 @@ jobs:
           APK="android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+
+      - name: Publish remote web patch
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ota-${{ github.run_number }}
+          name: CL4N TB3ST OTA ${{ github.run_number }}
+          body: "Paquete web remoto de CL4N TB3ST. Se aplica desde la aplicación, sin reinstalar el APK."
+          files: |
+            clantb3st-web-bundle.zip
+            patch-manifest.json
+          make_latest: true
+          draft: false
+          prerelease: false
 
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
