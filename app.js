@@ -206,6 +206,28 @@ async function loadCloudMembers(){
   members=cloudMembers.map((p,i)=>({id:p.id,name:p.display_name,nick:p.ff_nick,role:p.role}));
   render();
 }
+const membersStatus=$("#members-status");
+$("#member-list").onclick=async e=>{
+  const button=e.target.closest("[data-edit-profile]");
+  if(!button||!canManageMembers())return;
+  const target=cloudMembers.find(m=>m.id===button.dataset.editProfile);
+  if(!target||target.role!=="Miembro")return;
+  const name=prompt("Nombre visible:",target.display_name);
+  if(name===null)return;
+  const nick=prompt("Nick de Free Fire:",target.ff_nick||"");
+  if(nick===null)return;
+  button.disabled=true;
+  if(membersStatus)membersStatus.textContent="Guardando datos del integrante…";
+  try{
+    const {data,error}=await supabase.rpc("update_clan_member_details",{p_member_id:target.id,p_display_name:name.trim(),p_ff_nick:nick.trim()});
+    if(error)throw error;
+    const updated=Array.isArray(data)?data[0]:data;
+    if(!updated)throw new Error("No se pudo actualizar la cuenta.");
+    if(membersStatus)membersStatus.textContent="Datos de "+updated.display_name+" actualizados en la nube.";
+    await loadCloudMembers();
+  }catch(error){if(membersStatus)membersStatus.textContent=error.message||"No se pudieron guardar los cambios."}
+  finally{button.disabled=false}
+};
 if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
   e.preventDefault();
   if(!isLeader()){roleAssignStatus.textContent="Solo los líderes pueden cambiar rangos.";return}
@@ -232,7 +254,7 @@ if(e.target.dataset.action==="delete"&&isLeader()&&confirm("¿Eliminar esta acti
 if(e.target.dataset.action==="join"||e.target.dataset.action==="leave"){const going=e.target.dataset.action==="join";if(!going){const start=new Date(a.date).getTime();if(Date.now()>=start-60*60*1000){alert("Ya no puedes cancelar: el límite es una hora antes del inicio.");return}}a.participants[user]=going; }
 if(e.target.dataset.vote){a.votes[user]=e.target.dataset.vote}
 write("tb3st-activities",activities);render()};
-function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.display_name)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small>${isLeader()?`<small class="role-account-id">ID cuenta: ${esc(m.id)} · ID Free Fire: ${esc(m.ff_id||"No registrado")}</small>`:(m.ff_id?`<small class="role-account-id">ID Free Fire: ${esc(m.ff_id)}</small>`:"")}</div></div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
+function render(){renderWeb();renderRules();$("#member-count").textContent=cloudMembers.length;$("#member-pill").textContent=cloudMembers.length+" cuentas";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>`<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b>${esc(m.display_name)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")}</small>${isLeader()?`<small class="role-account-id">ID cuenta: ${esc(m.id)} · ID Free Fire: ${esc(m.ff_id||"No registrado")}</small>`:(m.ff_id?`<small class="role-account-id">ID Free Fire: ${esc(m.ff_id)}</small>`:"")}</div>${canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:""}</div>`).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[role],voted=a.votes?.[role];const participants=Object.entries(a.participants||{}).filter(x=>x[1]).map(x=>x[0]);const no=Object.entries(a.participants||{}).filter(x=>x[1]===false).map(x=>x[0]);return `<article class="panel activity-card" data-id="${a.id}"><div class="panel-title"><h3>${esc(a.name)}</h3><span class="tag">${isNaN(start)? "Fecha pendiente":start.toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"})}</span></div><p>${esc(a.desc||"Sin descripción.")}</p>${a.rules?`<div class="activity-rules"><b>Reglas</b><p>${esc(a.rules)}</p></div>`:""}<div class="attendance-actions"><button class="${going?"secondary-btn":"primary-btn"}" data-action="${going?"leave":"join"}" ${!going&&locked?"disabled":""}>${going?"Cancelar participación":"Voy a participar"}</button><span class="muted">${locked?"Cancelación cerrada (límite: 1 hora antes)":"Puedes cancelar hasta una hora antes"}</span></div><div class="participant-grid"><div><b>Participan (${participants.length})</b><small>${participants.map(esc).join(", ")||"Nadie todavía"}</small></div><div><b>No participan (${no.length})</b><small>${no.map(esc).join(", ")||"Sin respuestas"}</small></div></div>${a.pollQuestion&&a.options?.length?`<div class="poll"><b>Encuesta: ${esc(a.pollQuestion)}</b>${a.options.map(o=>`<button class="poll-choice ${voted===o?"chosen":""}" data-vote="${esc(o)}">${esc(o)} <small>${Object.values(a.votes||{}).filter(v=>v===o).length} votos</small></button>`).join("")}<small>Tu voto: ${esc(voted||"Sin votar")}</small><p class="muted">Votos registrados: ${Object.entries(a.votes||{}).map(([u,v])=>esc(u)+": "+esc(v)).join(" · ")||"Ninguno"}</p></div>`:""}${isLeader()?`<div class="inline-actions"><button class="secondary-btn" data-action="edit">Editar</button><button class="danger-btn" data-action="delete">Eliminar</button></div>`:""}</article>`}).join("")||'<div class="panel muted">Todavía no hay actividades publicadas.</div>'}
 render();
 
