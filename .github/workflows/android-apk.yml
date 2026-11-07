@@ -72,12 +72,12 @@ jobs:
             "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/clantb3st-web-bundle.zip",
             "nativeApi": 1,
             "checksum": "${CHECKSUM}",
-            "notes": "PARCHE NEON + BOTONES NEGROS. Ahora toda la aplicación utiliza un tema negro integral con bordes de neón rojo animados.",
+            "notes": "INTERFAZ BLANCA PROFESIONAL. Diseño blanco limpio, texto negro y controles con bordes negros; se conservan los iconos animados del clan.",
             "changes": [
-              "Fondos negros en toda la aplicación: paneles, tarjetas, encabezados y pantallas.",
-              "Botones, opciones y campos en negro con texto claro.",
-              "Bordes de neón rojo animados y brillo rojo en los controles.",
-              "Mejor contraste y legibilidad en toda la interfaz."
+              "Interfaz blanca en paneles, tarjetas, encabezados y pantallas.",
+              "Botones, opciones y controles con bordes negros y texto legible.",
+              "Se conservan los iconos flotantes y animados del clan.",
+              "Se retira el acceso visual a Actualizaciones sin eliminar los mecanismos de actualización."
             ]
           }
           EOF
@@ -127,8 +127,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ota-${{ github.run_number }}
-          name: PARCHE NEON + BOTONES NEGROS
-          body: "PARCHE NEON + BOTONES NEGROS — tema negro integral con bordes de neón rojo animados. Se instala desde la aplicación."
+          name: PARCHE OTA — INTERFAZ BLANCA PROFESIONAL
+          body: "INTERFAZ BLANCA PROFESIONAL — diseño blanco limpio, controles con bordes negros e iconos animados conservados. Se instala desde la aplicación."
           files: |
             clantb3st-web-bundle.zip
             patch-manifest.json
