@@ -45,7 +45,7 @@ let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
 function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
 function showAccess(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden")}
 function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden")}
-function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus()}
+function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus();subscribeClanPresence()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data&&data.membership_status!=="active"){currentProfile=null;role="Miembro";showAccess();sessionMessage.textContent=data.membership_status==="banned"?"Tu cuenta está vetada y no puede acceder a CL4NTB3ST. Contacta al líder si necesitas solicitar una revisión.":"Tu acceso al clan fue retirado. Contacta al líder si necesitas solicitar tu reincorporación.";await supabase.auth.signOut();return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function passwordChecks(value){return {length:value.length>=8,lower:/[a-z]/.test(value),upper:/[A-Z]/.test(value),number:/[0-9]/.test(value),symbol:/[^A-Za-z0-9\s]/.test(value)}}
@@ -55,7 +55,7 @@ function setAuthMode(mode){authMode=mode;const signup=mode==="signup";authTitle.
 authToggle.onclick=()=>setAuthMode(authMode==="signin"?"signup":"signin");
 authForm.onsubmit=async e=>{e.preventDefault();if(authBusy)return;const email=$("#auth-email").value.trim().toLowerCase(),password=$("#auth-password").value;if(!email){sessionMessage.textContent="Escribe un correo electrónico válido.";return}if(authMode==="signup"&&!updatePasswordRules()){sessionMessage.textContent="La contraseña no cumple todos los requisitos de seguridad.";$("#auth-password").focus();return}if(authMode==="signin"&&password.length<1){sessionMessage.textContent="Escribe la contraseña de tu cuenta.";return}authBusy=true;authSubmit.disabled=true;sessionMessage.textContent=authMode==="signup"?"Creando tu cuenta…":"Iniciando sesión…";try{if(authMode==="signup"){const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl}});if(error)throw error;if(data.session){await loadProfile(data.session)}else{sessionMessage.textContent="Cuenta creada. Revisa tu correo y confirma la dirección antes de iniciar sesión."}}else{const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;if(!data.session)throw new Error("No se recibió una sesión. Confirma tu correo e inténtalo de nuevo.");await loadProfile(data.session)}}catch(error){sessionMessage.textContent="No se pudo completar la operación: "+(error.message||"Error desconocido")}finally{authBusy=false;authSubmit.disabled=false}};
 authForgot.onclick=async()=>{const email=$("#auth-email").value.trim().toLowerCase();if(!email){sessionMessage.textContent="Escribe primero el correo de tu cuenta.";return}authForgot.disabled=true;try{const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});if(error)throw error;sessionMessage.textContent="Si el correo está registrado, recibirás instrucciones para restablecer la contraseña."}catch(error){sessionMessage.textContent="No se pudo solicitar el restablecimiento: "+error.message}finally{authForgot.disabled=false}};
-if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}stopLobbyMusic();currentProfile=null;role="Miembro";showAccess();setAuthMode("signin");signOutButton.disabled=false};
+if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}stopLobbyMusic();currentProfile=null;role="Miembro";stopClanPresence();showAccess();setAuthMode("signin");signOutButton.disabled=false};
 const ffIdInput=$("#profile-ffid");ffIdInput.addEventListener("input",()=>{ffIdInput.value=ffIdInput.value.replace(/\D/g,"").slice(0,11)});
 profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.trim();if(!/^[0-9]{1,11}$/.test(ffId)){sessionMessage.textContent="El ID de Free Fire debe contener solo números y tener como máximo 11 dígitos.";ffIdInput.focus();return}const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Guardando tus datos…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:ffId,phone_e164:phone};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,role").single();if(error)throw error;showApp(data,session)}catch(error){const duplicateFfId=error.code==="23505"&&/profiles_ff_id_unique_idx|ff_id/i.test((error.message||"")+" "+(error.details||""));const duplicatePhone=error.code==="23505"&&/phone_e164/i.test((error.message||"")+" "+(error.details||""));sessionMessage.textContent=duplicateFfId?"Ese ID de Free Fire ya está registrado. No puedes usar el ID de otra cuenta.":duplicatePhone?"Ese número ya está registrado. Usa otro número.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){showAccess();return}if(event==="SIGNED_IN"&&session){loadProfile(session)}});
@@ -452,6 +452,47 @@ function renderRules() {
 }
 let cloudMembers=[];
 let memberStatusChannel=null;
+let clanPresenceChannel=null;
+let onlineClanMembers=new Set();
+let presenceLifecycleBound=false;
+function updateConnectionBadges(){
+ document.querySelectorAll("[data-connection-user]").forEach(node=>{
+  const online=onlineClanMembers.has(node.dataset.connectionUser);
+  node.textContent=online?"En línea":"Desconectado";
+  node.classList.toggle("online",online);
+  node.classList.toggle("offline",!online);
+ });
+}
+async function setClanPresenceActive(active){
+ if(!clanPresenceChannel||!currentProfile)return;
+ try{
+  if(active&&document.visibilityState==="visible"){
+   await clanPresenceChannel.track({user_id:currentProfile.id,connected_at:new Date().toISOString()});
+  }else{await clanPresenceChannel.untrack();}
+ }catch(error){console.warn("No se pudo actualizar la presencia en línea:",error)}
+}
+function subscribeClanPresence(){
+ if(clanPresenceChannel)supabase.removeChannel(clanPresenceChannel);
+ if(!currentProfile)return;
+ const memberId=currentProfile.id;
+ clanPresenceChannel=supabase.channel("clan-online-presence",{config:{presence:{key:memberId}}});
+ clanPresenceChannel.on("presence",{event:"sync"},()=>{
+  const state=clanPresenceChannel.presenceState();
+  onlineClanMembers=new Set(Object.keys(state));
+  updateConnectionBadges();
+  document.dispatchEvent(new CustomEvent("clan-presence-updated"));
+ });
+ if(!presenceLifecycleBound){
+  document.addEventListener("visibilitychange",()=>setClanPresenceActive(document.visibilityState==="visible"));
+  App.addListener("appStateChange",({isActive})=>setClanPresenceActive(Boolean(isActive)));
+  presenceLifecycleBound=true;
+ }
+ clanPresenceChannel.subscribe(async status=>{if(status==="SUBSCRIBED")await setClanPresenceActive(document.visibilityState==="visible")});
+}
+function stopClanPresence(){
+ if(clanPresenceChannel)supabase.removeChannel(clanPresenceChannel);
+ clanPresenceChannel=null;onlineClanMembers=new Set();updateConnectionBadges();
+}
 function subscribeMemberStatus(){
  if(memberStatusChannel)supabase.removeChannel(memberStatusChannel);
  if(!currentProfile)return;
@@ -859,7 +900,7 @@ function render(){renderWeb();renderRules();const activeMembers=cloudMembers.fil
   if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
   else moderation=`<button class="secondary-btn" data-member-action="restore" data-member-id="${esc(m.id)}" type="button">${status==="banned"?"Quitar veto":"Reintegrar"}</button>`;
  }
- return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small></div><div class="member-actions">${edit}${moderation}</div></div>`;
+ return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small><small class="connection-status offline" data-connection-user="${esc(m.id)}">Desconectado</small></div><div class="member-actions">${edit}${moderation}</div></div>`;
 }).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{
  const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];

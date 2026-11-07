@@ -161,8 +161,15 @@ body.authenticated #auth-gate{display:none!important}
 .feature-row-main{display:grid;gap:3px;min-width:0;flex:1}
 .feature-row-main small,.feature-row small{font-size:11px;color:#555}
 .feature-row-main p{margin:4px 0 0;font-size:12px}
-.presence-indicator{width:11px;height:11px;border-radius:50%;background:#16a34a;flex:0 0 auto}
-.presence-indicator.busy{background:#e59a20}.presence-indicator.looking_for_squad{background:#3182ce}.presence-indicator.stale{background:#aaa}
+.presence-indicator{width:11px;height:11px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 7px currentColor}
+.presence-indicator.do_not_disturb{background:#ff303b;color:#ff303b;box-shadow:0 0 8px #ff303b}
+.presence-indicator.available{background:#ffd43b;color:#ffd43b;box-shadow:0 0 8px #ffd43b}
+.presence-indicator.invite_me{background:#35cfff;color:#35cfff;box-shadow:0 0 8px #35cfff}
+.connection-status{display:inline-flex;align-items:center;width:max-content;font-size:10px!important;font-weight:800;letter-spacing:.035em}
+.connection-status.online{color:#39ff72!important;text-shadow:0 0 4px #39ff72,0 0 9px #39ff72;animation:connection-neon-pulse 1.35s ease-in-out infinite}
+.connection-status.offline{color:#b7bec8!important;text-shadow:0 0 4px #aeb7c4,0 0 8px #aeb7c4;animation:connection-neon-pulse 1.7s ease-in-out infinite}
+@keyframes connection-neon-pulse{0%,100%{opacity:1}50%{opacity:.48}}
+@media(prefers-reduced-motion:reduce){.connection-status{animation:none}}
 .feature-note{padding:10px;border:1px solid #ddd;border-radius:10px;margin:10px 0}
 .feature-note p{margin:5px 0 0;font-size:12px}
 .feature-meta{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;font-size:11px;color:#555}
@@ -336,3 +343,6 @@ button:active{transform:none}
   .nav-icon{width:19px;height:19px}
   .quick-icon svg{width:21px;height:21px}
 }
+
+/* Estados de disponibilidad y conexión de CL4N TB3ST */
+#presence-status option[value="do_not_disturb"]{color:#ff303b}#presence-status option[value="available"]{color:#b58a00}#presence-status option[value="invite_me"]{color:#079ac7}
