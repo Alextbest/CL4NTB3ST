@@ -58,18 +58,32 @@ setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
 const PATCH_BUILTIN_VERSION = "__CL4NTB3ST_PATCH_VERSION__";
 const PATCH_NATIVE_API = 1;
+const otaUpdatePanel = $("#ota-update-panel");
+const otaUpdateMessage = $("#ota-update-message");
+const otaUpdateButton = $("#ota-update-button");
+let otaPatchManifest = null;
 let patchCheckRunning = false;
+let otaPatchBusy = false;
+
+function showOtaMessage(message) {
+  if (otaUpdateMessage) otaUpdateMessage.textContent = message;
+}
 
 async function checkForRemotePatch() {
   if (!isNativeApp || patchCheckRunning) return;
   patchCheckRunning = true;
-  let userAccepted = false;
+  if (otaUpdatePanel) otaUpdatePanel.classList.remove("hidden");
+  if (otaUpdateButton) {
+    otaUpdateButton.disabled = true;
+    otaUpdateButton.textContent = "Comprobando…";
+  }
+  showOtaMessage("Buscando actualizaciones remotas…");
   try {
     const response = await fetch(PATCH_MANIFEST_URL, {
       cache: "no-store",
       headers: { Accept: "application/json" }
     });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error("No se pudo consultar el servidor de parches (HTTP " + response.status + ").");
     const manifest = await response.json();
     if (
       manifest.nativeApi !== PATCH_NATIVE_API ||
@@ -78,42 +92,79 @@ async function checkForRemotePatch() {
       typeof manifest.url !== "string" ||
       typeof manifest.checksum !== "string" ||
       !/^[a-f0-9]{64}$/i.test(manifest.checksum)
-    ) return;
+    ) throw new Error("El manifiesto OTA no tiene un formato válido.");
 
     const patchUrl = new URL(manifest.url);
     if (
       patchUrl.protocol !== "https:" ||
       patchUrl.hostname !== "github.com" ||
       !patchUrl.pathname.startsWith("/Alextbest/CL4NTB3ST/releases/download/")
-    ) return;
+    ) throw new Error("El enlace del parche no es válido.");
 
     const current = await CapacitorUpdater.current();
-    const installedVersion = current?.bundle?.id === "builtin" ? PATCH_BUILTIN_VERSION : (current?.bundle?.version || current?.bundle?.id || PATCH_BUILTIN_VERSION);
-    if (installedVersion === manifest.version) return;
-
-    userAccepted = confirm(
-      "Hay una actualización de CL4N TB3ST disponible (" + manifest.version +
-      ").\n\nSe descargará el parche y la aplicación se reiniciará para aplicarlo. ¿Actualizar ahora?"
-    );
-    if (!userAccepted) return;
-
-    const downloaded = await CapacitorUpdater.download({
-      version: manifest.version,
-      url: manifest.url,
-      checksum: manifest.checksum
-    });
-    if (!downloaded?.id) throw new Error("El paquete descargado no devolvió un identificador válido.");
-    await CapacitorUpdater.set({ id: downloaded.id });
-  } catch (error) {
-    console.warn("No se pudo aplicar el parche remoto:", error);
-    if (userAccepted) {
-      alert("No se pudo instalar el parche. La aplicación seguirá funcionando con la versión actual.");
+    const installedVersion = current?.bundle?.id === "builtin"
+      ? PATCH_BUILTIN_VERSION
+      : (current?.bundle?.version || current?.bundle?.id || PATCH_BUILTIN_VERSION);
+    if (installedVersion === manifest.version) {
+      otaPatchManifest = null;
+      showOtaMessage("La aplicación ya tiene el parche más reciente (" + manifest.version + ").");
+      if (otaUpdateButton) {
+        otaUpdateButton.disabled = false;
+        otaUpdateButton.textContent = "Comprobar de nuevo";
+      }
+      return;
     }
+    otaPatchManifest = manifest;
+    showOtaMessage("Parche " + manifest.version + " disponible. Puedes descargarlo ahora.");
+    if (otaUpdateButton) {
+      otaUpdateButton.disabled = false;
+      otaUpdateButton.textContent = "Descargar parche";
+    }
+  } catch (error) {
+    showOtaMessage("No se pudo comprobar el parche: " + (error.message || "Error desconocido"));
+    if (otaUpdateButton) {
+      otaUpdateButton.disabled = false;
+      otaUpdateButton.textContent = "Reintentar";
+    }
+    console.warn("No se pudo comprobar el parche remoto:", error);
   } finally {
     patchCheckRunning = false;
   }
 }
 
+async function downloadRemotePatch() {
+  if (otaPatchBusy) return;
+  if (!otaPatchManifest) {
+    await checkForRemotePatch();
+    return;
+  }
+  otaPatchBusy = true;
+  if (otaUpdateButton) otaUpdateButton.disabled = true;
+  try {
+    showOtaMessage("Descargando y verificando el parche…");
+    if (!otaPatchManifest.url || !otaPatchManifest.checksum) throw new Error("Faltan datos del parche.");
+    const downloaded = await CapacitorUpdater.download({
+      version: otaPatchManifest.version,
+      url: otaPatchManifest.url,
+      checksum: otaPatchManifest.checksum
+    });
+    if (!downloaded?.id) throw new Error("La descarga no devolvió un identificador válido.");
+    showOtaMessage("Descarga completa. Aplicando " + otaPatchManifest.version + "…");
+    await CapacitorUpdater.set({ id: downloaded.id });
+    showOtaMessage("Parche aplicado. La aplicación se reiniciará.");
+  } catch (error) {
+    showOtaMessage("No se pudo instalar el parche: " + (error.message || "Error desconocido"));
+    console.warn("No se pudo aplicar el parche remoto:", error);
+  } finally {
+    otaPatchBusy = false;
+    if (otaUpdateButton) {
+      otaUpdateButton.disabled = false;
+      otaUpdateButton.textContent = otaPatchManifest ? "Reintentar descarga" : "Comprobar de nuevo";
+    }
+  }
+}
+
+if (otaUpdateButton) otaUpdateButton.addEventListener("click", downloadRemotePatch);
 
 const APK_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/apk-manifest.json";
 const apkUpdatePanel = $("#apk-update-panel");
@@ -258,13 +309,10 @@ if (apkUpdateButton) apkUpdateButton.addEventListener("click", downloadApkUpdate
 restoreSession().finally(async () => {
   hideLoadingScreen();
   if (isNativeApp) {
-    try {
-      await CapacitorUpdater.notifyAppReady();
-      await checkForRemotePatch();
-      await checkForApkUpdate();
-    } catch (error) {
-      console.warn("El sistema de parches remotos no pudo iniciarse:", error);
-    }
+    try { await CapacitorUpdater.notifyAppReady(); }
+    catch (error) { console.warn("No se pudo confirmar que la app está lista para recibir parches:", error); }
+    await checkForRemotePatch();
+    await checkForApkUpdate();
   }
 });
 async function refreshSignedInProfile(){
