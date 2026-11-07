@@ -346,3 +346,5 @@ button:active{transform:none}
 
 /* Estados de disponibilidad y conexión de CL4N TB3ST */
 #presence-status option[value="do_not_disturb"]{color:#ff303b}#presence-status option[value="available"]{color:#b58a00}#presence-status option[value="invite_me"]{color:#079ac7}
+
+.presence-label{font-weight:800}.presence-label.status-do_not_disturb{color:#ff303b;text-shadow:0 0 5px #ff303b}.presence-label.status-available{color:#b58a00;text-shadow:0 0 4px #ffd43b}.presence-label.status-invite_me{color:#079ac7;text-shadow:0 0 5px #35cfff}

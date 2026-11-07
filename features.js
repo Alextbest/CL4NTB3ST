@@ -70,7 +70,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const rows = data || [];
     host.innerHTML = rows.map(row => {
       const labels = {available:"Disponible",do_not_disturb:"No molestar",invite_me:"Inviten"};
-      return `<article class="feature-row"><span class="presence-indicator ${esc(row.status)}"></span><div class="feature-row-main"><b class="member-name-line">${esc(row.profiles?.display_name || "Integrante")}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.profiles?.ff_nick || "Sin nick")} · ${esc(row.profiles?.role || "Miembro")}</small><small class="connection-status offline" data-connection-user="${esc(row.user_id)}">Desconectado</small><p>${esc(row.message || labels[row.status] || "Sin mensaje")}</p></div><small class="muted">${dateText(row.updated_at)}</small></article>`;
+      return `<article class="feature-row"><span class="presence-indicator ${esc(row.status)}"></span><div class="feature-row-main"><b class="member-name-line">${esc(row.profiles?.display_name || "Integrante")}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.profiles?.ff_nick || "Sin nick")} · ${esc(row.profiles?.role || "Miembro")}</small><small class="connection-status offline" data-connection-user="${esc(row.user_id)}">Desconectado</small><p><b class="presence-label status-${esc(row.status)}">${labels[row.status] || "Disponible"}</b>${row.message ? " · "+esc(row.message):""}</p></div><small class="muted">${dateText(row.updated_at)}</small></article>`;
     }).join("") || '<p class="muted">Todavía no hay estados publicados. Actualiza el tuyo.</p>';
     document.dispatchEvent(new CustomEvent("clan-presence-updated"));
   }
