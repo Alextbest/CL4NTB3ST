@@ -14,6 +14,10 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+-- El ID de Free Fire identifica una sola cuenta del clan.
+create unique index if not exists profiles_ff_id_unique_idx
+on public.profiles (ff_id) where ff_id is not null;
+
 create table if not exists public.activities (
   id uuid primary key default gen_random_uuid(),
   title text not null check (char_length(trim(title)) between 1 and 60),
