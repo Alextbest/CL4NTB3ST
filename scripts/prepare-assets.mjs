@@ -7,7 +7,7 @@ const assets = resolve(root, 'assets');
 await mkdir(assets, { recursive: true });
 
 const source = resolve(root, 'logo.png');
-const dark = { r: 16, g: 11, b: 24, alpha: 1 };
+const dark = { r: 21, g: 21, b: 21, alpha: 1 };
 
 // Existing clan artwork remains the source of truth; generate large,
 // lossless source images for Android and PWA icon variants.
