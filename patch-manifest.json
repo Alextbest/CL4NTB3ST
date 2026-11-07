@@ -1,7 +1,13 @@
 {
-  "version": "ota-93",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-93/clantb3st-web-bundle.zip",
+  "version": "ota-94",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-94/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "ca3a7f4d360d6344c6ff171c3180a7efcd524d5418db8fac796fda8f44aad719",
-  "notes": "Actualización remota de CL4N TB3ST"
+  "checksum": "26ea6f3e7bdd431f8bd2072f71058336baa44a00b781de7ad58647b0211f57cd",
+  "notes": "Actualización obligatoria de CL4N TB3ST. Instala este parche para continuar.",
+  "changes": [
+    "Comprobación automática del parche antes de mostrar el acceso.",
+    "Descripción y lista del contenido antes de descargar.",
+    "Acceso bloqueado hasta completar la instalación.",
+    "Botón para reintentar si falla la conexión o la descarga."
+  ]
 }
