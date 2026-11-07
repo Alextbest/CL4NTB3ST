@@ -1,13 +1,13 @@
 {
-  "version": "ota-97",
-  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-97/clantb3st-web-bundle.zip",
+  "version": "ota-103",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-103/clantb3st-web-bundle.zip",
   "nativeApi": 1,
-  "checksum": "8081ca24a7da6e58ae4dd54a537fcf873f32443e73ac40e218679c4b236ea5af",
-  "notes": "Actualización obligatoria de CL4N TB3ST. Instala este parche para continuar.",
+  "checksum": "9355d4c0cca66ff9fa0b209cd0eb646d3d7b306d504186a5238cc2704ee550e9",
+  "notes": "PARCHE NEON + BOTONES NEGROS. Ahora toda la aplicación utiliza un tema negro integral con bordes de neón rojo animados.",
   "changes": [
-    "Comprobación automática del parche antes de mostrar el acceso.",
-    "Descripción y lista del contenido antes de descargar.",
-    "Acceso bloqueado hasta completar la instalación.",
-    "Botón para reintentar si falla la conexión o la descarga."
+    "Fondos negros en toda la aplicación: paneles, tarjetas, encabezados y pantallas.",
+    "Botones, opciones y campos en negro con texto claro.",
+    "Bordes de neón rojo animados y brillo rojo en los controles.",
+    "Mejor contraste y legibilidad en toda la interfaz."
   ]
 }
