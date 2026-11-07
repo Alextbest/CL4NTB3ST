@@ -1028,3 +1028,57 @@ select option{background:#11151d!important;color:#fff!important}
 .tb3st-announcement-arrow{font-size:28px;color:#ff626a!important}
 .tb3st-activity-panel{margin-top:13px}
 @media(max-width:390px){.tb3st-hero-art{min-height:140px}.tb3st-emblem img{max-height:135px}.tb3st-quick-grid .quick-card{gap:7px;padding:10px 8px}.tb3st-quick-grid .quick-icon{width:36px;height:36px}.tb3st-card-copy b{font-size:12px!important}.tb3st-card-copy small{font-size:9px!important}}
+
+
+/* CONTRASTE DEFINITIVO — textos legibles en pantallas Android */
+#page-home,
+#page-home :is(h1,h2,h3,h4,p,span,b,strong,small,label,a,li,em),
+#page-home .tb3st-card-copy,
+#page-home .tb3st-card-copy *,
+#page-home .tb3st-clan-data,
+#page-home .tb3st-clan-data *,
+#page-home .tb3st-announcement,
+#page-home .tb3st-announcement *,
+.topbar .brand,
+.topbar .brand *,
+.hero,
+.hero *,
+.section-heading,
+.section-heading *,
+.panel,
+.panel *,
+.rolebar,
+.rolebar *,
+.quick-card,
+.quick-card *,
+.tabs .tab,
+.tabs .tab * {
+  color:#f7f8fb!important;
+  -webkit-text-fill-color:#f7f8fb!important;
+  opacity:1!important;
+}
+#page-home :is(small,.muted,.footnote,p),
+.hero :is(p,small,.muted),
+.quick-card small,
+.tb3st-card-copy small,
+.tb3st-announcement p,
+.tb3st-clan-data small {
+  color:#c4cbd6!important;
+  -webkit-text-fill-color:#c4cbd6!important;
+  opacity:1!important;
+}
+#page-home .eyebrow,
+#page-home .tb3st-brand-lockup small,
+#page-home .tb3st-chevron,
+#page-home .tb3st-announcement-arrow,
+.tabs .tab:not(.active) {
+  color:#ff7b83!important;
+  -webkit-text-fill-color:#ff7b83!important;
+}
+#page-home .quick-card,
+#page-home .tb3st-quick-grid .quick-card {
+  background:linear-gradient(145deg,#191e28,#10141c)!important;
+}
+#page-home .tb3st-card-copy b {font-size:14px!important;font-weight:800!important}
+#page-home .tb3st-card-copy small {font-size:11px!important;line-height:1.45!important}
+#page-home .tb3st-quick-grid .quick-card {min-height:104px!important}
