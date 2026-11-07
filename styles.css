@@ -219,3 +219,11 @@ footer{letter-spacing:1.5px}
 .quick-icon-svg{font-size:0}
 .quick-icon-svg svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .news-intro .muted{letter-spacing:0;line-height:1.6}
+
+
+/* Actualizador nativo de APK */
+.apk-update-panel{display:grid;gap:12px;border-color:#4b4662;background:linear-gradient(135deg,#1d2434,#171a28)}
+.apk-update-panel .panel-title{margin:0}
+.apk-update-panel>p{margin:0;line-height:1.55}
+.apk-update-panel .primary-btn{width:100%;min-height:44px}
+.apk-update-panel .footnote{margin:0;line-height:1.5}

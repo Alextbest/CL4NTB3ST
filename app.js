@@ -1,8 +1,10 @@
 import { supabase } from "./supabaseClient.js";
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { FilePicker } from "@capawesome/capacitor-file-picker";
+
+const ApkUpdater = registerPlugin("ApkUpdater");
 
 const isNativeApp = Capacitor.isNativePlatform();
 const authRedirectUrl = isNativeApp ? "com.clantb3st.app://auth-callback" : window.location.origin;
@@ -112,12 +114,149 @@ async function checkForRemotePatch() {
   }
 }
 
+
+const APK_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/apk-manifest.json";
+const apkUpdatePanel = $("#apk-update-panel");
+const apkUpdateMessage = $("#apk-update-message");
+const apkUpdateButton = $("#apk-update-button");
+let apkUpdateManifest = null;
+let apkDownloadId = null;
+let apkUpdateState = "checking";
+let apkUpdateBusy = false;
+
+function showApkUpdateMessage(message) {
+  if (apkUpdateMessage) apkUpdateMessage.textContent = message;
+}
+
+async function checkForApkUpdate() {
+  if (!isNativeApp || !apkUpdatePanel || apkUpdateBusy) return;
+  apkUpdatePanel.classList.remove("hidden");
+  apkUpdateState = "checking";
+  if (apkUpdateButton) {
+    apkUpdateButton.disabled = true;
+    apkUpdateButton.textContent = "Comprobando…";
+  }
+  showApkUpdateMessage("Buscando una versión nueva de CL4N TB3ST…");
+  try {
+    const response = await fetch(APK_MANIFEST_URL, { cache: "no-store", headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error("No se pudo consultar el servidor de versiones.");
+    const manifest = await response.json();
+    if (
+      manifest.packageId !== "com.clantb3st.app" ||
+      !Number.isSafeInteger(manifest.versionCode) ||
+      manifest.versionCode < 1 ||
+      typeof manifest.versionName !== "string" ||
+      typeof manifest.url !== "string" ||
+      typeof manifest.sha256 !== "string" ||
+      !/^[a-f0-9]{64}$/i.test(manifest.sha256)
+    ) throw new Error("El manifiesto de actualización no es válido.");
+    const apkUrl = new URL(manifest.url);
+    if (
+      apkUrl.protocol !== "https:" ||
+      apkUrl.hostname !== "github.com" ||
+      !/^\/Alextbest\/CL4NTB3ST\/releases\/download\/apk-[0-9]+\/app-release\.apk$/.test(apkUrl.pathname)
+    ) throw new Error("El enlace del APK no es válido.");
+
+    const installed = await ApkUpdater.getInstalledVersion();
+    if (manifest.versionCode <= Number(installed.versionCode)) {
+      apkUpdateManifest = null;
+      apkUpdateState = "current";
+      showApkUpdateMessage("Tu aplicación está actualizada (versión " + (installed.versionName || "instalada") + ").");
+      if (apkUpdateButton) {
+        apkUpdateButton.disabled = false;
+        apkUpdateButton.textContent = "Buscar actualizaciones";
+      }
+      return;
+    }
+    apkUpdateManifest = manifest;
+    apkUpdateState = "available";
+    showApkUpdateMessage("Nueva versión " + manifest.versionName + " disponible. " + (manifest.notes || "Incluye mejoras de CL4N TB3ST."));
+    if (apkUpdateButton) {
+      apkUpdateButton.disabled = false;
+      apkUpdateButton.textContent = "Descargar actualización";
+    }
+  } catch (error) {
+    apkUpdateState = "error";
+    showApkUpdateMessage(error.message || "No se pudo comprobar si hay actualizaciones.");
+    if (apkUpdateButton) {
+      apkUpdateButton.disabled = false;
+      apkUpdateButton.textContent = "Reintentar";
+    }
+    console.warn("Comprobación de APK:", error);
+  }
+}
+
+async function downloadApkUpdate() {
+  if (!apkUpdateManifest || apkUpdateBusy) return;
+  apkUpdateBusy = true;
+  apkUpdateButton.disabled = true;
+  try {
+    if (apkUpdateState === "available") {
+      showApkUpdateMessage("Preparando descarga segura…");
+      const started = await ApkUpdater.startDownload({
+        url: apkUpdateManifest.url,
+        sha256: apkUpdateManifest.sha256
+      });
+      apkDownloadId = started.downloadId;
+      apkUpdateState = "downloading";
+      apkUpdateButton.textContent = "Descargando…";
+      const deadline = Date.now() + 20 * 60 * 1000;
+      while (Date.now() < deadline) {
+        const status = await ApkUpdater.getDownloadStatus({ downloadId: apkDownloadId });
+        if (status.status === "successful") {
+          apkUpdateState = "downloaded";
+          showApkUpdateMessage("Descarga completa. Pulsa «Instalar actualización» para abrir el instalador de Android.");
+          apkUpdateButton.textContent = "Instalar actualización";
+          apkUpdateButton.disabled = false;
+          return;
+        }
+        if (status.status === "failed") throw new Error("La descarga no se completó. Comprueba tu conexión e inténtalo otra vez.");
+        const percent = status.totalBytes > 0 ? Math.floor(status.bytesDownloaded * 100 / status.totalBytes) : 0;
+        showApkUpdateMessage("Descargando actualización… " + percent + "%");
+        await new Promise(resolve => setTimeout(resolve, 1200));
+      }
+      throw new Error("La descarga tardó demasiado. Puedes volver a intentarlo.");
+    }
+    if (apkUpdateState === "downloaded") {
+      const result = await ApkUpdater.installDownloaded({
+        downloadId: apkDownloadId,
+        sha256: apkUpdateManifest.sha256
+      });
+      if (result.needsPermission) {
+        showApkUpdateMessage("Android abrió Ajustes. Permite a CL4N TB3ST instalar aplicaciones y vuelve a pulsar el botón.");
+        apkUpdateButton.textContent = "Continuar instalación";
+        apkUpdateButton.disabled = false;
+        return;
+      }
+      showApkUpdateMessage("Se abrió el instalador de Android. Confirma la actualización para conservar tus datos.");
+      apkUpdateButton.textContent = "Instalador abierto";
+      return;
+    }
+    if (apkUpdateState === "current" || apkUpdateState === "error") {
+      await checkForApkUpdate();
+      return;
+    }
+  } catch (error) {
+    showApkUpdateMessage(error.message || "No se pudo instalar la actualización.");
+    apkUpdateButton.textContent = "Reintentar";
+    apkUpdateButton.disabled = false;
+    if (apkUpdateState !== "downloaded") apkUpdateState = "available";
+    console.warn("Actualizador de APK:", error);
+  } finally {
+    apkUpdateBusy = false;
+    if (apkUpdateState === "downloading") apkUpdateButton.disabled = false;
+  }
+}
+
+if (apkUpdateButton) apkUpdateButton.addEventListener("click", downloadApkUpdate);
+
 restoreSession().finally(async () => {
   hideLoadingScreen();
   if (isNativeApp) {
     try {
       await CapacitorUpdater.notifyAppReady();
       await checkForRemotePatch();
+      await checkForApkUpdate();
     } catch (error) {
       console.warn("El sistema de parches remotos no pudo iniciarse:", error);
     }

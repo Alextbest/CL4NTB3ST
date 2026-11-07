@@ -126,6 +126,37 @@ jobs:
           files: |
             clantb3st-web-bundle.zip
             patch-manifest.json
+          make_latest: false
+          draft: false
+          prerelease: false
+
+      - name: Create APK update manifest
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          TAG="apk-${GITHUB_RUN_NUMBER}"
+          CHECKSUM="$(sha256sum "$APK" | cut -d ' ' -f1)"
+          VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          cat > apk-manifest.json <<EOF
+          {
+            "packageId": "com.clantb3st.app",
+            "versionCode": ${GITHUB_RUN_NUMBER},
+            "versionName": "${VERSION_NAME}",
+            "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-release.apk",
+            "sha256": "${CHECKSUM}",
+            "notes": "Mejoras y correcciones de CL4N TB3ST"
+          }
+          EOF
+
+      - name: Publish APK update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: CL4N TB3ST ${{ github.run_number }}
+          body: "Actualización instalable de CL4N TB3ST. Descárgala desde la aplicación."
+          files: |
+            android/app/build/outputs/apk/release/app-release.apk
+            apk-manifest.json
+            patch-manifest.json
           make_latest: true
           draft: false
           prerelease: false
