@@ -414,10 +414,9 @@ async function refreshSignedInProfile(){
   if(session)await loadProfile(session);
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshSignedInProfile()});
-if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive)refreshSignedInProfile()});
+if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refreshSignedInProfile();if(currentProfile)initLobbyMusic()}else stopLobbyMusic()});
 
-const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k))??f}catch{return f}}, write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-let members=[], activities=[], editing=null, activityChannels=[];
+let activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder", canManageMembers=()=>isLeader()||role==="Decano";
 function nav(p){document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x.id==="page-"+p));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
 document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>nav(b.dataset.page));document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>nav(b.dataset.go));
@@ -630,7 +629,6 @@ async function loadCloudMembers(){
   const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,created_at").order("created_at",{ascending:true});
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
   cloudMembers=data||[];
-  members=cloudMembers.map((p,i)=>({id:p.id,name:p.display_name,nick:p.ff_nick,role:p.role}));
   render();
 }
 const membersStatus=$("#members-status");
@@ -673,8 +671,37 @@ if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
   finally{button.disabled=false}
 };
 
+
+let legacyActivityMigrationDone=false;
+async function migrateLegacyActivities(){
+ if(legacyActivityMigrationDone||!currentProfile||!isLeader())return;
+ legacyActivityMigrationDone=true;
+ const raw=localStorage.getItem("tb3st-activities");
+ if(!raw)return;
+ let legacy=[];
+ try{legacy=JSON.parse(raw)}catch{localStorage.removeItem("tb3st-activities");return}
+ if(!Array.isArray(legacy)||!legacy.length){localStorage.removeItem("tb3st-activities");return}
+ const existing=await supabase.from("activities").select("id",{count:"exact",head:true});
+ if(existing.error)throw existing.error;
+ if((existing.count||0)>0){localStorage.removeItem("tb3st-activities");return}
+ for(const old of legacy){
+  if(!old?.name||!old?.date)continue;
+  const created=await supabase.from("activities").insert({title:String(old.name).slice(0,60),starts_at:new Date(old.date).toISOString(),description:String(old.desc||""),rules:String(old.rules||""),created_by:currentProfile.id}).select("id").single();
+  if(created.error)throw created.error;
+  const labels=Array.isArray(old.options)?old.options.filter(x=>typeof x==="string"&&x.trim()).slice(0,6):[];
+  if(old.pollQuestion&&labels.length>=2){
+   const poll=await supabase.from("activity_polls").insert({activity_id:created.data.id,question:String(old.pollQuestion).slice(0,100)}).select("id").single();
+   if(poll.error)throw poll.error;
+   const opts=await supabase.from("activity_poll_options").insert(labels.map((label,index)=>({poll_id:poll.data.id,label:label.slice(0,50),position:index})));
+   if(opts.error)throw opts.error;
+  }
+ }
+ localStorage.removeItem("tb3st-activities");
+}
+
 async function loadCloudActivities(){
  if(!currentProfile)return;
+ await migrateLegacyActivities();
  const results=await Promise.all([
   supabase.from("activities").select("id,title,starts_at,description,rules").order("starts_at",{ascending:true}),
   supabase.from("activity_participants").select("activity_id,user_id,attending"),
