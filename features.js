@@ -221,7 +221,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if(!catalogHost || !earnedHost)return;
     const [{data:badges,error:bError},{data:earned,error:eError}] = await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,icon,rarity,is_active").eq("is_active",true).order("name"),
-      supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(name,description,icon,rarity)").order("awarded_at",{ascending:false}).limit(60)
+      supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(name,description,icon,rarity)").order("awarded_at",{ascending:false})
     ]);
     if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
     if(!eError){
@@ -250,7 +250,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       p_user_id:badgeForm.elements.user_id.value,p_badge_id:badgeForm.elements.badge_id.value,p_note:badgeForm.elements.note.value.trim()
     });
     $("#badge-award-status").textContent=error?"No se pudo otorgar: "+error.message:"Insignia otorgada.";
-    button.disabled=false;if(!error)await loadBadges();
+    button.disabled=false;if(!error){await loadBadges();window.dispatchEvent(new Event("clan-badges-updated"));}
   };
 
   const pointsForm=$("#points-award-form");
