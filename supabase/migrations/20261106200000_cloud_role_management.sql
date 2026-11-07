@@ -83,3 +83,16 @@ drop trigger if exists set_initial_clan_role on public.profiles;
 create trigger set_initial_clan_role
 before insert on public.profiles
 for each row execute function private.set_initial_clan_role();
+-- current_clan_role solo consulta el perfil visible por las políticas del clan;
+-- no necesita privilegios SECURITY DEFINER.
+create or replace function public.current_clan_role()
+returns text
+language sql
+stable
+security invoker
+set search_path = ''
+as $function$
+  select p.role from public.profiles as p where p.id = auth.uid();
+$function$;
+revoke all on function public.current_clan_role() from public, anon;
+grant execute on function public.current_clan_role() to authenticated;
