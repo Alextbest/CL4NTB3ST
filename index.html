@@ -13,7 +13,12 @@
       <ul id="mandatory-update-changes"><li>Comprobaciones y mejoras de CL4N TB3ST.</li></ul>
     </div>
     <p id="mandatory-update-status" class="mandatory-update-status" aria-live="polite">Conectando con el servidor de actualizaciones…</p>
+    <div id="mandatory-update-progress-wrap" class="mandatory-update-progress-wrap hidden">
+      <div class="mandatory-update-progress-heading"><span>Progreso de descarga</span><strong id="mandatory-update-progress-label">0%</strong></div>
+      <progress id="mandatory-update-progress" class="mandatory-update-progress" max="100" value="0" aria-label="Progreso real de descarga" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></progress>
+    </div>
     <button id="mandatory-update-button" class="primary-btn mandatory-update-button" type="button" disabled>Comprobando…</button>
+    <button id="mandatory-update-finish" class="primary-btn mandatory-update-button hidden" type="button">Finalizar</button>
     <p class="mandatory-update-footnote">Debes instalar este parche para continuar. Mantén una conexión a internet durante la descarga.</p>
   </div>
 </section><div class="app-shell">
