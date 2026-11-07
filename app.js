@@ -169,6 +169,32 @@ async function checkForRemotePatch() {
   }
 }
 
+const mandatoryUpdateProgressWrap = $("#mandatory-update-progress-wrap");
+const mandatoryUpdateProgress = $("#mandatory-update-progress");
+const mandatoryUpdateProgressLabel = $("#mandatory-update-progress-label");
+const mandatoryUpdateFinishButton = $("#mandatory-update-finish");
+
+function setMandatoryUpdateProgress(percent, label) {
+  const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+  if (mandatoryUpdateProgress) mandatoryUpdateProgress.value = value;
+  if (mandatoryUpdateProgress) mandatoryUpdateProgress.setAttribute("aria-valuenow", String(value));
+  if (mandatoryUpdateProgressLabel) mandatoryUpdateProgressLabel.textContent = label || (value + "%");
+}
+
+async function finishMandatoryUpdate() {
+  if (!otaPatchManifest || !mandatoryUpdateFinishButton) return;
+  mandatoryUpdateFinishButton.disabled = true;
+  mandatoryUpdateFinishButton.textContent = "Abriendo CL4N TB3ST…";
+  showMandatoryUpdateStatus("Aplicando el parche y abriendo la aplicación…");
+  try {
+    await CapacitorUpdater.reload();
+  } catch (error) {
+    mandatoryUpdateFinishButton.disabled = false;
+    mandatoryUpdateFinishButton.textContent = "Finalizar";
+    showMandatoryUpdateStatus("No se pudo abrir la nueva versión: " + (error.message || "Error desconocido"));
+  }
+}
+
 async function downloadRemotePatch() {
   if (otaPatchBusy) return;
   if (!otaPatchManifest) {
@@ -176,35 +202,55 @@ async function downloadRemotePatch() {
     return;
   }
   otaPatchBusy = true;
+  if (mandatoryUpdateProgressWrap) mandatoryUpdateProgressWrap.classList.remove("hidden");
+  if (mandatoryUpdateFinishButton) mandatoryUpdateFinishButton.classList.add("hidden");
+  setMandatoryUpdateProgress(0, "0%");
   if (mandatoryUpdateButton) {
     mandatoryUpdateButton.disabled = true;
     mandatoryUpdateButton.textContent = "Descargando…";
   }
+  let progressListener = null;
   try {
-    showMandatoryUpdateStatus("Descargando el parche. No cierres la aplicación…");
+    showMandatoryUpdateStatus("Descargando el parche. El porcentaje refleja la descarga real…");
+    progressListener = await CapacitorUpdater.addListener("download", event => {
+      const percent = Math.max(0, Math.min(100, Number(event?.percent) || 0));
+      setMandatoryUpdateProgress(percent, percent + "%");
+      showMandatoryUpdateStatus("Descargando parche… " + percent + "%");
+    });
     const downloaded = await CapacitorUpdater.download({
       version: otaPatchManifest.version,
       url: otaPatchManifest.url,
       checksum: otaPatchManifest.checksum
     });
     if (!downloaded?.id) throw new Error("La descarga no devolvió un identificador válido.");
-    showMandatoryUpdateStatus("Descarga verificada. Instalando " + otaPatchManifest.version + "…");
-    if (mandatoryUpdateButton) mandatoryUpdateButton.textContent = "Instalando…";
-    await CapacitorUpdater.set({ id: downloaded.id });
-    showMandatoryUpdateStatus("Parche aplicado. Reiniciando la aplicación…");
+    setMandatoryUpdateProgress(100, "100%");
+    showMandatoryUpdateStatus("Descarga verificada. Preparando instalación…");
+    if (mandatoryUpdateButton) mandatoryUpdateButton.textContent = "Preparando…";
+    await CapacitorUpdater.next({ id: downloaded.id });
+    showMandatoryUpdateStatus("¡Parche instalado correctamente! Pulsa Finalizar para entrar a CL4N TB3ST.");
+    if (mandatoryUpdateButton) mandatoryUpdateButton.classList.add("hidden");
+    if (mandatoryUpdateFinishButton) {
+      mandatoryUpdateFinishButton.classList.remove("hidden");
+      mandatoryUpdateFinishButton.disabled = false;
+      mandatoryUpdateFinishButton.textContent = "Finalizar";
+    }
+    if (mandatoryUpdateProgressLabel) mandatoryUpdateProgressLabel.textContent = "Instalación lista · 100%";
   } catch (error) {
-    showMandatoryUpdateStatus("No se pudo descargar o instalar: " + (error.message || "Error desconocido"));
+    showMandatoryUpdateStatus("No se pudo descargar o preparar el parche: " + (error.message || "Error desconocido"));
     console.warn("No se pudo aplicar el parche obligatorio:", error);
     if (mandatoryUpdateButton) {
+      mandatoryUpdateButton.classList.remove("hidden");
       mandatoryUpdateButton.disabled = false;
       mandatoryUpdateButton.textContent = "Reintentar descarga";
     }
   } finally {
+    if (progressListener?.remove) await progressListener.remove();
     otaPatchBusy = false;
   }
 }
 
 if (mandatoryUpdateButton) mandatoryUpdateButton.addEventListener("click", downloadRemotePatch);
+if (mandatoryUpdateFinishButton) mandatoryUpdateFinishButton.addEventListener("click", finishMandatoryUpdate);
 
 const APK_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/apk-manifest.json";
 const apkUpdatePanel = $("#apk-update-panel");
