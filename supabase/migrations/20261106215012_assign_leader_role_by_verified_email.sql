@@ -1,0 +1,1 @@
+-- Superseded by 20261106200000_cloud_role_management.sql, which creates the verified-email role trigger.
