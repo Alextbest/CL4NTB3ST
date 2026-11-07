@@ -1,6 +1,7 @@
 import { supabase } from "./supabaseClient.js";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
+import { CapacitorUpdater } from "@capgo/capacitor-updater";
 
 const isNativeApp = Capacitor.isNativePlatform();
 const authRedirectUrl = isNativeApp ? "com.clantb3st.app://auth-callback" : window.location.origin;
@@ -51,7 +52,72 @@ if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;con
 profileForm.onsubmit=async e=>{e.preventDefault();const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Guardando tus datos…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:$("#profile-ffid").value.trim()||null,phone_e164:phone,role:"Miembro"};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,phone_e164,role").single();if(error)throw error;showApp(data,session)}catch(error){sessionMessage.textContent=error.message?.includes("phone_e164")||error.code==="23505"?"Ese número ya está registrado o no tiene un formato válido. Revisa los datos.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){showAccess();return}if(event==="SIGNED_IN"&&session){loadProfile(session)}});
 setAuthMode("signin");
-restoreSession().finally(hideLoadingScreen);
+const PATCH_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/patch-manifest.json";
+const PATCH_NATIVE_API = 1;
+let patchCheckRunning = false;
+
+async function checkForRemotePatch() {
+  if (!isNativeApp || patchCheckRunning) return;
+  patchCheckRunning = true;
+  let userAccepted = false;
+  try {
+    const response = await fetch(PATCH_MANIFEST_URL, {
+      cache: "no-store",
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) return;
+    const manifest = await response.json();
+    if (
+      manifest.nativeApi !== PATCH_NATIVE_API ||
+      typeof manifest.version !== "string" ||
+      !/^ota-[0-9]+$/.test(manifest.version) ||
+      typeof manifest.url !== "string"
+    ) return;
+
+    const patchUrl = new URL(manifest.url);
+    if (
+      patchUrl.protocol !== "https:" ||
+      patchUrl.hostname !== "github.com" ||
+      !patchUrl.pathname.startsWith("/Alextbest/CL4NTB3ST/releases/download/")
+    ) return;
+
+    const current = await CapacitorUpdater.current();
+    const installedVersion = current?.bundle?.version || current?.bundle?.id || "";
+    if (installedVersion === manifest.version) return;
+
+    userAccepted = confirm(
+      "Hay una actualización de CL4N TB3ST disponible (" + manifest.version +
+      ").\n\nSe descargará el parche y la aplicación se reiniciará para aplicarlo. ¿Actualizar ahora?"
+    );
+    if (!userAccepted) return;
+
+    const downloaded = await CapacitorUpdater.download({
+      version: manifest.version,
+      url: manifest.url
+    });
+    if (!downloaded?.id) throw new Error("El paquete descargado no devolvió un identificador válido.");
+    await CapacitorUpdater.set({ id: downloaded.id });
+  } catch (error) {
+    console.warn("No se pudo aplicar el parche remoto:", error);
+    if (userAccepted) {
+      alert("No se pudo instalar el parche. La aplicación seguirá funcionando con la versión actual.");
+    }
+  } finally {
+    patchCheckRunning = false;
+  }
+}
+
+restoreSession().finally(async () => {
+  hideLoadingScreen();
+  if (isNativeApp) {
+    try {
+      await CapacitorUpdater.notifyAppReady();
+      await checkForRemotePatch();
+    } catch (error) {
+      console.warn("El sistema de parches remotos no pudo iniciarse:", error);
+    }
+  }
+});
 async function refreshSignedInProfile(){
   if(document.hidden)return;
   const {data:{session}}=await supabase.auth.getSession();
