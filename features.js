@@ -5,7 +5,7 @@ let featureUserId = null;
 let featureChannels = [];
 let featureContext = null;
 
-export function initClanFeatures(supabase, profile, role) {
+export function initClanFeatures(supabase, profile, role, FilePicker, isNativeApp = false) {
   featureContext = { supabase, profile, role };
   if (featureUserId !== profile.id) {
     featureChannels.forEach(ch => supabase.removeChannel(ch));
@@ -249,25 +249,103 @@ export function initClanFeatures(supabase, profile, role) {
   }
 
   const postForm=$("#social-post-form");
+  const socialImageInput=$("#social-image-input");
+  const socialImagePreview=$("#social-image-preview");
+  const socialImageRemove=$("#social-image-remove");
+  const socialImagePick=$("#social-image-pick");
+  const socialPostStatus=$("#social-post-status");
+  const SOCIAL_MEDIA_BUCKET="social-post-media";
+  let selectedPostImage=null, selectedPostPreviewUrl=null;
+
+  function clearPostImage(){
+    if(selectedPostPreviewUrl)URL.revokeObjectURL(selectedPostPreviewUrl);
+    selectedPostPreviewUrl=null;selectedPostImage=null;
+    if(socialImagePreview){socialImagePreview.removeAttribute("src");socialImagePreview.classList.add("hidden")}
+    socialImageRemove?.classList.add("hidden");
+    if(socialImageInput)socialImageInput.value="";
+  }
+  function setPostImage(file){
+    if(!file)return;
+    const allowed=["image/jpeg","image/png","image/webp"];
+    if(!allowed.includes(file.type)||file.size>5*1024*1024){
+      if(socialPostStatus)socialPostStatus.textContent="Usa una imagen JPG, PNG o WEBP de máximo 5 MB.";
+      return;
+    }
+    if(selectedPostPreviewUrl)URL.revokeObjectURL(selectedPostPreviewUrl);
+    selectedPostImage=file;selectedPostPreviewUrl=URL.createObjectURL(file);
+    if(socialImagePreview){socialImagePreview.src=selectedPostPreviewUrl;socialImagePreview.classList.remove("hidden")}
+    socialImageRemove?.classList.remove("hidden");
+    if(socialPostStatus)socialPostStatus.textContent="Imagen lista para publicar.";
+  }
+  if(socialImagePick)socialImagePick.onclick=async()=>{
+    if(isNativeApp&&FilePicker?.pickImages){
+      socialImagePick.disabled=true;
+      try{
+        const result=await FilePicker.pickImages({limit:1});
+        const picked=result.files?.[0];
+        if(picked?.webPath){
+          const response=await fetch(picked.webPath);
+          if(!response.ok)throw new Error("No se pudo leer la imagen seleccionada.");
+          const blob=await response.blob();
+          const extension=(picked.name||"").split(".").pop()?.toLowerCase();
+          const inferred=extension==="png"?"image/png":extension==="webp"?"image/webp":"image/jpeg";
+          setPostImage(new File([blob],picked.name||"foto.jpg",{type:picked.mimeType||blob.type||inferred}));
+        }
+      }catch(error){if(socialPostStatus)socialPostStatus.textContent="No se pudo seleccionar la foto: "+(error.message||"Error");}
+      finally{socialImagePick.disabled=false;}
+    }else socialImageInput?.click();
+  };
+  if(socialImageInput)socialImageInput.onchange=()=>setPostImage(socialImageInput.files?.[0]);
+  if(socialImageRemove)socialImageRemove.onclick=clearPostImage;
+
   if(postForm)postForm.onsubmit=async e=>{
     e.preventDefault();
-    const button=postForm.querySelector('button[type="submit"]');button.disabled=true;
-    $("#social-post-status").textContent="Publicando…";
-    const {error}=await supabase.from("social_posts").insert({user_id:userId(),content:postForm.elements.content.value.trim()});
-    $("#social-post-status").textContent=error?"No se pudo publicar: "+error.message:"Publicación compartida con el clan.";
-    button.disabled=false;if(!error){postForm.reset();await loadWall();}
+    const button=postForm.querySelector('button[type="submit"]');
+    const content=postForm.elements.content.value.trim();
+    if(!content&&!selectedPostImage){socialPostStatus.textContent="Escribe algo o adjunta una imagen.";return;}
+    button.disabled=true;socialPostStatus.textContent="Publicando…";
+    let mediaPath=null;
+    try{
+      if(selectedPostImage){
+        const ext=selectedPostImage.type==="image/png"?"png":selectedPostImage.type==="image/webp"?"webp":"jpg";
+        mediaPath=userId()+"/"+crypto.randomUUID()+"."+ext;
+        const {error:uploadError}=await supabase.storage.from(SOCIAL_MEDIA_BUCKET).upload(mediaPath,selectedPostImage,{
+          contentType:selectedPostImage.type,upsert:false,cacheControl:"3600"
+        });
+        if(uploadError)throw uploadError;
+      }
+      const {error}=await supabase.from("social_posts").insert({
+        user_id:userId(),content,media_path:mediaPath
+      });
+      if(error){
+        if(mediaPath)await supabase.storage.from(SOCIAL_MEDIA_BUCKET).remove([mediaPath]);
+        throw error;
+      }
+      postForm.reset();clearPostImage();socialPostStatus.textContent="Publicación compartida con el clan.";
+      await loadWall();
+    }catch(error){
+      socialPostStatus.textContent="No se pudo publicar: "+(error.message||"Error desconocido");
+    }finally{button.disabled=false;}
   };
 
   async function loadWall(){
     const host=$("#social-wall");if(!host)return;
     const {data,error}=await supabase.from("social_posts")
-      .select("id,user_id,content,created_at,is_hidden,profiles(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles(display_name,role)),social_reactions(id,user_id,reaction)")
+      .select("id,user_id,content,media_path,created_at,is_hidden,profiles(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles(display_name,role)),social_reactions(id,user_id,reaction)")
       .order("created_at",{ascending:false}).limit(40);
     if(error){host.innerHTML='<p class="muted">No se pudo cargar el muro: '+esc(error.message)+'</p>';return}
-    host.innerHTML=(data||[]).map(post=>{
+    const posts=data||[];
+    const mediaPaths=posts.map(post=>post.media_path).filter(Boolean);
+    const signedUrls=new Map();
+    if(mediaPaths.length){
+      const {data:urls,error:urlError}=await supabase.storage.from(SOCIAL_MEDIA_BUCKET).createSignedUrls(mediaPaths,3600);
+      if(!urlError)(urls||[]).forEach(item=>{if(item.path&&item.signedUrl)signedUrls.set(item.path,item.signedUrl)});
+    }
+    host.innerHTML=posts.map(post=>{
       const comments=post.social_comments||[], reactions=post.social_reactions||[];
       const counts={like:0,fire:0,gg:0,clap:0};reactions.forEach(r=>counts[r.reaction]=(counts[r.reaction]||0)+1);
-      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b>${esc(post.profiles?.display_name||"Integrante")}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div><p class="social-content">${esc(post.content)}</p><div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b>${esc(c.profiles?.display_name||"Integrante")}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
+      const imageUrl=post.media_path?signedUrls.get(post.media_path):null;
+      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b>${esc(post.profiles?.display_name||"Integrante")}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${imageUrl?`<img class="social-media-image" src="${esc(imageUrl)}" alt="Imagen compartida en el muro" loading="lazy">`:""}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b>${esc(c.profiles?.display_name||"Integrante")}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
     }).join("")||'<div class="panel muted">El muro está vacío. Publica algo para iniciar la conversación.</div>';
   }
 
