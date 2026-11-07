@@ -7,6 +7,7 @@ const ASSETS = [
   "./supabaseClient.js",
   "./manifest.webmanifest",
   "./logo.png",
+  "./audio/world-series-i.mp3",
   "./icon-192.png",
   "./icon-512.png"
 ];
