@@ -928,7 +928,7 @@ const interfaceIconPaths = {
 };
 function iconSvg(name){
  const path=interfaceIconPaths[name]||interfaceIconPaths.info;
- return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">'+path+'</svg>';
+ return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+path+'</svg>';
 }
 function decorateInterfaceButtons(root=document){
  const candidates=[];
