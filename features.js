@@ -15,6 +15,24 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const isLeader = () => featureContext?.role === "Líder";
   const isModerator = () => ["Líder","Decano"].includes(featureContext?.role);
   const userId = () => featureContext.profile.id;
+  let memberBadgesByUser = new Map();
+  async function loadMemberBadgeMap(){
+    const {data,error}=await supabase.from("member_badges").select("user_id,clan_badges(name,icon)");
+    if(error)throw error;
+    const next=new Map();
+    (data||[]).forEach(row=>{
+      if(!row.clan_badges)return;
+      const list=next.get(row.user_id)||[];
+      list.push(row.clan_badges);
+      next.set(row.user_id,list);
+    });
+    memberBadgesByUser=next;
+  }
+  const memberBadgeMarkup = id => {
+    const badges=memberBadgesByUser.get(id)||[];
+    return badges.length?'<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>':"";
+  };
+
 
   const presenceForm = $("#presence-form");
   if (presenceForm) {
@@ -44,6 +62,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   async function loadPresence() {
     const host = $("#presence-list");
     if (!host) return;
+    try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
     const { data, error } = await supabase.from("member_presence")
       .select("user_id,status,message,updated_at,profiles(display_name,ff_nick,role)")
       .order("updated_at",{ascending:false});
@@ -52,7 +71,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     host.innerHTML = rows.map(row => {
       const labels = {available:"Disponible",busy:"Ocupado",looking_for_squad:"Buscando escuadra"};
       const stale = Date.now() - new Date(row.updated_at).getTime() > 30*60*1000;
-      return `<article class="feature-row"><span class="presence-indicator ${stale?"stale":esc(row.status)}"></span><div class="feature-row-main"><b>${esc(row.profiles?.display_name || "Integrante")}</b><small>${esc(row.profiles?.ff_nick || "Sin nick")} · ${esc(row.profiles?.role || "Miembro")}</small><p>${esc(row.message || labels[row.status] || "Sin mensaje")}</p></div><small class="muted">${stale?"Hace rato":dateText(row.updated_at)}</small></article>`;
+      return `<article class="feature-row"><span class="presence-indicator ${stale?"stale":esc(row.status)}"></span><div class="feature-row-main"><b class="member-name-line">${esc(row.profiles?.display_name || "Integrante")}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.profiles?.ff_nick || "Sin nick")} · ${esc(row.profiles?.role || "Miembro")}</small><p>${esc(row.message || labels[row.status] || "Sin mensaje")}</p></div><small class="muted">${stale?"Hace rato":dateText(row.updated_at)}</small></article>`;
     }).join("") || '<p class="muted">Todavía no hay estados publicados. Actualiza el tuyo.</p>';
   }
 
@@ -191,9 +210,10 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   async function loadRanking() {
     const host = $("#ranking-list");
     if (!host) return;
+    try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
     const {data,error}=await supabase.from("clan_global_ranking").select("user_id,display_name,ff_nick,role,points,position").order("position",{ascending:true});
     if(error){host.innerHTML='<p class="muted">No se pudo cargar el ranking: '+esc(error.message)+'</p>';return}
-    host.innerHTML=(data||[]).map(row=>`<article class="ranking-row ${row.user_id===userId()?"is-self":""}"><strong class="ranking-position">#${row.position}</strong><div class="feature-row-main"><b>${esc(row.display_name)}</b><small>${esc(row.ff_nick||"Sin nick")} · ${esc(row.role)}</small></div><strong class="ranking-points">${Number(row.points).toLocaleString("es-PA")} pts</strong></article>`).join("")||'<p class="muted">El ranking aparecerá cuando se registren puntos.</p>';
+    host.innerHTML=(data||[]).map(row=>`<article class="ranking-row ${row.user_id===userId()?"is-self":""}"><strong class="ranking-position">#${row.position}</strong><div class="feature-row-main"><b class="member-name-line">${esc(row.display_name)}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.ff_nick||"Sin nick")} · ${esc(row.role)}</small></div><strong class="ranking-points">${Number(row.points).toLocaleString("es-PA")} pts</strong></article>`).join("")||'<p class="muted">El ranking aparecerá cuando se registren puntos.</p>';
   }
 
   async function loadBadges() {
@@ -204,6 +224,11 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(name,description,icon,rarity)").order("awarded_at",{ascending:false}).limit(60)
     ]);
     if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
+    if(!eError){
+      const next=new Map();
+      (earned||[]).forEach(row=>{if(!row.clan_badges)return;const list=next.get(row.user_id)||[];list.push(row.clan_badges);next.set(row.user_id,list)});
+      memberBadgesByUser=next;
+    }
     catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity}"><span class="badge-icon">${esc(b.icon)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
     earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small">${esc(e.clan_badges?.icon||"🏅")}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div></article>`).join("")||'<p class="muted">Todavía no se han otorgado insignias.</p>';
     const badgeSelect=$("#badge-award-form select[name=badge_id]");
@@ -330,6 +355,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
 
   async function loadWall(){
     const host=$("#social-wall");if(!host)return;
+    try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
     const {data,error}=await supabase.from("social_posts")
       .select("id,user_id,content,media_path,created_at,is_hidden,profiles(display_name,role),social_comments(id,user_id,content,created_at,is_hidden,profiles(display_name,role)),social_reactions(id,user_id,reaction)")
       .order("created_at",{ascending:false}).limit(40);
@@ -345,7 +371,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       const comments=post.social_comments||[], reactions=post.social_reactions||[];
       const counts={like:0,fire:0,gg:0,clap:0};reactions.forEach(r=>counts[r.reaction]=(counts[r.reaction]||0)+1);
       const imageUrl=post.media_path?signedUrls.get(post.media_path):null;
-      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b>${esc(post.profiles?.display_name||"Integrante")}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${imageUrl?`<img class="social-media-image" src="${esc(imageUrl)}" alt="Imagen compartida en el muro" loading="lazy">`:""}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b>${esc(c.profiles?.display_name||"Integrante")}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
+      return `<article class="panel social-post" data-post-id="${post.id}"><div class="panel-title"><div><b class="member-name-line">${esc(post.profiles?.display_name||"Integrante")}${memberBadgeMarkup(post.user_id)}</b><small>${esc(post.profiles?.role||"Miembro")} · ${dateText(post.created_at)}</small></div>${isModerator()? `<button class="secondary-btn" type="button" data-moderate-post="${post.id}" data-hide="${post.is_hidden?"false":"true"}">${post.is_hidden?"Restaurar":"Ocultar"}</button>`:""}</div>${post.content? `<p class="social-content">${esc(post.content)}</p>`:""}${imageUrl?`<img class="social-media-image" src="${esc(imageUrl)}" alt="Imagen compartida en el muro" loading="lazy">`:""}<div class="social-reactions">${["like","fire","gg","clap"].map((r,i)=>`<button type="button" class="secondary-btn" data-react-post="${post.id}" data-reaction="${r}">${["👍","🔥","GG","👏"][i]} ${counts[r]||0}</button>`).join("")}</div><div class="social-comments">${comments.map(c=>`<div class="social-comment"><div><b class="member-name-line">${esc(c.profiles?.display_name||"Integrante")}${memberBadgeMarkup(c.user_id)}</b> <small>${dateText(c.created_at)}</small></div><p>${esc(c.content)}</p>${isModerator()? `<button class="text-action" type="button" data-moderate-comment="${c.id}" data-hide="${c.is_hidden?"false":"true"}">${c.is_hidden?"Restaurar comentario":"Ocultar comentario"}</button>`:""}</div>`).join("")}<form class="comment-form" data-comment-post="${post.id}"><input name="content" maxlength="500" placeholder="Escribe un comentario…" required><button class="secondary-btn" type="submit">Comentar</button></form></div></article>`;
     }).join("")||'<div class="panel muted">El muro está vacío. Publica algo para iniciar la conversación.</div>';
   }
 
