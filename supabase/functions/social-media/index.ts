@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.49.1";
-import { S3Client, PutObjectCommand, GetObjectCommand } from "npm:@aws-sdk/client-s3@3.750.0";
+import { S3Client, PutObjectCommand, GetObjectCommand, GetBucketCorsCommand, PutBucketCorsCommand } from "npm:@aws-sdk/client-s3@3.750.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.750.0";
 
 const corsHeaders = {
@@ -28,6 +28,42 @@ const s3 = endpoint && keyId && applicationKey
     })
   : null;
 
+let corsSetup: Promise<void> | null = null;
+async function ensureBucketCors() {
+  if (!corsSetup) {
+    corsSetup = (async () => {
+      let rules: Array<Record<string, unknown>> = [];
+      try {
+        const current = await s3!.send(new GetBucketCorsCommand({ Bucket: bucket }));
+        rules = (current.CORSRules || []) as Array<Record<string, unknown>>;
+      } catch (error) {
+        const code = String((error as { name?: string })?.name || "");
+        if (code !== "NoSuchCORSConfiguration" && code !== "NotFound") throw error;
+      }
+      const hasMediaRule = rules.some((rule) => {
+        const origins = (rule.AllowedOrigins || []) as string[];
+        const methods = (rule.AllowedMethods || []) as string[];
+        const headers = (rule.AllowedHeaders || []) as string[];
+        return origins.includes("*") && ["GET", "PUT", "HEAD"].every((method) => methods.includes(method)) && headers.includes("*");
+      });
+      if (!hasMediaRule) {
+        rules.push({
+          AllowedOrigins: ["*"],
+          AllowedMethods: ["GET", "PUT", "HEAD"],
+          AllowedHeaders: ["*"],
+          ExposeHeaders: ["ETag"],
+          MaxAgeSeconds: 3600
+        });
+        await s3!.send(new PutBucketCorsCommand({ Bucket: bucket, CORSConfiguration: { CORSRules: rules as never[] } }));
+      }
+    })().catch((error) => {
+      corsSetup = null;
+      throw error;
+    });
+  }
+  await corsSetup;
+}
+
 const allowedTypes = new Set([
   "image/jpeg", "image/png", "image/webp",
   "video/mp4", "video/webm", "video/quicktime"
@@ -52,7 +88,7 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return json(401, { ok: false, error: "Sesión no válida." });
 
-    const body = await req.json();
+    await ensureBucketCors();\n    const body = await req.json();
     if (body.action === "create-upload") {
       const contentType = String(body.contentType || "").toLowerCase();
       const size = Number(body.size);
