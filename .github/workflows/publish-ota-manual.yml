@@ -52,7 +52,7 @@ jobs:
           cd www
           zip -r ../clantb3st-web-bundle.zip .
           cd ..
-          CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
+          export CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
           node --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
           const changes = (process.env.OTA_CHANGES || '')
@@ -69,8 +69,6 @@ jobs:
           };
           writeFileSync('patch-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
           NODE
-        env:
-          CHECKSUM: ${{ '' }}
 
       - name: Publish OTA release
         uses: softprops/action-gh-release@v2
