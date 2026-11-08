@@ -187,7 +187,7 @@ async function checkForRemotePatch() {
       mandatoryUpdateButton.textContent = "Reintentar comprobación";
     }
     console.warn("No se pudo comprobar el parche obligatorio:", error);
-    return "current";
+    return "error";
   } finally {
     patchCheckRunning = false;
   }
@@ -274,6 +274,30 @@ async function downloadRemotePatch() {
 }
 
 if (mandatoryUpdateButton) mandatoryUpdateButton.addEventListener("click", downloadRemotePatch);
+const manualOtaCheckButton = $("#manual-ota-check");
+const manualOtaCheckStatus = $("#manual-ota-check-status");
+if (manualOtaCheckButton) {
+  manualOtaCheckButton.classList.toggle("hidden", !isNativeApp);
+  manualOtaCheckButton.addEventListener("click", async () => {
+    if (patchCheckRunning) return;
+    manualOtaCheckButton.disabled = true;
+    manualOtaCheckButton.textContent = "Comprobando parche…";
+    if (manualOtaCheckStatus) manualOtaCheckStatus.textContent = "Consultando actualizaciones OTA…";
+    try {
+      const state = await checkForRemotePatch();
+      if (manualOtaCheckStatus) {
+        manualOtaCheckStatus.textContent = state === "available"
+          ? "Hay un parche OTA disponible. Revisa la ventana de actualización."
+          : state === "current"
+            ? "No hay parches OTA pendientes."
+            : "No se pudo comprobar el parche. Puedes seguir usando la aplicación.";
+      }
+    } finally {
+      manualOtaCheckButton.disabled = false;
+      manualOtaCheckButton.textContent = "Comprobar parche OTA";
+    }
+  });
+}
 if (mandatoryUpdateFinishButton) mandatoryUpdateFinishButton.addEventListener("click", finishMandatoryUpdate);
 
 const APK_MANIFEST_URL = "https://github.com/Alextbest/CL4NTB3ST/releases/latest/download/apk-manifest.json";
@@ -426,8 +450,6 @@ async function startApplication() {
     } catch (error) {
       console.warn("No se pudo confirmar que la versión instalada está lista:", error);
     }
-    const patchState = await checkForRemotePatch();
-    if (patchState !== "current") return;
   }
   await restoreSession();
   hideLoadingScreen();
