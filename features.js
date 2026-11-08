@@ -13,7 +13,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     featureUserId = profile.id;
   }
   const isLeader = () => featureContext?.role === "Líder";
-  const isModerator = () => ["Líder","Decano"].includes(featureContext?.role);
+  const isModerator = () => isLeader();
   const userId = () => featureContext.profile.id;
   let memberBadgesByUser = new Map();
   async function loadMemberBadgeMap(){
