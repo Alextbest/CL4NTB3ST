@@ -260,12 +260,16 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   async function loadBadges() {
     const catalogHost=$("#badge-catalog"), earnedHost=$("#badge-earned");
     if(!catalogHost || !earnedHost)return;
-    const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData,error:managerError}] = await Promise.all([
+    const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData,error:managerError},{data:primaryLeader}] = await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,rarity,is_active").eq("is_active",true).order("name"),
       supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(slug,name,description,rarity)").order("awarded_at",{ascending:false}),
-      supabase.rpc("is_clan_badge_manager")
+      supabase.rpc("is_clan_badge_manager"),
+      supabase.from("profiles").select("id").eq("role","Líder").maybeSingle()
     ]);
+    primaryLeaderId=primaryLeader?.id||null;
     canManageBadges = !managerError && managerData === true;
+    const pointsFormAccess=$("#points-award-form");
+    if(pointsFormAccess)pointsFormAccess.classList.toggle("hidden",!canManageClanAwards());
     if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
     if(!eError){
       const next=new Map();
@@ -312,8 +316,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const pointsForm=$("#points-award-form");
   if(pointsForm){
     pointsForm.classList.toggle("hidden",!canManageClanAwards());
-    supabase.from("profiles").select("id,display_name").order("display_name").then(({data:members,error})=>{
+    supabase.from("profiles").select("id,display_name,role").order("display_name").then(({data:members,error})=>{
       if(error){$("#points-award-status").textContent="No se pudo cargar la lista de integrantes: "+error.message;return;}
+      primaryLeaderId=(members||[]).find(m=>m.role==="Líder")?.id||primaryLeaderId;
       pointsForm.elements.user_id.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!==primaryLeaderId).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     });
     pointsForm.onsubmit=async e=>{
