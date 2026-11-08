@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initClanFeatures } from "./features.js?v=47";
+import { initClanFeatures } from "./features.js?v=48";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
@@ -443,7 +443,7 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshSig
 if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refreshSignedInProfile();if(currentProfile)initLobbyMusic()}else stopLobbyMusic()});
 
 let activities=[], editing=null, activityChannels=[];
-const isLeader=()=>role==="Líder", canManageMembers=()=>isLeader()||role==="Decano";
+const isLeader=()=>role==="Líder";
 function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
@@ -760,25 +760,7 @@ $("#member-list").onclick=async e=>{
     finally{actionButton.disabled=false}
     return;
   }
-  const button=e.target.closest("[data-edit-profile]");
-  if(!button||!canManageMembers())return;
-  const target=cloudMembers.find(m=>m.id===button.dataset.editProfile);
-  if(!target||target.role!=="Miembro")return;
-  const name=prompt("Nombre visible:",target.display_name);
-  if(name===null)return;
-  const nick=prompt("Nick de Free Fire:",target.ff_nick||"");
-  if(nick===null)return;
-  button.disabled=true;
-  if(membersStatus)membersStatus.textContent="Guardando datos del integrante…";
-  try{
-    const {data,error}=await supabase.rpc("update_clan_member_details",{p_member_id:target.id,p_display_name:name.trim(),p_ff_nick:nick.trim()});
-    if(error)throw error;
-    const updated=Array.isArray(data)?data[0]:data;
-    if(!updated)throw new Error("No se pudo actualizar la cuenta.");
-    if(membersStatus)membersStatus.textContent="Datos de "+updated.display_name+" actualizados en la nube.";
-    await loadCloudMembers();
-  }catch(error){if(membersStatus)membersStatus.textContent=error.message||"No se pudieron guardar los cambios."}
-  finally{button.disabled=false}
+
 };
 if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
   e.preventDefault();
@@ -933,7 +915,7 @@ function render(){renderWeb();renderRules();const activeMembers=cloudMembers.fil
   if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
   else moderation=`<button class="secondary-btn" data-member-action="restore" data-member-id="${esc(m.id)}" type="button">${status==="banned"?"Quitar veto":"Reintegrar"}</button>`;
  }
- return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small><small class="connection-status ${onlineClanMembers.has(m.id)?"online":"offline"}" data-connection-user="${esc(m.id)}">${onlineClanMembers.has(m.id)?"En línea":"Desconectado"}</small></div><div class="member-actions">${edit}${moderation}</div></div>`;
+ return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small><small class="connection-status ${onlineClanMembers.has(m.id)?"online":"offline"}" data-connection-user="${esc(m.id)}">${onlineClanMembers.has(m.id)?"En línea":"Desconectado"}</small></div><div class="member-actions">${moderation}</div></div>`;
 }).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{
  const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];
