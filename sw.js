@@ -1,4 +1,4 @@
-const CACHE = "tb3st-v52";
+const CACHE = "tb3st-v53";
 const ASSETS = [
   "./",
   "./index.html",
