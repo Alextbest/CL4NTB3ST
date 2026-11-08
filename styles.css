@@ -405,3 +405,10 @@ button.is-submitting::after{content:"";display:inline-block;width:12px;height:12
 @keyframes rankingGoldNeon{0%,100%{opacity:1;text-shadow:0 0 3px #ffe500,0 0 8px #ffd000,0 0 14px #ffb700}50%{opacity:.62;text-shadow:0 0 2px #ffe500,0 0 5px #ffd000}}
 @media(max-width:420px){.ranking-currency{gap:8px}.ranking-stat{font-size:11px}.ranking-stat-icon{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.ranking-stat-points,.ranking-stat-gold{animation:none}}
+
+/* Evita seleccionar/copiar texto mediante pulsación prolongada en toda la app. */
+html, body, body * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
