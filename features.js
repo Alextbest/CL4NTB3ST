@@ -266,7 +266,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       supabase.rpc("is_clan_badge_manager"),
       supabase.from("profiles").select("id").eq("role","Líder").maybeSingle()
     ]);
-    primaryLeaderId=primaryLeader?.id||null;
+    primaryLeaderId="af0d8907-fc67-4290-bba6-eb0bc4c81126";
     canManageBadges = !managerError && managerData === true;
     const pointsFormAccess=$("#points-award-form");
     if(pointsFormAccess)pointsFormAccess.classList.toggle("hidden",!canManageClanAwards());
@@ -295,7 +295,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const memberSelect=$("#badge-award-form select[name=user_id]");
     if(memberSelect){
       const {data:members}=await supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").order("display_name");
-      primaryLeaderId=(members||[]).find(m=>m.role==="Líder")?.id||null;
+      primaryLeaderId="af0d8907-fc67-4290-bba6-eb0bc4c81126";
       memberSelect.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!=="af0d8907-fc67-4290-bba6-eb0bc4c81126").map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     }
     $("#badge-award-form")?.classList.toggle("hidden",!canManageBadges);
@@ -318,7 +318,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     pointsForm.classList.toggle("hidden",!canManageClanAwards());
     supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").order("display_name").then(({data:members,error})=>{
       if(error){$("#points-award-status").textContent="No se pudo cargar la lista de integrantes: "+error.message;return;}
-      primaryLeaderId=(members||[]).find(m=>m.role==="Líder")?.id||primaryLeaderId;
+      primaryLeaderId="af0d8907-fc67-4290-bba6-eb0bc4c81126";
       pointsForm.elements.user_id.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!=="af0d8907-fc67-4290-bba6-eb0bc4c81126").map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     });
     pointsForm.onsubmit=async e=>{
