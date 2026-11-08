@@ -24,6 +24,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const isModerator = () => isLeader();
   const userId = () => featureContext.profile.id;
   let memberBadgesByUser = new Map();
+  let canManageBadges = false;
   async function loadMemberBadgeMap(){
     const {data,error}=await supabase.from("member_badges").select("user_id,clan_badges(name,icon,rarity)");
     if(error)throw error;
@@ -231,10 +232,12 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   async function loadBadges() {
     const catalogHost=$("#badge-catalog"), earnedHost=$("#badge-earned");
     if(!catalogHost || !earnedHost)return;
-    const [{data:badges,error:bError},{data:earned,error:eError}] = await Promise.all([
+    const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData}] = await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,icon,rarity,is_active").eq("is_active",true).order("name"),
-      supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(name,description,icon,rarity)").order("awarded_at",{ascending:false})
+      supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(name,description,icon,rarity)").order("awarded_at",{ascending:false}),
+      supabase.rpc("is_clan_badge_manager")
     ]);
+    canManageBadges = managerData === true;
     if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
     if(!eError){
       const next=new Map();
@@ -242,7 +245,17 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       memberBadgesByUser=next;
     }
     catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity||"common"}"><span class="badge-icon rarity-${b.rarity||"common"}">${esc(b.icon)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
-    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${esc(e.clan_badges?.icon||"🏅")}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div></article>`).join("")||'<p class="muted">Todavía no se han otorgado insignias.</p>';
+    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${esc(e.clan_badges?.icon||"🏅")}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges?`<button class="secondary-btn badge-revoke-btn" type="button" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
+    earnedHost.onclick=async event=>{
+      const revokeButton=event.target.closest("[data-revoke-badge]");
+      if(!revokeButton||!canManageBadges)return;
+      if(!window.confirm("¿Revocar esta insignia? Dejará de aparecer en el perfil del integrante."))return;
+      revokeButton.disabled=true;
+      const {error}=await supabase.rpc("revoke_clan_badge",{p_member_badge_id:revokeButton.dataset.revokeBadge});
+      if(error){window.alert("No se pudo revocar: "+error.message);revokeButton.disabled=false;return;}
+      await loadBadges();
+      window.dispatchEvent(new Event("clan-badges-updated"));
+    };
     const badgeSelect=$("#badge-award-form select[name=badge_id]");
     if(badgeSelect) badgeSelect.innerHTML=(badges||[]).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
     const memberSelect=$("#badge-award-form select[name=user_id]");
@@ -250,12 +263,12 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       const {data:members}=await supabase.from("profiles").select("id,display_name").order("display_name");
       memberSelect.innerHTML=(members||[]).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     }
-    $("#badge-award-form")?.classList.toggle("hidden",!isLeader());
+    $("#badge-award-form")?.classList.toggle("hidden",!canManageBadges);
   }
 
   const badgeForm=$("#badge-award-form");
   if(badgeForm) badgeForm.onsubmit=async e=>{
-    e.preventDefault(); if(!isLeader())return;
+    e.preventDefault(); if(!canManageBadges)return;
     const button=badgeForm.querySelector('button[type="submit"]');button.disabled=true;
     $("#badge-award-status").textContent="Otorgando insignia…";
     const {error}=await supabase.rpc("grant_clan_badge",{
