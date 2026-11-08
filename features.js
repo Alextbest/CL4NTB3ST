@@ -262,7 +262,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if(!catalogHost || !earnedHost)return;
     const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData,error:managerError},{data:primaryLeader}] = await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,rarity,is_active").eq("is_active",true).order("name"),
-      supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(slug,name,description,rarity)").order("awarded_at",{ascending:false}),
+      supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name,membership_status),clan_badges(slug,name,description,rarity)").order("awarded_at",{ascending:false}),
       supabase.rpc("is_clan_badge_manager"),
       supabase.from("profiles").select("id").eq("role","Líder").maybeSingle()
     ]);
@@ -277,7 +277,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       memberBadgesByUser=next;
     }
     catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity||"common"}"><span class="badge-icon rarity-${b.rarity||"common"}">${badgeIconMarkup(b.slug,b.rarity,72)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
-    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges&&(featureContext.role!=="Líder interina"||e.user_id!==primaryLeaderId)?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar esta insignia" aria-label="Revocar insignia de ${esc(e.profiles?.display_name||"integrante")}" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
+    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges&&e.profiles?.membership_status==="active"&&(featureContext.role!=="Líder interina"||e.user_id!==primaryLeaderId)?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar esta insignia" aria-label="Revocar insignia de ${esc(e.profiles?.display_name||"integrante")}" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
     const managerNote=$("#badge-manager-note");
     if(managerNote){managerNote.classList.toggle("hidden",!canManageBadges);managerNote.textContent=canManageBadges?"Puedes otorgar y revocar insignias de los integrantes. La cuenta del líder principal está protegida.":"";}
     earnedHost.onclick=async event=>{
