@@ -471,7 +471,7 @@ if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refr
 
 let activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder";
-function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"})}
+function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
 (function initUiMicrointeractions(){
