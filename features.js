@@ -556,9 +556,44 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   }
   async function loadRedemptionNotifications(){
     const host=$("#redemption-notifications");if(!host)return;
-    const {data,error}=await supabase.from("clan_reward_redemptions").select("id,gold_spent,created_at,profiles(display_name,ff_nick,ff_id,phone_e164),clan_rewards(title)").order("created_at",{ascending:false}).limit(100);
-    if(error){host.innerHTML='<p class="muted">No se pudieron cargar los canjes: '+esc(error.message)+'</p>';return}
-    host.innerHTML=(data||[]).map(r=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(r.profiles?.display_name||"Integrante")+' canjeó '+esc(r.clan_rewards?.title||"una recompensa")+'</b><small>Nick: '+esc(r.profiles?.ff_nick||"—")+' · ID Free Fire: '+esc(r.profiles?.ff_id||"—")+'</small><small>Teléfono: '+esc(r.profiles?.phone_e164||"—")+'</small><small>'+dateText(r.created_at)+' · '+Number(r.gold_spent).toLocaleString("es-PA")+' oro descontado</small></div></article>').join("")||'<p class="muted">Todavía no hay canjes registrados.</p>';
+    const {data,error}=await supabase.from("clan_reward_redemptions")
+      .select("id,reward_id,user_id,gold_spent,created_at,deleted_at,deleted_by")
+      .order("created_at",{ascending:false}).limit(100);
+    if(error){host.innerHTML='<p class="muted">No se pudieron cargar las notificaciones: '+esc(error.message)+'</p>';return}
+    const rows=data||[], active=rows.filter(r=>!r.deleted_at);
+    const userIds=[...new Set(active.map(r=>r.user_id))], rewardIds=[...new Set(active.map(r=>r.reward_id))];
+    let profiles=[], rewards=[];
+    if(userIds.length){
+      const result=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164").in("id",userIds);
+      if(result.error){host.innerHTML='<p class="muted">No se pudieron cargar los datos de los integrantes: '+esc(result.error.message)+'</p>';return}
+      profiles=result.data||[];
+    }
+    if(rewardIds.length){
+      const result=await supabase.from("clan_rewards").select("id,title").in("id",rewardIds);
+      if(result.error){host.innerHTML='<p class="muted">No se pudieron cargar las recompensas: '+esc(result.error.message)+'</p>';return}
+      rewards=result.data||[];
+    }
+    const profileMap=new Map(profiles.map(p=>[p.id,p])), rewardMap=new Map(rewards.map(r=>[r.id,r]));
+    host.innerHTML=rows.map(r=>{
+      if(r.deleted_at) return '<article class="feature-row notification-deleted"><div class="feature-row-main"><b>Notificación eliminada por un líder</b><small>El aviso fue retirado del historial compartido.</small><small>'+dateText(r.deleted_at)+'</small></div></article>';
+      const member=profileMap.get(r.user_id)||{}, reward=rewardMap.get(r.reward_id)||{};
+      return '<article class="feature-row"><div class="feature-row-main"><b>'+esc(member.display_name||"Integrante")+' canjeó '+esc(reward.title||"una recompensa")+'</b><small>Nick: '+esc(member.ff_nick||"—")+' · ID Free Fire: '+esc(member.ff_id||"—")+'</small><small>Teléfono: '+esc(member.phone_e164||"—")+'</small><small>'+dateText(r.created_at)+' · '+Number(r.gold_spent).toLocaleString("es-PA")+' oro descontado</small></div>'+(isLeader()?'<button class="danger-btn" type="button" data-delete-redemption="'+esc(r.id)+'">Eliminar</button>':"")+'</article>';
+    }).join("")||'<p class="muted">Todavía no hay notificaciones.</p>';
+    if(!host.dataset.deleteHandlerBound){
+      host.dataset.deleteHandlerBound="true";
+      host.addEventListener("click",async e=>{
+        const button=e.target.closest("[data-delete-redemption]");
+        if(!button||!isLeader())return;
+        const id=button.dataset.deleteRedemption;
+        if(!confirm("¿Eliminar esta notificación para todos los integrantes?"))return;
+        button.disabled=true;
+        const {error:updateError}=await supabase.from("clan_reward_redemptions")
+          .update({deleted_at:new Date().toISOString(),deleted_by:userId()})
+          .eq("id",id).is("deleted_at",null);
+        if(updateError){alert("No se pudo eliminar la notificación: "+updateError.message);button.disabled=false;return}
+        await loadRedemptionNotifications();
+      });
+    }
   }
 
   const refreshAll = async () => {
