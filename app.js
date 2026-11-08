@@ -140,6 +140,58 @@ authToggle.onclick=()=>setAuthMode(authMode==="signin"?"signup":"signin");
 authForm.onsubmit=async e=>{e.preventDefault();if(authBusy)return;const email=$("#auth-email").value.trim().toLowerCase(),password=$("#auth-password").value;if(!email){sessionMessage.textContent="Escribe un correo electrónico válido.";return}if(authMode==="signup"&&!updatePasswordRules()){sessionMessage.textContent="La contraseña no cumple todos los requisitos de seguridad.";$("#auth-password").focus();return}if(authMode==="signin"&&password.length<1){sessionMessage.textContent="Escribe la contraseña de tu cuenta.";return}authBusy=true;authSubmit.disabled=true;sessionMessage.textContent=authMode==="signup"?"Creando tu cuenta y preparando la solicitud…":"Iniciando sesión…";try{if(authMode==="signup"){const {data,error}=await supabase.auth.signUp({email,password,options:{emailRedirectTo:authRedirectUrl}});if(error)throw error;if(data.session){await loadProfile(data.session)}else{sessionMessage.textContent="Cuenta creada. Confirma tu correo para continuar; después completa tus datos y enviaremos la solicitud de aprobación al líder del clan."}}else{const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;if(!data.session)throw new Error("No se recibió una sesión. Confirma tu correo e inténtalo de nuevo.");await loadProfile(data.session)}}catch(error){sessionMessage.textContent="No se pudo completar la operación: "+(error.message||"Error desconocido")}finally{authBusy=false;authSubmit.disabled=false}};
 authForgot.onclick=async()=>{const email=$("#auth-email").value.trim().toLowerCase();if(!email){sessionMessage.textContent="Escribe primero el correo de tu cuenta.";return}authForgot.disabled=true;try{const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});if(error)throw error;sessionMessage.textContent="Si el correo está registrado, recibirás instrucciones para restablecer la contraseña."}catch(error){sessionMessage.textContent="No se pudo solicitar el restablecimiento: "+error.message}finally{authForgot.disabled=false}};
 if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}stopLobbyMusic();currentProfile=null;role="Miembro";stopClanPresence();showAccess();setAuthMode("signin");signOutButton.disabled=false};
+
+// Cambio de contraseña desde una sesión autenticada: no requiere correo.
+let passwordChangeBusy=false;
+const passwordChangeToggle=$("#password-change-toggle");
+const passwordChangeForm=$("#password-change-form");
+const passwordChangeStatus=$("#password-change-status");
+function updateAccountPasswordRules(){
+ const input=$("#account-new-password"), checks=passwordChecks(input.value);
+ const labels={length:"Al menos 8 caracteres",lower:"Una letra minúscula",upper:"Una letra mayúscula",number:"Un número",symbol:"Un símbolo (por ejemplo: !, @, # o $)"};
+ for(const [key,ok] of Object.entries(checks)){
+  const item=$("#account-pw-"+key);
+  if(item){item.textContent=(ok?"✓ ":"○ ")+labels[key];item.classList.toggle("password-rule-met",ok)}
+ }
+ return Object.values(checks).every(Boolean);
+}
+$("#account-new-password").addEventListener("input",updateAccountPasswordRules);
+if(passwordChangeToggle&&passwordChangeForm){
+ passwordChangeToggle.onclick=()=>{
+  const opening=passwordChangeForm.classList.contains("hidden");
+  passwordChangeForm.classList.toggle("hidden",!opening);
+  passwordChangeToggle.textContent=opening?"Cancelar cambio":"Cambiar contraseña";
+  if(opening)$("#account-new-password").focus();
+  else {passwordChangeForm.reset();passwordChangeStatus.textContent="";}
+ };
+ passwordChangeForm.onsubmit=async e=>{
+  e.preventDefault();
+  if(passwordChangeBusy)return;
+  const password=$("#account-new-password").value;
+  const confirmation=$("#account-confirm-password").value;
+  if(!updateAccountPasswordRules()){passwordChangeStatus.textContent="La contraseña no cumple todos los requisitos.";return;}
+  if(password!==confirmation){passwordChangeStatus.textContent="Las contraseñas no coinciden.";$("#account-confirm-password").focus();return;}
+  passwordChangeBusy=true;
+  $("#account-password-submit").disabled=true;
+  passwordChangeStatus.textContent="Actualizando contraseña…";
+  try{
+   const {data,error:sessionError}=await supabase.auth.getSession();
+   if(sessionError)throw sessionError;
+   if(!data.session?.user)throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
+   const {error}=await supabase.auth.updateUser({password});
+   if(error)throw error;
+   passwordChangeForm.reset();
+   updateAccountPasswordRules();
+   passwordChangeStatus.textContent="Contraseña actualizada correctamente. Tu sesión sigue abierta.";
+  }catch(error){
+   passwordChangeStatus.textContent="No se pudo actualizar la contraseña: "+(error.message||"Error desconocido");
+  }finally{
+   passwordChangeBusy=false;
+   $("#account-password-submit").disabled=false;
+  }
+ };
+}
+
 const ffIdInput=$("#profile-ffid");ffIdInput.addEventListener("input",()=>{ffIdInput.value=ffIdInput.value.replace(/\D/g,"").slice(0,11)});
 profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.trim();if(!/^[0-9]{1,11}$/.test(ffId)){sessionMessage.textContent="El ID de Free Fire debe contener solo números y tener como máximo 11 dígitos.";ffIdInput.focus();return}const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Enviando solicitud de registro al líder del clan…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:ffId,phone_e164:phone};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,role").single();if(error)throw error;showRegistrationWaiting(data,session)}catch(error){const duplicateFfId=error.code==="23505"&&/profiles_ff_id_unique_idx|ff_id/i.test((error.message||"")+" "+(error.details||""));const duplicatePhone=error.code==="23505"&&/phone_e164/i.test((error.message||"")+" "+(error.details||""));sessionMessage.textContent=duplicateFfId?"Ese ID de Free Fire ya está registrado. No puedes usar el ID de otra cuenta.":duplicatePhone?"Ese número ya está registrado. Usa otro número.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();showAccess();return}if(event==="PASSWORD_RECOVERY"){passwordRecoveryPending=true;showPasswordRecovery();return}if(event==="SIGNED_IN"&&session){if(passwordRecoveryPending)showPasswordRecovery();else loadProfile(session)}});
