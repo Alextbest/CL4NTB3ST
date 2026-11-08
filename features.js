@@ -680,7 +680,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       supabase.channel("tb3st-presence-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"member_presence"},loadPresence).subscribe(),
       supabase.channel("tb3st-profiles-live")
-        .on("postgres_changes",{event:"*",schema:"public",table:"profiles"},()=>{loadBadges();loadPresence();loadMissions();loadRanking();loadWall();loadWallet();loadRewards();loadRedemptionNotifications()}).subscribe(),
+        .on("postgres_changes",{event:"*",schema:"public",table:"clan_profile_updates"},()=>{loadBadges();loadPresence();loadMissions();loadRanking();loadWall();loadWallet();loadRewards();loadRedemptionNotifications()}).subscribe(),
       supabase.channel("tb3st-badges-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"member_badges"},()=>{
           loadBadges();
