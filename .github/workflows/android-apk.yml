@@ -145,37 +145,6 @@ jobs:
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
 
-      - name: Create APK update manifest
-        run: |
-          APK="android/app/build/outputs/apk/release/app-release.apk"
-          TAG="apk-${GITHUB_RUN_ID}"
-          VERSION_CODE="${ANDROID_VERSION_CODE}"
-          CHECKSUM="$(sha256sum "$APK" | cut -d ' ' -f1)"
-          VERSION_NAME="1.0.${VERSION_CODE}"
-          cat > apk-manifest.json <<EOF
-          {
-            "packageId": "com.clantb3st.app",
-            "versionCode": ${VERSION_CODE},
-            "versionName": "${VERSION_NAME}",
-            "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-release.apk",
-            "sha256": "${CHECKSUM}",
-            "notes": "Mejoras y correcciones de CL4N TB3ST"
-          }
-          EOF
-
-      - name: Publish APK update release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: apk-${{ github.run_id }}
-          name: CL4N TB3ST ${{ github.run_number }}
-          body: "Actualización instalable de CL4N TB3ST. Descárgala desde la aplicación."
-          files: |
-            android/app/build/outputs/apk/release/app-release.apk
-            apk-manifest.json
-          make_latest: true
-          draft: false
-          prerelease: false
-
       - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
