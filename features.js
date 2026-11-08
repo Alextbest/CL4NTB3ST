@@ -90,7 +90,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           title:missionForm.elements.title.value.trim(),
           description:missionForm.elements.description.value.trim(),
           instructions:missionForm.elements.instructions.value.trim(),
-          gold_reward:Number(missionForm.elements.gold_reward.value),
+          reward_type:missionForm.elements.reward_type.value,
+          gold_reward:missionForm.elements.reward_type.value==="gold"?Number(missionForm.elements.reward_amount.value):0,
+          points:missionForm.elements.reward_type.value==="points"?Number(missionForm.elements.reward_amount.value):0,
           cadence:missionForm.elements.cadence.value,
           starts_at:missionForm.elements.starts_at.value ? new Date(missionForm.elements.starts_at.value).toISOString() : new Date().toISOString(),
           ends_at:missionForm.elements.ends_at.value ? new Date(missionForm.elements.ends_at.value).toISOString() : null,
@@ -109,7 +111,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const host = $("#missions-list");
     if (!host) return;
     const { data: missions, error } = await supabase.from("clan_missions")
-      .select("id,title,description,instructions,gold_reward,cadence,starts_at,ends_at,is_active,created_at")
+      .select("id,title,description,instructions,reward_type,gold_reward,points,cadence,starts_at,ends_at,is_active,created_at")
       .order("created_at",{ascending:false});
     if (error) { host.innerHTML='<p class="muted">No se pudieron cargar las misiones: '+esc(error.message)+'</p>'; return; }
     const ids = (missions || []).map(m=>m.id);
@@ -123,7 +125,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     }
     if (isModerator()) {
       const reviewResult = await supabase.from("mission_submissions")
-        .select("id,mission_id,user_id,evidence_path,note,submitted_at,profiles(display_name,ff_nick),clan_missions(title,gold_reward)")
+        .select("id,mission_id,user_id,evidence_path,note,submitted_at,profiles(display_name,ff_nick),clan_missions(title,gold_reward,points,reward_type)")
         .eq("status","pending").order("submitted_at",{ascending:true});
       if (!reviewResult.error) pending = reviewResult.data || [];
     }
@@ -132,7 +134,8 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       const state = submission ? (submission.status==="pending"?"En revisión":submission.status==="approved"?"Aprobada":"Rechazada") : "Sin entregar";
       const statusClass = submission ? submission.status : "none";
       const active = m.is_active && new Date(m.starts_at)<=new Date() && (!m.ends_at || new Date(m.ends_at)>=new Date());
-      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${Number(m.gold_reward||0).toLocaleString("es-PA")} oro</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
+      const rewardLabel=m.reward_type==="points"?Number(m.points||0).toLocaleString("es-PA")+" pts":Number(m.gold_reward||0).toLocaleString("es-PA")+" oro";
+      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${rewardLabel}</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
     }).join("") || '<div class="panel muted">Todavía no hay misiones publicadas.</div>';
 
     const reviewHost = $("#mission-review-list");
@@ -144,7 +147,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           const { data } = await supabase.storage.from("mission-evidence").createSignedUrl(s.evidence_path,1800);
           return {...s, evidenceUrl:data?.signedUrl || ""};
         }));
-        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${Number(s.clan_missions?.gold_reward || 0).toLocaleString("es-PA")} oro</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions"><button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button><button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
+        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.reward_type==="points"?Number(s.clan_missions?.points||0).toLocaleString("es-PA")+" pts":Number(s.clan_missions?.gold_reward||0).toLocaleString("es-PA")+" oro"}</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions"><button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button><button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
       }
     }
   }
@@ -212,9 +215,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const host = $("#ranking-list");
     if (!host) return;
     try { await loadMemberBadgeMap(); } catch(error) { host.innerHTML='<p class="muted">No se pudieron cargar las insignias: '+esc(error.message)+'</p>'; return; }
-    const {data,error}=await supabase.from("clan_global_ranking").select("user_id,display_name,ff_nick,role,points,position").order("position",{ascending:true});
+    const {data,error}=await supabase.from("clan_global_ranking").select("user_id,display_name,ff_nick,role,points,position,gold").order("position",{ascending:true});
     if(error){host.innerHTML='<p class="muted">No se pudo cargar el ranking: '+esc(error.message)+'</p>';return}
-    host.innerHTML=(data||[]).map(row=>`<article class="ranking-row ${row.user_id===userId()?"is-self":""}"><strong class="ranking-position">#${row.position}</strong><div class="feature-row-main"><b class="member-name-line">${esc(row.display_name)}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.ff_nick||"Sin nick")} · ${esc(row.role)}</small></div><strong class="ranking-points">${Number(row.points).toLocaleString("es-PA")} pts</strong></article>`).join("")||'<p class="muted">El ranking aparecerá cuando se registren puntos.</p>';
+    host.innerHTML=(data||[]).map(row=>`<article class="ranking-row ${row.user_id===userId()?"is-self":""}"><strong class="ranking-position">#${row.position}</strong><div class="feature-row-main"><b class="member-name-line">${esc(row.display_name)}${memberBadgeMarkup(row.user_id)}</b><small>${esc(row.ff_nick||"Sin nick")} · ${esc(row.role)}</small></div><div class="ranking-currency"><strong class="ranking-points">${Number(row.points).toLocaleString("es-PA")} pts</strong><small>${Number(row.gold||0).toLocaleString("es-PA")} oro</small></div></article>`).join("")||'<p class="muted">El ranking aparecerá cuando se registren puntos.</p>';
   }
 
   async function loadBadges() {
@@ -421,11 +424,13 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       if(editPost){
         const post=editPost.closest("[data-post-id]");
         const original=post?.querySelector(".social-content")?.textContent||"";
-        const content=prompt("Edita el texto de tu publicación:",original);
-        if(content===null)return;
-        if(!content.trim()&&!post?.querySelector(".social-media-image")){alert("La publicación debe tener texto o un archivo adjunto.");return;}
-        const {error}=await supabase.from("social_posts").update({content:content.trim(),updated_at:new Date().toISOString()}).eq("id",editPost.dataset.editPost);
-        if(error)alert("No se pudo editar: "+error.message);else await loadWall();
+        if(!post||post.querySelector(".social-edit-form"))return;
+        const editor=document.createElement("form");editor.className="social-edit-form form-grid";
+        editor.innerHTML='<textarea name="content" rows="4" maxlength="800" aria-label="Editar publicación"></textarea><div class="inline-actions"><button class="primary-btn" type="submit">Guardar cambios</button><button class="secondary-btn" type="button">Cancelar</button></div><small class="footnote" aria-live="polite"></small>';
+        editor.elements.content.value=original;post.querySelector(".social-content")?.replaceWith(editor);
+        if(!post.querySelector(".social-content"))post.insertBefore(editor,post.querySelector(".social-media-image")||post.querySelector(".social-reactions"));
+        editor.onsubmit=async ev=>{ev.preventDefault();const content=editor.elements.content.value.trim();if(!content&&!post.querySelector(".social-media-image")){editor.querySelector(".footnote").textContent="La publicación debe tener texto o un archivo adjunto.";return;}const save=editor.querySelector('[type="submit"]');save.disabled=true;const {error}=await supabase.from("social_posts").update({content,updated_at:new Date().toISOString()}).eq("id",editPost.dataset.editPost);if(error){editor.querySelector(".footnote").textContent="No se pudo editar: "+error.message;save.disabled=false;}else await loadWall();};
+        editor.querySelector('[type="button"]').onclick=loadWall;
         return;
       }
       if(deletePost){
@@ -464,10 +469,18 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const {data,error}=await supabase.from("clan_gold_ledger").select("id,amount,reason,source_type,created_at").eq("user_id",userId()).order("created_at",{ascending:false}).limit(50);
     if(error){host.innerHTML='<p class="muted">No se pudo cargar la cartera: '+esc(error.message)+'</p>';return}
     const rows=data||[];
-    const {data:balanceData,error:balanceError}=await supabase.rpc("get_my_clan_gold_balance");
-    if(balanceError){host.innerHTML='<p class="muted">No se pudo calcular el saldo: '+esc(balanceError.message)+'</p>';return}
+    const [{data:balanceData,error:balanceError},{data:pointBalance,error:pointBalanceError},{data:pointRows,error:pointRowsError}]=await Promise.all([
+      supabase.rpc("get_my_clan_gold_balance"),
+      supabase.rpc("get_my_clan_points_balance"),
+      supabase.from("clan_point_ledger").select("id,amount,reason,source_type,created_at").eq("user_id",userId()).order("created_at",{ascending:false}).limit(50)
+    ]);
+    if(balanceError||pointBalanceError||pointRowsError){host.innerHTML='<p class="muted">No se pudo calcular tu cartera: '+esc((balanceError||pointBalanceError||pointRowsError).message)+'</p>';return}
     $("#gold-balance").textContent=Number(balanceData||0).toLocaleString("es-PA")+" oro";
+    const pointBalanceEl=$("#points-balance");if(pointBalanceEl)pointBalanceEl.textContent=Number(pointBalance||0).toLocaleString("es-PA")+" pts";
+    const pointHost=$("#points-ledger-list");if(pointHost)pointHost.innerHTML=(pointRows||[]).map(row=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(row.reason)+'</b><small>'+dateText(row.created_at)+' · '+esc(row.source_type)+'</small></div><strong class="'+(row.amount>0?"gold-positive":"gold-negative")+'">'+(row.amount>0?"+":"")+Number(row.amount).toLocaleString("es-PA")+' pts</strong></article>').join("")||'<p class="muted">Todavía no tienes movimientos de puntos.</p>';
     host.innerHTML=rows.map(row=>'<article class="feature-row"><div class="feature-row-main"><b>'+esc(row.reason)+'</b><small>'+dateText(row.created_at)+' · '+esc(row.source_type)+'</small></div><strong class="'+(row.amount>0?"gold-positive":"gold-negative")+'">'+(row.amount>0?"+":"")+Number(row.amount).toLocaleString("es-PA")+' oro</strong></article>').join("")||'<p class="muted">Todavía no tienes movimientos de oro.</p>';
+    const transferSelect=$("#currency-transfer-form select[name=recipient_id]");
+    if(transferSelect){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").neq("id",userId()).order("display_name");transferSelect.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");}
     const select=$("#gold-award-form select[name=user_id]");
     if(isLeader()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");const missionSelect=$("#gold-award-form select[name=mission_id]");const {data:missions}=await supabase.from("clan_missions").select("id,title,gold_reward").eq("is_active",true).order("created_at",{ascending:false});if(missionSelect)missionSelect.innerHTML='<option value="">Otorgamiento manual</option>'+(missions||[]).map(m=>'<option value="'+m.id+'" data-gold="'+m.gold_reward+'" data-title="'+esc(m.title)+'">'+esc(m.title)+' · '+Number(m.gold_reward).toLocaleString("es-PA")+' oro</option>').join("")}
     $("#gold-award-form")?.classList.toggle("hidden",!isLeader());
@@ -483,11 +496,20 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     $("#gold-award-status").textContent=error?"No se pudo otorgar oro: "+error.message:"Oro otorgado correctamente.";
     button.disabled=false;if(!error){goldAwardForm.elements.amount.value="";goldAwardForm.elements.reason.value="";await loadWallet();}
   };
+  const transferForm=$("#currency-transfer-form");
+  if(transferForm)transferForm.onsubmit=async e=>{
+    e.preventDefault();
+    const button=transferForm.querySelector('button[type="submit"]');button.disabled=true;
+    const status=$("#currency-transfer-status");status.textContent="Procesando transferencia…";
+    const {error}=await supabase.rpc("transfer_clan_currency",{p_recipient_id:transferForm.elements.recipient_id.value,p_currency:transferForm.elements.currency.value,p_amount:Number(transferForm.elements.amount.value)});
+    status.textContent=error?"Transferencia rechazada: "+error.message:"Transferencia realizada correctamente.";
+    button.disabled=false;if(!error){transferForm.reset();await loadWallet();}
+  };
   async function loadRewards(){
     const host=$("#rewards-list");if(!host)return;
     const {data,error}=await supabase.from("clan_rewards").select("id,title,description,gold_cost,is_active,created_at").order("created_at",{ascending:false});
     if(error){host.innerHTML='<p class="muted">No se pudieron cargar las recompensas: '+esc(error.message)+'</p>';return}
-    host.innerHTML=(data||[]).map(r=>'<article class="panel reward-card"><div class="panel-title"><h3>'+esc(r.title)+'</h3><strong>'+Number(r.gold_cost).toLocaleString("es-PA")+' oro</strong></div><p>'+esc(r.description||"Sin descripción.")+'</p>'+(!r.is_active?'<small class="muted">No disponible</small>':'<button class="primary-btn" type="button" data-redeem-reward="'+r.id+'">Canjear recompensa</button>')+'</article>').join("")||'<div class="panel muted">Todavía no hay recompensas publicadas.</div>';
+    host.innerHTML=(data||[]).map(r=>'<article class="panel reward-card" data-reward-card="'+r.id+'"><div class="panel-title"><h3>'+esc(r.title)+'</h3><strong>'+Number(r.gold_cost).toLocaleString("es-PA")+' oro</strong></div><p>'+esc(r.description||"Sin descripción.")+'</p>'+(!r.is_active?'<small class="muted">No disponible</small>':'<button class="primary-btn" type="button" data-redeem-reward="'+r.id+'">Canjear recompensa</button>')+(isLeader()?'<div class="inline-actions"><button class="secondary-btn" type="button" data-edit-reward="'+r.id+'">Editar</button><button class="text-action danger-text" type="button" data-delete-reward="'+r.id+'">Borrar</button></div>':'')+'</article>').join("")||'<div class="panel muted">Todavía no hay recompensas publicadas.</div>';
     $("#reward-create-form")?.classList.toggle("hidden",!isLeader());
   }
   const rewardForm=$("#reward-create-form");
@@ -503,6 +525,24 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   if(rewardsHost&&!rewardsHost.dataset.bound){
     rewardsHost.dataset.bound="1";
     rewardsHost.addEventListener("click",async e=>{
+      const edit=e.target.closest("[data-edit-reward]");
+      const remove=e.target.closest("[data-delete-reward]");
+      if(edit&&isLeader()){
+        const id=edit.dataset.editReward, card=edit.closest("[data-reward-card]");
+        const {data:reward,error}=await supabase.from("clan_rewards").select("id,title,description,gold_cost").eq("id",id).single();
+        if(error){alert("No se pudo abrir la recompensa: "+error.message);return;}
+        card.innerHTML='<form class="reward-inline-edit form-grid"><label>Nombre del premio</label><input name="title" maxlength="80" required><label>Descripción</label><textarea name="description" rows="3" maxlength="1200"></textarea><label>Precio en oro</label><input name="gold_cost" type="number" min="1" max="1000000000" required><div class="inline-actions"><button class="primary-btn" type="submit">Confirmar cambios</button><button class="secondary-btn" type="button" data-cancel-reward>Cancelar</button></div><small class="footnote" data-edit-status></small></form>';
+        const form=card.querySelector("form");form.elements.title.value=reward.title;form.elements.description.value=reward.description||"";form.elements.gold_cost.value=reward.gold_cost;
+        form.onsubmit=async ev=>{ev.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;const {error:updateError}=await supabase.from("clan_rewards").update({title:form.elements.title.value.trim(),description:form.elements.description.value.trim(),gold_cost:Number(form.elements.gold_cost.value),updated_at:new Date().toISOString()}).eq("id",id);if(updateError){form.querySelector("[data-edit-status]").textContent="No se pudo guardar: "+updateError.message;submit.disabled=false;}else await loadRewards();};
+        form.querySelector("[data-cancel-reward]").onclick=loadRewards;
+        return;
+      }
+      if(remove&&isLeader()){
+        if(!confirm("¿Borrar esta recompensa?"))return;
+        const {error:deleteError}=await supabase.from("clan_rewards").delete().eq("id",remove.dataset.deleteReward);
+        if(deleteError)alert("No se pudo borrar: "+deleteError.message);else await loadRewards();
+        return;
+      }
       const button=e.target.closest("[data-redeem-reward]");if(!button)return;
       if(!confirm("¿Confirmas el canje de esta recompensa?"))return;
       button.disabled=true;$("#rewards-status").textContent="Procesando canje…";
