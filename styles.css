@@ -424,3 +424,46 @@ html, body, body * {
 @keyframes reward-feedback-backdrop{to{opacity:1}}
 @keyframes reward-feedback-card{to{transform:translateY(0) scale(1)}}
 @media(prefers-reduced-motion:reduce){.reward-feedback-overlay.is-open,.reward-feedback-card{animation:none!important;opacity:1;transform:none}}
+
+/* Intro animada competitiva CL4NTB3ST */
+.loading-screen.clan-intro{isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 50% 45%,#321015 0%,#16080b 38%,#050506 78%);color:#fff;opacity:1;visibility:visible}
+.loading-screen.clan-intro.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.intro-content{position:relative;z-index:2;width:min(88vw,440px);display:flex;flex-direction:column;align-items:center;text-align:center;transform:translateY(12px);animation:intro-content-in .75s cubic-bezier(.16,1,.3,1) both}
+.intro-eyebrow{display:flex;align-items:center;gap:10px;color:#ffb4b8;font-size:9px;font-weight:900;letter-spacing:2.8px;text-shadow:0 0 12px #f22}
+.intro-eyebrow span{width:22px;height:1px;background:#e32636;box-shadow:0 0 9px #ff2638}
+.intro-emblem{position:relative;width:clamp(150px,42vw,205px);height:clamp(150px,42vw,205px);display:grid;place-items:center;margin:22px 0 15px;filter:drop-shadow(0 0 24px #d20c25)}
+.intro-emblem img{position:relative;z-index:2;width:76%;height:76%;object-fit:contain;border-radius:50%;animation:intro-emblem-impact .8s .2s cubic-bezier(.16,1,.3,1) both}
+.intro-emblem-ring{position:absolute;inset:3%;border:1px solid #ff394a;border-radius:50%;box-shadow:0 0 14px #ff152d,inset 0 0 20px #8d0718;animation:intro-ring-pulse 1.5s ease-in-out infinite}
+.intro-emblem-ring:before,.intro-emblem-ring:after{content:"";position:absolute;inset:10%;border:1px dashed #a20c20;border-radius:50%;animation:intro-ring-spin 9s linear infinite}
+.intro-emblem-ring:after{inset:-8%;border:1px solid #ff3445;opacity:.25;animation:intro-ring-expand 2s ease-out infinite}
+.intro-eye{position:absolute;z-index:3;top:45%;width:22px;height:5px;background:#ff263d;border-radius:50%;filter:blur(3px);box-shadow:0 0 10px 4px #f11,0 0 28px 8px #b0001c;animation:intro-eye-flash 1.3s ease-in-out infinite}
+.intro-eye-left{left:34%}.intro-eye-right{right:34%}
+.intro-title-wrap{animation:intro-title-in .7s .45s both}
+.intro-kicker{font-size:8px;font-weight:900;letter-spacing:3px;color:#c6a5a8}
+.intro-title{margin:5px 0 0;font-family:Impact,"Arial Black",system-ui,sans-serif;font-size:clamp(37px,10vw,53px);font-style:italic;font-weight:1000;letter-spacing:1px;line-height:1;color:#fff;text-shadow:2px 2px 0 #8e0b1c,4px 4px 0 #42030b,0 0 22px #f20;transform:skewX(-7deg)}
+.intro-title-line{width:76%;height:2px;margin:11px auto 8px;background:linear-gradient(90deg,transparent,#ff243c,#fff,#ff243c,transparent);box-shadow:0 0 12px #f11}
+.intro-tagline{margin:0;color:#f0c5c8;font-size:9px;font-weight:900;letter-spacing:2px}
+.intro-progress{width:min(78vw,320px);margin-top:38px;animation:intro-title-in .5s .75s both}
+.intro-progress-track{height:5px;padding:1px;overflow:hidden;background:#351117;border:1px solid #6e1724;box-shadow:0 0 13px #a10b1e;border-radius:10px}
+.intro-progress-track span{display:block;width:0;height:100%;border-radius:8px;background:linear-gradient(90deg,#8c0718,#ff243c,#fff);box-shadow:0 0 12px #ff253d;animation:intro-progress-fill 5s linear forwards}
+.intro-progress-meta{display:flex;justify-content:space-between;margin-top:9px;color:#d79da3;font-size:8px;font-weight:900;letter-spacing:1.5px}
+.intro-progress-meta b{color:#ff5968}
+.intro-bottom-mark{position:absolute;z-index:2;bottom:max(22px,env(safe-area-inset-bottom));left:0;width:100%;text-align:center;color:#765057;font-size:8px;font-weight:900;letter-spacing:3px}
+.intro-bottom-mark span{color:#e32636;padding:0 5px}
+.intro-smoke{position:absolute;z-index:0;width:55vw;height:55vw;max-width:440px;max-height:440px;border-radius:50%;background:radial-gradient(circle,#b20b24aa 0%,#62081755 36%,transparent 70%);filter:blur(30px);opacity:.5;animation:intro-smoke-drift 5s ease-in-out infinite alternate}
+.intro-smoke-left{left:-28%;top:20%}.intro-smoke-right{right:-28%;bottom:12%;animation-delay:-2.5s}
+.intro-sparks{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+.intro-sparks i{position:absolute;bottom:-10px;left:12%;width:3px;height:3px;border-radius:50%;background:#ff3448;box-shadow:0 0 8px 2px #f22;animation:intro-spark-rise 3.3s linear infinite}
+.intro-sparks i:nth-child(2){left:27%;animation-delay:-1.2s;animation-duration:4s}.intro-sparks i:nth-child(3){left:43%;animation-delay:-2.3s}.intro-sparks i:nth-child(4){left:61%;animation-delay:-.7s;animation-duration:4.4s}.intro-sparks i:nth-child(5){left:76%;animation-delay:-1.8s}.intro-sparks i:nth-child(6){left:89%;animation-delay:-2.7s;animation-duration:3.8s}.intro-sparks i:nth-child(7){left:53%;animation-delay:-3s;animation-duration:4.5s}.intro-sparks i:nth-child(8){left:7%;animation-delay:-2s}
+.intro-replay .intro-emblem img{animation:intro-emblem-impact .8s .2s cubic-bezier(.16,1,.3,1) both}
+@keyframes intro-content-in{from{opacity:0;transform:translateY(28px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes intro-title-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes intro-emblem-impact{0%{opacity:0;transform:scale(.35) rotate(-18deg)}65%{opacity:1;transform:scale(1.1) rotate(3deg)}100%{transform:scale(1) rotate(0)}}
+@keyframes intro-ring-pulse{50%{transform:scale(1.04);opacity:.65}}
+@keyframes intro-ring-spin{to{transform:rotate(360deg)}}
+@keyframes intro-ring-expand{0%{transform:scale(.9);opacity:.4}100%{transform:scale(1.18);opacity:0}}
+@keyframes intro-eye-flash{0%,100%{opacity:.65;transform:scaleX(.75)}50%{opacity:1;transform:scaleX(1.25)}}
+@keyframes intro-smoke-drift{to{transform:translate(22px,-18px) scale(1.22);opacity:.8}}
+@keyframes intro-spark-rise{0%{transform:translateY(0) scale(.4);opacity:0}15%{opacity:1}100%{transform:translateY(-105vh) scale(1.3);opacity:0}}
+@keyframes intro-progress-fill{to{width:100%}}
+@media(prefers-reduced-motion:reduce){.intro-content,.intro-title-wrap,.intro-progress,.intro-emblem img,.intro-emblem-ring,.intro-emblem-ring:before,.intro-eye,.intro-smoke,.intro-sparks i,.intro-progress-track span{animation:none!important}.intro-progress-track span{width:100%}}
