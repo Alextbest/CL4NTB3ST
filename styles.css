@@ -541,3 +541,6 @@ html, body, body * {
 .account-password-tools .security-note li.password-rule-met{color:#d7e6d8}
 .account-password-tools #account-password-submit{width:100%;min-height:44px}
 .account-password-tools #password-change-status{min-height:18px;margin:0;overflow-wrap:anywhere}
+
+/* Gestión y equipamiento de insignias */
+#badge-manager-member-filter{width:100%;margin:8px 0 14px}.my-badge-row{align-items:center}.my-badge-row .feature-row-main{min-width:0}.my-badge-row button{min-width:104px;white-space:nowrap}.badge-revoke-btn{flex:none;min-width:86px}
