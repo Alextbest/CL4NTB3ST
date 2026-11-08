@@ -335,15 +335,22 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   if(socialImageInput)socialImageInput.onchange=()=>setPostImage(socialImageInput.files?.[0]);
   if(socialImageRemove)socialImageRemove.onclick=clearPostImage;
 
-  if(postForm)postForm.onsubmit=async e=>{
-    e.preventDefault();
+  let socialPostPublishing=false;
+  async function publishSocialPost(e){
+    e?.preventDefault();
+    if(!postForm||socialPostPublishing)return;
     const button=postForm.querySelector('button[type="submit"]');
     const content=postForm.elements.content?.value?.trim()||"";
-    if(!content&&!selectedPostMedia){if(socialPostStatus)socialPostStatus.textContent="Escribe algo o adjunta una foto o vídeo.";return;}
+    if(!content&&!selectedPostMedia){
+      if(socialPostStatus)socialPostStatus.textContent="Escribe algo o adjunta una foto o vídeo.";
+      return;
+    }
+    socialPostPublishing=true;
     if(button)button.disabled=true;
     if(socialPostStatus)socialPostStatus.textContent="Publicando…";
     let mediaPath=null;
     try{
+      console.info("[CL4NTB3ST] Iniciando publicación del muro.",{hasMedia:!!selectedPostMedia,mediaType:selectedPostMedia?.type||null});
       if(selectedPostMedia){
         const {data:uploadInfo,error:signError}=await supabase.functions.invoke("social-media",{
           body:{action:"create-upload",contentType:selectedPostMedia.type,size:selectedPostMedia.size}
@@ -368,8 +375,21 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     }catch(error){
       if(socialPostStatus)socialPostStatus.textContent="No se pudo publicar: "+(error.message||"Error desconocido");
       console.error("Error al publicar en el muro:",error);
-    }finally{if(button)button.disabled=false;}
-  };
+    }finally{
+      socialPostPublishing=false;
+      if(button)button.disabled=false;
+    }
+  }
+  if(postForm){
+    postForm.addEventListener("submit",publishSocialPost);
+    const publishButton=postForm.querySelector('button[type="submit"]');
+    if(publishButton){
+      publishButton.addEventListener("click",e=>{
+        e.preventDefault();
+        publishSocialPost(e);
+      });
+    }
+  }
 
   async function loadWall(){
     const host=$("#social-wall");if(!host)return;
