@@ -117,7 +117,7 @@ function showRegistrationWaiting(profile,session){
  sessionMessage.textContent="Tu solicitud está pendiente de revisión. Cuando el líder la apruebe o desapruebe, podrás retroceder para volver al inicio de sesión.";
  registrationWaitSession=session;
  if(registrationWaitChannel)supabase.removeChannel(registrationWaitChannel);
- registrationWaitChannel=supabase.channel("registration-status-"+session.user.id).on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles",filter:"id=eq."+session.user.id},payload=>{if(payload.new?.approval_status==="approved")showRegistrationResult("approved");else if(payload.new?.approval_status==="rejected")showRegistrationResult("rejected")}).subscribe();
+ registrationWaitChannel=supabase.channel("registration-status-"+session.user.id).on("postgres_changes",{event:"*",schema:"public",table:"clan_profile_updates",filter:"user_id=eq."+session.user.id},async()=>{const {data,error}=await supabase.from("profiles").select("approval_status").eq("id",session.user.id).maybeSingle();if(error)return;if(data?.approval_status==="approved")showRegistrationResult("approved");else if(data?.approval_status==="rejected")showRegistrationResult("rejected")}).subscribe();
  if(registrationWaitTimer)clearInterval(registrationWaitTimer);
  registrationWaitTimer=setInterval(async()=>{const {data,error}=await supabase.from("profiles").select("approval_status").eq("id",session.user.id).maybeSingle();if(error)return;if(data?.approval_status==="approved")showRegistrationResult("approved");else if(data?.approval_status==="rejected")showRegistrationResult("rejected")},5000);
  const accept=$("#registration-wait-accept"),back=$("#registration-wait-back");
@@ -675,7 +675,7 @@ function subscribeMemberStatus(){
  if(!currentProfile)return;
  const memberId=currentProfile.id;
  memberStatusChannel=supabase.channel("member-status-"+memberId)
-  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles",filter:"id=eq."+memberId},async()=>{
+  .on("postgres_changes",{event:"*",schema:"public",table:"clan_profile_updates",filter:"user_id=eq."+memberId},async()=>{
    const {data:{session}}=await supabase.auth.getSession();
    if(session)await loadProfile(session);
   }).subscribe();
@@ -884,10 +884,13 @@ async function loadPendingRegistrations(){
 function subscribeRegistrationRequests(){
  if(!canApproveRegistrations()||registrationChannel)return;
  registrationChannel=supabase.channel("clan-registration-requests")
- .on("postgres_changes",{event:"INSERT",schema:"public",table:"profiles"},payload=>{
-  if(payload.new?.approval_status==="pending"){
-   loadPendingRegistrations();
-   const message="Nueva solicitud de registro de "+(payload.new.display_name||"un integrante");
+ .on("postgres_changes",{event:"*",schema:"public",table:"clan_profile_updates"},async payload=>{
+  await loadPendingRegistrations();
+  const userId=payload.new?.user_id;
+  if(!userId)return;
+  const {data}=await supabase.from("profiles").select("approval_status,display_name").eq("id",userId).maybeSingle();
+  if(data?.approval_status==="pending"){
+   const message="Nueva solicitud de registro de "+(data.display_name||"un integrante");
    const status=$("#registration-approval-status");if(status)status.textContent=message;
    if("Notification" in window&&Notification.permission==="granted")new Notification("CL4NTB3ST",{body:message});
   }
@@ -913,7 +916,7 @@ function subscribeClanProfiles(){
  if(clanProfilesChannel)supabase.removeChannel(clanProfilesChannel);
  if(!currentProfile)return;
  clanProfilesChannel=supabase.channel("clan-profiles-live")
-  .on("postgres_changes",{event:"*",schema:"public",table:"profiles"},async()=>{
+  .on("postgres_changes",{event:"*",schema:"public",table:"clan_profile_updates"},async()=>{
    await loadCloudMembers();
    if(canApproveRegistrations())await loadPendingRegistrations();
   }).subscribe();
