@@ -445,7 +445,7 @@ html, body, body * {
 .intro-tagline{margin:0;color:#f0c5c8;font-size:9px;font-weight:900;letter-spacing:2px}
 .intro-progress{width:min(78vw,320px);margin-top:38px;animation:intro-title-in .5s .75s both}
 .intro-progress-track{height:5px;padding:1px;overflow:hidden;background:#351117;border:1px solid #6e1724;box-shadow:0 0 13px #a10b1e;border-radius:10px}
-.intro-progress-track span{display:block;width:0;height:100%;border-radius:8px;background:linear-gradient(90deg,#8c0718,#ff243c,#fff);box-shadow:0 0 12px #ff253d;animation:intro-progress-fill 5s linear forwards}
+.intro-progress-track span{display:block;width:0;height:100%;border-radius:8px;background:linear-gradient(90deg,#8c0718,#ff243c,#fff);box-shadow:0 0 12px #ff253d;animation:none}.loading-screen.intro-replay .intro-progress-track span{animation:intro-progress-fill 5s linear forwards}
 .intro-progress-meta{display:flex;justify-content:space-between;margin-top:9px;color:#d79da3;font-size:8px;font-weight:900;letter-spacing:1.5px}
 .intro-progress-meta b{color:#ff5968}
 .intro-bottom-mark{position:absolute;z-index:2;bottom:max(22px,env(safe-area-inset-bottom));left:0;width:100%;text-align:center;color:#765057;font-size:8px;font-weight:900;letter-spacing:3px}
