@@ -73,8 +73,6 @@ jobs:
         run: |
           npm run prepare:assets
           npm run build:web
-          PATCH_TAG="ota-${GITHUB_RUN_NUMBER}"
-          sed -i "s/__CL4NTB3ST_PATCH_VERSION__/${PATCH_TAG}/g" www/app.js
 
       - name: Validate synchronized web assets
         run: |
@@ -99,30 +97,6 @@ jobs:
           if (!theme || theme !== manifest.theme_color) throw new Error('HTML and manifest theme colors do not match.');
           console.log('Web asset versions, HTML IDs, and theme colors are consistent.');
           NODE
-
-      - name: Package remote web patch
-        run: |
-          cd www
-          zip -r ../clantb3st-web-bundle.zip .
-          cd ..
-          TAG="ota-${GITHUB_RUN_NUMBER}"
-          CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
-          cat > patch-manifest.json <<EOF
-          {
-            "version": "${TAG}",
-            "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/clantb3st-web-bundle.zip",
-            "nativeApi": 1,
-            "checksum": "${CHECKSUM}",
-            "notes": "Acceso separado, diseño oscuro y gris, y publicación de imágenes en el muro.",
-            "changes": [
-              "Diseño unificado en tonos oscuros y grises.",
-              "Adjuntar, previsualizar y publicar imágenes en el muro con almacenamiento privado.",
-              "Texto blanco y descripciones claras; campos grises con bordes neutros.",
-              "Iconos sencillos, sin neón ni animaciones exageradas.",
-              "Se sincronizan versiones de recursos y se elimina la caché anterior al activar el nuevo service worker."
-            ]
-          }
-          EOF
 
       - name: Create Android project
         run: npx cap add android
@@ -165,37 +139,16 @@ jobs:
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
 
-      - name: Publish remote web patch
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ota-${{ github.run_number }}
-          name: PARCHE OTA — MURO CON IMÁGENES
-          body: "Parche de CL4N TB3ST: acceso con correo y contraseña, interfaz oscura y gris, sincronización en la nube y mejoras del muro social."
-          files: |
-            clantb3st-web-bundle.zip
-            patch-manifest.json
-          make_latest: false
-          draft: false
-          prerelease: false
-
-      - name: Publish stable OTA manifest to branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add patch-manifest.json
-          git commit -m "Publish OTA manifest ota-${GITHUB_RUN_NUMBER} [skip ci]"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-
       - name: Create APK update manifest
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
-          TAG="apk-${GITHUB_RUN_NUMBER}"
+          TAG="apk-${GITHUB_RUN_ID}"
           CHECKSUM="$(sha256sum "$APK" | cut -d ' ' -f1)"
-          VERSION_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          VERSION_NAME="1.0.${GITHUB_RUN_ID}"
           cat > apk-manifest.json <<EOF
           {
             "packageId": "com.clantb3st.app",
-            "versionCode": ${GITHUB_RUN_NUMBER},
+            "versionCode": ${GITHUB_RUN_ID},
             "versionName": "${VERSION_NAME}",
             "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-release.apk",
             "sha256": "${CHECKSUM}",
@@ -206,13 +159,12 @@ jobs:
       - name: Publish APK update release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: apk-${{ github.run_number }}
+          tag_name: apk-${{ github.run_id }}
           name: CL4N TB3ST ${{ github.run_number }}
           body: "Actualización instalable de CL4N TB3ST. Descárgala desde la aplicación."
           files: |
             android/app/build/outputs/apk/release/app-release.apk
             apk-manifest.json
-            patch-manifest.json
           make_latest: true
           draft: false
           prerelease: false
