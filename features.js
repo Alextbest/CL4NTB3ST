@@ -298,7 +298,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   }
 
   async function loadBadges() {
-    const catalogHost=$("#badge-catalog"), earnedHost=$("#badge-earned"), myBadgeHost=$("#badge-my-collection"), managerFilter=$("#badge-manager-member-filter");
+    const catalogHost=$("#badge-catalog"), earnedHost=$("#badge-earned"), myBadgeHost=$("#badge-my-collection"), managerFilter=$("#badge-manager-member-filter"), managerPanel=$("#badge-management-panel");
     if(!catalogHost || !earnedHost)return;
     const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData,error:managerError},{data:primaryLeader}] = await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,rarity,is_active").eq("is_active",true).order("name"),
@@ -308,6 +308,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     ]);
     primaryLeaderId="af0d8907-fc67-4290-bba6-eb0bc4c81126";
     canManageBadges = !managerError && managerData === true;
+    if(managerPanel)managerPanel.classList.toggle("hidden",!canManageBadges);
     const pointsFormAccess=$("#points-award-form");
     if(pointsFormAccess)pointsFormAccess.classList.toggle("hidden",!canManageClanAwards());
     if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
