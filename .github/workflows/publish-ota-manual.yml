@@ -1,0 +1,94 @@
+name: Publish OTA patch (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "Resumen del parche"
+        required: true
+        type: string
+        default: "Mejoras y correcciones de CL4N TB3ST."
+      changes:
+        description: "Cambios incluidos, uno por línea"
+        required: false
+        type: string
+        default: "Mejoras y correcciones de la aplicación."
+
+permissions:
+  contents: write
+
+jobs:
+  publish-ota:
+    if: github.ref == 'refs/heads/feature/android-apk-capacitor'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build web bundle
+        run: |
+          npm run prepare:assets
+          npm run build:web
+
+      - name: Package OTA bundle and manifest
+        env:
+          OTA_VERSION: ota-${{ github.run_id }}
+          OTA_NOTES: ${{ inputs.notes }}
+          OTA_CHANGES: ${{ inputs.changes }}
+        run: |
+          cd www
+          zip -r ../clantb3st-web-bundle.zip .
+          cd ..
+          CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
+          node --input-type=module <<'NODE'
+          import { writeFileSync } from 'node:fs';
+          const changes = (process.env.OTA_CHANGES || '')
+            .split(/\r?\n/)
+            .map(value => value.trim())
+            .filter(Boolean);
+          const manifest = {
+            version: process.env.OTA_VERSION,
+            url: `https://github.com/${process.env.GITHUB_REPOSITORY}/releases/download/${process.env.OTA_VERSION}/clantb3st-web-bundle.zip`,
+            nativeApi: 1,
+            checksum: process.env.CHECKSUM,
+            notes: process.env.OTA_NOTES,
+            changes
+          };
+          writeFileSync('patch-manifest.json', JSON.stringify(manifest, null, 2) + '\n');
+          NODE
+        env:
+          CHECKSUM: ${{ '' }}
+
+      - name: Publish OTA release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ota-${{ github.run_id }}
+          name: "Parche OTA CL4N TB3ST ${{ github.run_id }}"
+          body: ${{ inputs.notes }}
+          files: |
+            clantb3st-web-bundle.zip
+            patch-manifest.json
+          make_latest: false
+          draft: false
+          prerelease: false
+
+      - name: Update active OTA manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add patch-manifest.json
+          git commit -m "Publish manual OTA manifest ${{ github.run_id }} [skip ci]"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
