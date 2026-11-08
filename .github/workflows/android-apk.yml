@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/android-apk-capacitor
+      - main
   workflow_dispatch:
 
 concurrency:
