@@ -1,4 +1,4 @@
-import { badgeIconMarkup } from "./badge-icons.js";
+import { badgeIconMarkup } from "./badge-icons.js?v=1";
 function showRewardFeedback(title,message){
   const modal=document.querySelector("#reward-feedback-modal");
   if(!modal)return;
