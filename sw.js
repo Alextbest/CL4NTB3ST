@@ -5,7 +5,6 @@ const ASSETS = [
   "./styles.css?v=52",
   "./app.js?v=51",
   "./features.js?v=54",
-  "./badge-icons.js",
   "./supabaseClient.js",
   "./manifest.webmanifest",
   "./logo.png",
