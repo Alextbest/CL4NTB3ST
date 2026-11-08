@@ -4,7 +4,7 @@ const ASSETS = [
   "./index.html",
   "./styles.css?v=56",
   "./app.js?v=60",
-  "./features.js?v=59",
+  "./features.js?v=60",
   "./badge-icons.js?v=1",
   "./supabaseClient.js",
   "./manifest.webmanifest",
