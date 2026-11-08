@@ -178,7 +178,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           await supabase.storage.from("mission-evidence").remove([path]);
           throw error;
         }
-        status.textContent = "Evidencia enviada. Espera la revisión de un Líder o Decano.";
+        status.textContent = "Evidencia enviada. Espera la revisión de un Líder.";
         await loadMissions();
       } catch (err) { status.textContent = "No se pudo enviar: "+(err.message||"error"); button.disabled=false; }
     });
