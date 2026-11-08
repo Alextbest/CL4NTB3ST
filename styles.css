@@ -412,3 +412,15 @@ html, body, body * {
   user-select: none !important;
   -webkit-touch-callout: none !important;
 }
+
+/* Confirmación animada para cambios y canjes de recompensas */
+.reward-feedback-overlay{position:fixed;inset:0;z-index:10020;display:none;place-items:center;padding:22px;background:rgba(0,0,0,.78);backdrop-filter:blur(7px);opacity:0}
+.reward-feedback-overlay.is-open{display:grid;animation:reward-feedback-backdrop .2s ease-out forwards}
+.reward-feedback-card{width:min(100%,380px);padding:28px 22px;border:1px solid rgba(255,255,255,.18);border-radius:22px;background:linear-gradient(155deg,#202020,#101010);box-shadow:0 22px 70px rgba(0,0,0,.55);text-align:center;transform:translateY(18px) scale(.94);animation:reward-feedback-card .32s cubic-bezier(.2,.8,.2,1) forwards}
+.reward-feedback-mark{width:64px;height:64px;margin:0 auto 16px;display:grid;place-items:center;border-radius:50%;background:rgba(57,255,114,.13);border:1px solid rgba(57,255,114,.55);color:#39ff72;font-size:38px;font-weight:800;box-shadow:0 0 24px rgba(57,255,114,.18)}
+.reward-feedback-card h2{margin:0 0 10px;color:#fff;font-size:22px}
+.reward-feedback-card p{margin:0 0 22px;color:#c8c8c8;line-height:1.5}
+.reward-feedback-card .primary-btn{width:100%}
+@keyframes reward-feedback-backdrop{to{opacity:1}}
+@keyframes reward-feedback-card{to{transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.reward-feedback-overlay.is-open,.reward-feedback-card{animation:none!important;opacity:1;transform:none}}
