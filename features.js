@@ -12,9 +12,14 @@ const dateText = (v) => v ? new Date(v).toLocaleString("es-PA",{dateStyle:"mediu
 let featureUserId = null;
 let featureChannels = [];
 let featureContext = null;
+let featureRefreshAll = null;
 
 export function initClanFeatures(supabase, profile, role, FilePicker, isNativeApp = false) {
   featureContext = { supabase, profile, role };
+  if (featureRefreshAll) {
+    featureRefreshAll();
+    return;
+  }
   if (featureUserId !== profile.id) {
     featureChannels.forEach(ch => supabase.removeChannel(ch));
     featureChannels = [];
@@ -597,5 +602,6 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       supabase.channel("tb3st-redemptions-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_reward_redemptions"},loadRedemptionNotifications).subscribe()
     );
   }
+  featureRefreshAll = refreshAll;
   refreshAll();
 }
