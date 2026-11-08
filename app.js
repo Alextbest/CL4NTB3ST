@@ -467,6 +467,8 @@ if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refr
 
 let activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder";
+const isClanAdmin=()=>["Líder","Líder interina"].includes(role);
+const PRIMARY_LEADER_ID="af0d8907-fc67-4290-bba6-eb0bc4c81126";
 function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
@@ -972,10 +974,10 @@ if(avatarForm&&!avatarForm.dataset.bound){
 $("#member-list").onclick=async e=>{
   const actionButton=e.target.closest("[data-member-action]");
   if(actionButton){
-    if(!isLeader())return;
+    if(!isClanAdmin())return;
     const target=cloudMembers.find(m=>m.id===actionButton.dataset.memberId);
     const action=actionButton.dataset.memberAction;
-    if(!target||target.role==="Líder"||!["remove","ban","restore"].includes(action))return;
+    if(!target||target.id===PRIMARY_LEADER_ID||target.role==="Líder"||!["remove","ban","restore"].includes(action))return;
     const prompts={
       remove:"¿Expulsar a "+target.display_name+" del clan? Su cuenta seguirá existiendo, pero perderá el acceso a CL4NTB3ST.",
       ban:"¿VETAR a "+target.display_name+"? Se bloqueará su acceso al clan y también el inicio de sesión en esta aplicación.",
@@ -998,7 +1000,7 @@ $("#member-list").onclick=async e=>{
 };
 if(roleAssignForm)roleAssignForm.onsubmit=async e=>{
   e.preventDefault();
-  if(!isLeader()){roleAssignStatus.textContent="Solo los líderes pueden cambiar rangos.";return}
+  if(!isClanAdmin()){roleAssignStatus.textContent="Solo los líderes activos pueden cambiar rangos.";return}
   const identifier=$("#role-member-id").value.trim(),nextRole=$("#role-member-role").value,button=$("#role-assign-submit");
   if(!identifier){roleAssignStatus.textContent="Escribe el ID de la cuenta.";return}
   button.disabled=true;roleAssignStatus.textContent="Actualizando el rango en la nube…";
@@ -1139,12 +1141,12 @@ $("#activities-list").onclick=async e=>{
   }
  }catch(error){alert("No se pudo sincronizar el cambio: "+(error.message||"Error desconocido"))}
 };
-function render(){renderWeb();renderRules();const activeMembers=cloudMembers.filter(m=>(m.membership_status||"active")==="active").length;$("#member-count").textContent=activeMembers;$("#clan-member-count").textContent=activeMembers;$("#member-pill").textContent=activeMembers+" integrantes activos";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isLeader());$("#member-list").innerHTML=cloudMembers.map(m=>{
+function render(){renderWeb();renderRules();const activeMembers=cloudMembers.filter(m=>(m.membership_status||"active")==="active").length;$("#member-count").textContent=activeMembers;$("#clan-member-count").textContent=activeMembers;$("#member-pill").textContent=activeMembers+" integrantes activos";$("#activity-count").textContent=activities.length;const active=activities.reduce((n,a)=>n+Object.values(a.participants||{}).filter(Boolean).length,0);$("#attendance-count").textContent=cloudMembers.length?Math.round(active/cloudMembers.length*100)+"%":"0%";if(roleAssignForm)roleAssignForm.classList.toggle("hidden",!isClanAdmin());$("#member-list").innerHTML=cloudMembers.map(m=>{
  const status=m.membership_status||"active";
  const statusLabel=status==="banned"?"VETADO":status==="removed"?"EXPULSADO":"ACTIVO";
  const statusClass=status==="banned"?"banned":status==="removed"?"removed":"active";
  let moderation="";
- if(isLeader()&&m.role!=="Líder"){
+ if(isClanAdmin()&&m.id!==PRIMARY_LEADER_ID&&m.role!=="Líder"){
   if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
   else moderation=`<button class="secondary-btn" data-member-action="restore" data-member-id="${esc(m.id)}" type="button">${status==="banned"?"Quitar veto":"Reintegrar"}</button>`;
  }
