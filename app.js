@@ -8,6 +8,11 @@ import { FilePicker } from "@capawesome/capacitor-file-picker";
 const ApkUpdater = registerPlugin("ApkUpdater");
 
 const isNativeApp = Capacitor.isNativePlatform();
+// Bloquea selección y copia de contenido dentro de CL4NTB3ST.
+for (const eventName of ["selectstart", "copy", "cut", "contextmenu", "dragstart"]) {
+  document.addEventListener(eventName, event => event.preventDefault(), { capture: true });
+}
+
 const authRedirectUrl = isNativeApp ? "com.clantb3st.app://auth-callback" : window.location.origin;
 let passwordRecoveryPending = false;
 
