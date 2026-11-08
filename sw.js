@@ -1,10 +1,10 @@
-const CACHE = "tb3st-v76";
+const CACHE = "tb3st-v77";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css?v=56",
-  "./app.js?v=55",
-  "./features.js?v=56",
+  "./app.js?v=56",
+  "./features.js?v=57",
   "./badge-icons.js?v=1",
   "./supabaseClient.js",
   "./manifest.webmanifest",

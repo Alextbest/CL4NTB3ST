@@ -258,12 +258,12 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   async function loadBadges() {
     const catalogHost=$("#badge-catalog"), earnedHost=$("#badge-earned");
     if(!catalogHost || !earnedHost)return;
-    const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData}] = await Promise.all([
+    const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData,error:managerError}] = await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,rarity,is_active").eq("is_active",true).order("name"),
       supabase.from("member_badges").select("id,user_id,note,awarded_at,profiles(display_name),clan_badges(slug,name,description,rarity)").order("awarded_at",{ascending:false}),
       supabase.rpc("is_clan_badge_manager")
     ]);
-    canManageBadges = managerData === true;
+    canManageBadges = !managerError && managerData === true;
     if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
     if(!eError){
       const next=new Map();
@@ -271,7 +271,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       memberBadgesByUser=next;
     }
     catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity||"common"}"><span class="badge-icon rarity-${b.rarity||"common"}">${badgeIconMarkup(b.slug,b.rarity,72)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
-    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges?`<button class="secondary-btn badge-revoke-btn" type="button" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
+    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar esta insignia" aria-label="Revocar insignia de ${esc(e.profiles?.display_name||"integrante")}" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
+    const managerNote=$("#badge-manager-note");
+    if(managerNote){managerNote.classList.toggle("hidden",!canManageBadges);managerNote.textContent=canManageBadges?"Tienes permisos exclusivos para otorgar y revocar insignias de cualquier integrante, incluida tu propia cuenta.":"";}
     earnedHost.onclick=async event=>{
       const revokeButton=event.target.closest("[data-revoke-badge]");
       if(!revokeButton||!canManageBadges)return;
