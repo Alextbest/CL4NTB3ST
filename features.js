@@ -569,6 +569,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       supabase.channel("tb3st-social-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"social_posts"},loadWall).subscribe(),
       supabase.channel("tb3st-gold-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_gold_ledger"},()=>{loadWallet();loadRedemptionNotifications()}).subscribe(),
+      supabase.channel("tb3st-points-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_point_ledger"},()=>{loadWallet();loadRanking()}).subscribe(),
       supabase.channel("tb3st-rewards-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_rewards"},loadRewards).subscribe(),
       supabase.channel("tb3st-redemptions-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_reward_redemptions"},loadRedemptionNotifications).subscribe()
     );
