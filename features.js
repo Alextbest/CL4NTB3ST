@@ -335,38 +335,39 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   if(socialImageInput)socialImageInput.onchange=()=>setPostImage(socialImageInput.files?.[0]);
   if(socialImageRemove)socialImageRemove.onclick=clearPostImage;
 
-  async function requestSocialMediaUrls(action,payload){
-    const {data,error}=await supabase.functions.invoke("social-media",{body:{action,...payload}});
-    if(error)throw error;
-    if(!data?.ok)throw new Error(data?.error||"No se pudo preparar el archivo.");
-    return data;
-  }
-
   if(postForm)postForm.onsubmit=async e=>{
     e.preventDefault();
     const button=postForm.querySelector('button[type="submit"]');
-    const content=postForm.elements.content.value.trim();
-    if(!content&&!selectedPostMedia){socialPostStatus.textContent="Escribe algo o adjunta una foto o vídeo.";return;}
-    button.disabled=true;socialPostStatus.textContent="Publicando…";
+    const content=postForm.elements.content?.value?.trim()||"";
+    if(!content&&!selectedPostMedia){if(socialPostStatus)socialPostStatus.textContent="Escribe algo o adjunta una foto o vídeo.";return;}
+    if(button)button.disabled=true;
+    if(socialPostStatus)socialPostStatus.textContent="Publicando…";
     let mediaPath=null;
     try{
       if(selectedPostMedia){
-        const {uploadUrl,path}=await requestSocialMediaUrls("create-upload",{
-          contentType:selectedPostMedia.type,size:selectedPostMedia.size
+        const extensions={"image/jpeg":"jpg","image/png":"png","image/webp":"webp","video/mp4":"mp4","video/webm":"webm","video/quicktime":"mov"};
+        const extension=extensions[selectedPostMedia.type];
+        if(!extension)throw new Error("El formato del archivo no es compatible.");
+        mediaPath=userId()+"/"+crypto.randomUUID()+"."+extension;
+        const {error:uploadError}=await supabase.storage.from("social-post-media").upload(mediaPath,selectedPostMedia,{
+          cacheControl:"3600",contentType:selectedPostMedia.type,upsert:false
         });
-        const upload=await fetch(uploadUrl,{method:"PUT",headers:{"Content-Type":selectedPostMedia.type},body:selectedPostMedia});
-        if(!upload.ok)throw new Error("Backblaze no aceptó el archivo ("+upload.status+").");
-        mediaPath=path;
+        if(uploadError)throw new Error("No se pudo subir el archivo: "+uploadError.message);
       }
       const {error}=await supabase.from("social_posts").insert({
         user_id:userId(),content,media_path:mediaPath
       });
-      if(error)throw error;
-      postForm.reset();clearPostImage();socialPostStatus.textContent="Publicación compartida con el clan.";
+      if(error){
+        if(mediaPath)await supabase.storage.from("social-post-media").remove([mediaPath]);
+        throw error;
+      }
+      postForm.reset();clearPostImage();
+      if(socialPostStatus)socialPostStatus.textContent="Publicación compartida con el clan.";
       await loadWall();
     }catch(error){
-      socialPostStatus.textContent="No se pudo publicar: "+(error.message||"Error desconocido");
-    }finally{button.disabled=false;}
+      if(socialPostStatus)socialPostStatus.textContent="No se pudo publicar: "+(error.message||"Error desconocido");
+      console.error("Error al publicar en el muro:",error);
+    }finally{if(button)button.disabled=false;}
   };
 
   async function loadWall(){
@@ -381,8 +382,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const signedUrls=new Map();
     if(mediaPaths.length){
       try{
-        const result=await requestSocialMediaUrls("create-downloads",{paths:mediaPaths});
-        (result.files||[]).forEach(item=>signedUrls.set(item.path,item.url));
+        const {data:files,error:signedError}=await supabase.storage.from("social-post-media").createSignedUrls(mediaPaths,3600);
+        if(signedError)throw signedError;
+        (files||[]).forEach(item=>{if(item.path&&item.signedUrl)signedUrls.set(item.path,item.signedUrl)});
       }catch(urlError){console.error("No se pudieron firmar medios del muro:",urlError)}
     }
     host.innerHTML=posts.map(post=>{
