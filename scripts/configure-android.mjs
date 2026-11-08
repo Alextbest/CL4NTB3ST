@@ -36,7 +36,7 @@ if (!activity.includes('registerPlugin(ApkUpdaterPlugin.class)')) {
   await writeFile(activityPath, activity);
 }
 
-const versionCode = Number(process.env.GITHUB_RUN_ID || process.env.GITHUB_RUN_NUMBER || 1);
+const versionCode = Number(process.env.ANDROID_VERSION_CODE || process.env.GITHUB_RUN_NUMBER || 1);
 if (!Number.isSafeInteger(versionCode) || versionCode < 1) throw new Error('Invalid Android versionCode.');
 const gradlePath = 'android/app/build.gradle';
 let gradle = await readFile(gradlePath, 'utf8');
