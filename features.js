@@ -629,21 +629,25 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if(error){host.innerHTML='<p class="muted">No se pudieron cargar las notificaciones: '+esc(error.message)+'</p>';return}
     const active=(data||[]).filter(r=>!r.deleted_at);
     const userIds=[...new Set(active.map(r=>r.user_id))], rewardIds=[...new Set(active.map(r=>r.reward_id))];
-    let profiles=[], rewards=[];
+    let profiles=[], rewards=[], contacts=[];
     if(userIds.length){
-      const result=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164").in("id",userIds);
+      const result=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id").in("id",userIds);
       if(result.error){host.innerHTML='<p class="muted">No se pudieron cargar los datos de los integrantes: '+esc(result.error.message)+'</p>';return}
       profiles=result.data||[];
+      const contactResult=await supabase.from("clan_member_contacts").select("user_id,phone_e164").in("user_id",userIds);
+      if(contactResult.error){host.innerHTML='<p class="muted">No se pudieron cargar los contactos autorizados: '+esc(contactResult.error.message)+'</p>';return}
+      contacts=contactResult.data||[];
     }
     if(rewardIds.length){
       const result=await supabase.from("clan_rewards").select("id,title").in("id",rewardIds);
       if(result.error){host.innerHTML='<p class="muted">No se pudieron cargar las recompensas: '+esc(result.error.message)+'</p>';return}
       rewards=result.data||[];
     }
-    const profileMap=new Map(profiles.map(p=>[p.id,p])), rewardMap=new Map(rewards.map(r=>[r.id,r]));
+    const profileMap=new Map(profiles.map(p=>[p.id,p])), rewardMap=new Map(rewards.map(r=>[r.id,r])), contactMap=new Map(contacts.map(c=>[c.user_id,c.phone_e164]));
     const rowsMarkup=active.map(r=>{
       const member=profileMap.get(r.user_id)||{}, reward=rewardMap.get(r.reward_id)||{};
-      return '<article class="feature-row"><div class="feature-row-main"><b>'+esc(member.display_name||"Integrante")+' canjeó '+esc(reward.title||"una recompensa")+'</b><small>Nick: '+esc(member.ff_nick||"—")+' · ID Free Fire: '+esc(member.ff_id||"—")+'</small><small>Teléfono: '+esc(member.phone_e164||"—")+'</small><small>'+dateText(r.created_at)+' · '+Number(r.gold_spent).toLocaleString("es-PA")+' oro descontado</small></div>'+(isNotificationOwner()?'<button class="danger-btn" type="button" data-delete-redemption="'+esc(r.id)+'">Borrar</button>':"")+'</article>';
+      const phone=contactMap.get(r.user_id);
+      return '<article class="feature-row"><div class="feature-row-main"><b>'+esc(member.display_name||"Integrante")+' canjeó '+esc(reward.title||"una recompensa")+'</b><small>Nick: '+esc(member.ff_nick||"—")+' · ID Free Fire: '+esc(member.ff_id||"—")+'</small>'+(phone?'<small>Teléfono: '+esc(phone)+'</small>':'')+'<small>'+dateText(r.created_at)+' · '+Number(r.gold_spent).toLocaleString("es-PA")+' oro descontado</small></div>'+(isNotificationOwner()?'<button class="danger-btn" type="button" data-delete-redemption="'+esc(r.id)+'">Borrar</button>':"")+'</article>';
     }).join("");
     host.innerHTML=(isNotificationOwner()&&active.length?'<div class="inline-actions notification-admin-actions"><button class="danger-btn" type="button" data-delete-all-redemptions>Borrar todas</button></div>':"")+(rowsMarkup||'<p class="muted">Todavía no hay notificaciones.</p>');
     if(!host.dataset.deleteHandlerBound){
@@ -675,6 +679,8 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     featureChannels.push(
       supabase.channel("tb3st-presence-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"member_presence"},loadPresence).subscribe(),
+      supabase.channel("tb3st-profiles-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"profiles"},()=>{loadBadges();loadPresence();loadMissions();loadRanking();loadWall();loadWallet();loadRewards();loadRedemptionNotifications()}).subscribe(),
       supabase.channel("tb3st-badges-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"member_badges"},()=>{
           loadBadges();
@@ -682,10 +688,18 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           loadRanking();
           loadWall();
         }).subscribe(),
+      supabase.channel("tb3st-badge-catalog-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"clan_badges"},()=>{loadBadges();loadPresence();loadRanking();loadWall()}).subscribe(),
       supabase.channel("tb3st-missions-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"mission_submissions"},loadMissions).subscribe(),
+      supabase.channel("tb3st-mission-catalog-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"clan_missions"},()=>{loadMissions();loadWallet()}).subscribe(),
       supabase.channel("tb3st-social-live")
         .on("postgres_changes",{event:"*",schema:"public",table:"social_posts"},loadWall).subscribe(),
+      supabase.channel("tb3st-social-comments-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"social_comments"},loadWall).subscribe(),
+      supabase.channel("tb3st-social-reactions-live")
+        .on("postgres_changes",{event:"*",schema:"public",table:"social_reactions"},loadWall).subscribe(),
       supabase.channel("tb3st-gold-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_gold_ledger"},()=>{loadWallet();loadRedemptionNotifications()}).subscribe(),
       supabase.channel("tb3st-points-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_point_ledger"},()=>{loadWallet();loadRanking()}).subscribe(),
       supabase.channel("tb3st-rewards-live").on("postgres_changes",{event:"*",schema:"public",table:"clan_rewards"},loadRewards).subscribe(),
@@ -695,3 +709,12 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   featureRefreshAll = refreshAll;
   refreshAll();
 }
+
+window.stopClanFeatureRealtime = () => {
+  const client = featureContext?.supabase;
+  if (client) featureChannels.forEach(channel => client.removeChannel(channel));
+  featureChannels = [];
+  featureUserId = null;
+  featureContext = null;
+  featureRefreshAll = null;
+};
