@@ -787,6 +787,7 @@ function hideAvatarProgress(){
  const modal=$("#avatar-upload-progress");
  if(modal)modal.classList.add("hidden");
 }
+let pendingAvatarBase64=null;
 function showAvatarResult(title,message,success){
  let modal=$("#avatar-result-modal");
  if(!modal){
@@ -795,27 +796,113 @@ function showAvatarResult(title,message,success){
   modal.className="avatar-upload-progress hidden";
   modal.setAttribute("role","dialog");
   modal.setAttribute("aria-modal","true");
-  modal.innerHTML='<div class="avatar-upload-progress-card"><b id="avatar-result-title"></b><p id="avatar-result-message"></p><button id="avatar-result-close" class="primary-btn" type="button">Aceptar</button></div>';
   document.body.appendChild(modal);
-  $("#avatar-result-close").onclick=()=>modal.classList.add("hidden");
  }
+ modal.innerHTML='<div class="avatar-upload-progress-card"><b id="avatar-result-title"></b><p id="avatar-result-message"></p><button id="avatar-result-close" class="primary-btn" type="button">Aceptar</button></div>';
  $("#avatar-result-title").textContent=title;
  $("#avatar-result-message").textContent=message;
  $("#avatar-result-close").textContent=success?"Aceptar":"Entendido";
+ $("#avatar-result-close").onclick=()=>modal.classList.add("hidden");
  modal.classList.remove("hidden");
+}
+function showAvatarDecision(title,message,imageSrc,buttons){
+ let modal=$("#avatar-result-modal");
+ if(!modal){
+  modal=document.createElement("section");
+  modal.id="avatar-result-modal";
+  modal.className="avatar-upload-progress hidden";
+  modal.setAttribute("role","dialog");
+  modal.setAttribute("aria-modal","true");
+  document.body.appendChild(modal);
+ }
+ modal.innerHTML='<div class="avatar-upload-progress-card avatar-decision-card"><b id="avatar-result-title"></b><p id="avatar-result-message"></p><img id="avatar-result-preview" alt="Vista previa de la foto de perfil" class="avatar-result-preview"><div class="avatar-result-actions" id="avatar-result-actions"></div></div>';
+ $("#avatar-result-title").textContent=title;
+ $("#avatar-result-message").textContent=message;
+ const preview=$("#avatar-result-preview");
+ preview.src=imageSrc||"";
+ preview.style.display=imageSrc?"block":"none";
+ const actions=$("#avatar-result-actions");
+ buttons.forEach(item=>{
+  const button=document.createElement("button");
+  button.type="button";
+  button.className=item.primary?"primary-btn":"secondary-btn";
+  button.textContent=item.label;
+  button.onclick=item.onClick;
+  actions.appendChild(button);
+ });
+ modal.classList.remove("hidden");
+}
+function clearPendingAvatar(){
+ pendingAvatarBase64=null;
+ const input=avatarForm?.elements.avatar;
+ if(input)input.value="";
+}
+async function invokeAvatarModeration(action,imageBase64){
+ const {data,error}=await supabase.functions.invoke("moderate-profile-avatar",{body:{action,imageBase64}});
+ if(error){
+  let message=error.message||"No se pudo analizar la imagen.";
+  try{const body=await error.context?.json?.();if(body?.error)message=body.error;}catch{}
+  const failure=new Error(message);
+  failure.code=/contenido explícito detectado/i.test(message)?"explicit_content":"moderation_error";
+  throw failure;
+ }
+ if(!data?.ok)throw new Error(data?.error||"No se pudo verificar la imagen.");
+ return data;
+}
+async function applyPendingAvatar(){
+ if(!pendingAvatarBase64||avatarUploadInFlight)return;
+ const button=avatarForm.querySelector('button[type="submit"]');
+ const status=$("#profile-avatar-status");
+ const base64=pendingAvatarBase64;
+ const modal=$("#avatar-result-modal");
+ if(modal)modal.classList.add("hidden");
+ avatarUploadInFlight=true;
+ button.disabled=true;
+ button.textContent="Aplicando foto…";
+ status.textContent="Guardando la foto aprobada…";
+ setAvatarProgress("Aplicando tu foto","El servidor está verificando nuevamente la imagen y guardándola en tu perfil.");
+ avatarSlowTimer=setTimeout(()=>{
+  status.textContent="El servidor está tardando más de lo habitual. Espera la confirmación antes de volver a intentarlo.";
+  $("#avatar-upload-detail").textContent="La operación sigue en curso. No vuelvas a enviar la foto.";
+ },45000);
+ try{
+  await invokeAvatarModeration("apply",base64);
+  status.textContent="Actualizando la lista de integrantes…";
+  setAvatarProgress("Actualizando tu perfil","La foto fue guardada. Confirmando que ya aparece en Integrantes.");
+  await loadCloudMembers();
+  const updated=cloudMembers.find(member=>member.id===currentProfile?.id);
+  if(!updated?.avatarUrl)throw new Error("La foto se guardó, pero no pudimos confirmarla en la lista. Recarga Integrantes antes de volver a intentarlo.");
+  clearPendingAvatar();
+  hideAvatarProgress();
+  showAvatarResult("¡Foto aplicada!","Tu nueva foto ya está visible en Integrantes.",true);
+ }catch(error){
+  hideAvatarProgress();
+  const message=error?.message||"No se pudo aplicar la foto. Tu imagen anterior se mantiene.";
+  status.textContent=message;
+  showAvatarResult("No se pudo aplicar la foto",message+" Si el servidor tardó, espera a que termine de sincronizar antes de intentarlo otra vez.",false);
+ }finally{
+  if(avatarSlowTimer)clearTimeout(avatarSlowTimer);
+  avatarSlowTimer=null;
+  avatarUploadInFlight=false;
+  button.disabled=false;
+  button.textContent="Analizar imagen";
+ }
 }
 if(avatarForm&&!avatarForm.dataset.bound){
  avatarForm.dataset.bound="1";
  avatarForm.addEventListener("submit",async event=>{
   event.preventDefault();
   if(avatarUploadInFlight)return;
-  const input=avatarForm.elements.avatar,button=avatarForm.querySelector('button[type="submit"]'),status=$("#profile-avatar-status"),file=input.files&&input.files[0];
+  const input=avatarForm.elements.avatar;
+  const button=avatarForm.querySelector('button[type="submit"]');
+  const status=$("#profile-avatar-status");
+  const file=input.files&&input.files[0];
   if(!file){status.textContent="Selecciona una imagen.";return;}
   if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){status.textContent="Usa JPG, PNG o WEBP de máximo 5 MB.";return;}
   avatarUploadInFlight=true;
   button.disabled=true;
-  button.textContent="Procesando foto…";
-  status.textContent="Preparando imagen…";
+  button.textContent="Analizando…";
+  status.textContent="Preparando imagen para el filtro…";
   setAvatarProgress("Preparando tu foto","Optimizando la imagen antes de analizarla.");
   let bitmap=null;
   try{
@@ -836,41 +923,39 @@ if(avatarForm&&!avatarForm.dataset.bound){
     reader.onerror=()=>reject(new Error("No se pudo leer la imagen procesada."));
     reader.readAsDataURL(clean);
    });
-   status.textContent="Analizando y aplicando la foto…";
-   setAvatarProgress("Analizando tu foto","El filtro está comprobando el contenido y, si cumple las reglas, guardará la imagen.");
+   status.textContent="Analizando contenido…";
+   setAvatarProgress("Analizando tu foto","El filtro está comprobando que la imagen cumpla las reglas del clan. Todavía no se publicará.");
    avatarSlowTimer=setTimeout(()=>{
-    status.textContent="El servidor está tardando más de lo habitual. No vuelvas a enviar la foto; esperamos la confirmación.";
-    $("#avatar-upload-detail").textContent="La operación sigue en curso. Esperando respuesta segura del servidor…";
+    status.textContent="El servidor está tardando más de lo habitual. Espera la respuesta antes de volver a intentarlo.";
+    $("#avatar-upload-detail").textContent="El análisis sigue en curso. Tu foto todavía no se ha publicado.";
    },45000);
-   const request=supabase.functions.invoke("moderate-profile-avatar",{body:{imageBase64:base64}});
-   const {data,error}=await request;
-   if(error){
-    let message=error.message||"No se pudo analizar la imagen.";
-    try{const body=await error.context?.json?.();if(body?.error)message=body.error;}catch{}
-    throw new Error(message);
-   }
-   if(!data?.ok)throw new Error(data?.error||"No se pudo verificar la imagen. No se guardó.");
-   status.textContent="Confirmando la actualización…";
-   setAvatarProgress("Confirmando tu identidad","El servidor aceptó la foto. Actualizando la lista de integrantes.");
-   await loadCloudMembers();
-   const updated=cloudMembers.find(member=>member.id===currentProfile?.id);
-   if(!updated?.avatarUrl)throw new Error("El servidor respondió, pero no pudimos confirmar la foto en la lista. Vuelve a cargar Integrantes antes de intentarlo otra vez.");
-   input.value="";
-   status.textContent="Foto de perfil actualizada correctamente.";
+   await invokeAvatarModeration("scan",base64);
+   pendingAvatarBase64=base64;
    hideAvatarProgress();
-   showAvatarResult("¡Identidad actualizada!","Tu nueva foto ya está visible en Integrantes.",true);
+   status.textContent="La foto pasó el filtro. Revisa la vista previa y decide si quieres aplicarla.";
+   showAvatarDecision("¡Tu foto pasó el filtro!","La imagen cumple las reglas de contenido. Revísala; todavía no se ha publicado.",base64,[
+    {label:"Aplicar foto",primary:true,onClick:applyPendingAvatar},
+    {label:"Cancelar",primary:false,onClick:()=>{const modal=$("#avatar-result-modal");if(modal)modal.classList.add("hidden");clearPendingAvatar();status.textContent="Operación cancelada. No se cambió tu foto de perfil.";}}
+   ]);
   }catch(error){
    hideAvatarProgress();
-   const message=error?.message||"No se pudo actualizar la foto. La imagen anterior se mantiene.";
+   const message=error?.message||"No se pudo analizar la imagen. No se publicó.";
    status.textContent=message;
-   showAvatarResult("No se pudo actualizar la foto",message+" Si el servidor tardó, espera a que termine de sincronizar antes de volver a intentarlo.",false);
+   if(error?.code==="explicit_content"||/contenido explícito detectado/i.test(message)){
+    showAvatarDecision("Contenido explícito detectado","Actualiza tu imagen. Esta foto fue rechazada y no se ha publicado.",null,[
+     {label:"Cambiar imagen",primary:true,onClick:()=>{const modal=$("#avatar-result-modal");if(modal)modal.classList.add("hidden");clearPendingAvatar();input.click();}},
+     {label:"Cancelar",primary:false,onClick:()=>{const modal=$("#avatar-result-modal");if(modal)modal.classList.add("hidden");clearPendingAvatar();status.textContent="Operación cancelada. No se cambió tu foto de perfil.";}}
+    ]);
+   }else{
+    showAvatarResult("No se pudo analizar la foto",message+" No se publicó ninguna imagen.",false);
+   }
   }finally{
    if(bitmap)bitmap.close();
    if(avatarSlowTimer)clearTimeout(avatarSlowTimer);
    avatarSlowTimer=null;
    avatarUploadInFlight=false;
    button.disabled=false;
-   button.textContent="Analizar y subir foto";
+   button.textContent="Analizar imagen";
   }
  });
 }
