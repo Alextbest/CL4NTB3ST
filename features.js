@@ -31,6 +31,8 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const userId = () => featureContext.profile.id;
   let memberBadgesByUser = new Map();
   let canManageBadges = false;
+  let primaryLeaderId = null;
+  const canManageClanAwards = () => isLeader() || canManageBadges;
   async function loadMemberBadgeMap(){
     const {data,error}=await supabase.from("member_badges").select("user_id,clan_badges(slug,name,rarity)");
     if(error)throw error;
@@ -271,9 +273,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       memberBadgesByUser=next;
     }
     catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity||"common"}"><span class="badge-icon rarity-${b.rarity||"common"}">${badgeIconMarkup(b.slug,b.rarity,72)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
-    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar esta insignia" aria-label="Revocar insignia de ${esc(e.profiles?.display_name||"integrante")}" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
+    earnedHost.innerHTML=(earned||[]).map(e=>`<article class="feature-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges&&(featureContext.role!=="Líder interina"||e.user_id!==primaryLeaderId)?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar esta insignia" aria-label="Revocar insignia de ${esc(e.profiles?.display_name||"integrante")}" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
     const managerNote=$("#badge-manager-note");
-    if(managerNote){managerNote.classList.toggle("hidden",!canManageBadges);managerNote.textContent=canManageBadges?"Tienes permisos exclusivos para otorgar y revocar insignias de cualquier integrante, incluida tu propia cuenta.":"";}
+    if(managerNote){managerNote.classList.toggle("hidden",!canManageBadges);managerNote.textContent=canManageBadges?"Puedes otorgar y revocar insignias de los integrantes. La cuenta del líder principal está protegida.":"";}
     earnedHost.onclick=async event=>{
       const revokeButton=event.target.closest("[data-revoke-badge]");
       if(!revokeButton||!canManageBadges)return;
@@ -288,8 +290,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if(badgeSelect) badgeSelect.innerHTML=(badges||[]).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
     const memberSelect=$("#badge-award-form select[name=user_id]");
     if(memberSelect){
-      const {data:members}=await supabase.from("profiles").select("id,display_name").order("display_name");
-      memberSelect.innerHTML=(members||[]).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+      const {data:members}=await supabase.from("profiles").select("id,display_name,role").order("display_name");
+      primaryLeaderId=(members||[]).find(m=>m.role==="Líder")?.id||null;
+      memberSelect.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!==primaryLeaderId).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     }
     $("#badge-award-form")?.classList.toggle("hidden",!canManageBadges);
   }
@@ -308,13 +311,13 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
 
   const pointsForm=$("#points-award-form");
   if(pointsForm){
-    pointsForm.classList.toggle("hidden",!isLeader());
+    pointsForm.classList.toggle("hidden",!canManageClanAwards());
     supabase.from("profiles").select("id,display_name").order("display_name").then(({data:members,error})=>{
       if(error){$("#points-award-status").textContent="No se pudo cargar la lista de integrantes: "+error.message;return;}
-      pointsForm.elements.user_id.innerHTML=(members||[]).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+      pointsForm.elements.user_id.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!==primaryLeaderId).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     });
     pointsForm.onsubmit=async e=>{
-      e.preventDefault();if(!isLeader())return;
+      e.preventDefault();if(!canManageClanAwards())return;
       const button=pointsForm.querySelector('button[type="submit"]');button.disabled=true;
       $("#points-award-status").textContent="Registrando puntos…";
       const {error}=await supabase.rpc("record_clan_points",{
@@ -474,13 +477,13 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if(transferSelect&&!isLeader()){const {data:members}=await supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").in("role",["Miembro","Decano"]).neq("id",userId()).order("display_name");transferSelect.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");}
     const select=$("#gold-award-form select[name=user_id]");
     if(isLeader()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");const missionSelect=$("#gold-award-form select[name=mission_id]");const {data:missions}=await supabase.from("clan_missions").select("id,title,gold_reward").eq("is_active",true).eq("reward_type","gold").order("created_at",{ascending:false});if(missionSelect)missionSelect.innerHTML='<option value="">Otorgamiento manual</option>'+(missions||[]).map(m=>'<option value="'+m.id+'" data-gold="'+m.gold_reward+'" data-title="'+esc(m.title)+'">'+esc(m.title)+' · '+Number(m.gold_reward).toLocaleString("es-PA")+' oro</option>').join("")}
-    $("#gold-award-form")?.classList.toggle("hidden",!isLeader());
+    $("#gold-award-form")?.classList.toggle("hidden",!canManageClanAwards());
   }
   const goldAwardForm=$("#gold-award-form");
   const goldMissionSelect=goldAwardForm?.elements.mission_id;
   if(goldMissionSelect)goldMissionSelect.addEventListener("change",()=>{const option=goldMissionSelect.selectedOptions[0];if(!option?.value)return;goldAwardForm.elements.amount.value=option.dataset.gold||0;goldAwardForm.elements.reason.value="Recompensa por misión: "+(option.dataset.title||"");goldAwardForm.elements.source_type.value="mission"});
   if(goldAwardForm)goldAwardForm.onsubmit=async e=>{
-    e.preventDefault();if(!isLeader())return;
+    e.preventDefault();if(!canManageClanAwards())return;
     const button=goldAwardForm.querySelector('button[type="submit"]');button.disabled=true;
     $("#gold-award-status").textContent="Registrando oro…";
     const {error}=await supabase.rpc("grant_clan_gold",{p_user_id:goldAwardForm.elements.user_id.value,p_amount:Number(goldAwardForm.elements.amount.value),p_reason:goldAwardForm.elements.reason.value.trim(),p_source_type:goldAwardForm.elements.source_type.value,p_source_id:goldAwardForm.elements.mission_id.value||null});
@@ -611,7 +614,8 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   }
 
   const refreshAll = async () => {
-    await Promise.all([loadPresence(),loadMissions(),loadRanking(),loadBadges(),loadWall(),loadWallet(),loadRewards(),loadRedemptionNotifications()]);
+    await loadBadges();
+    await Promise.all([loadPresence(),loadMissions(),loadRanking(),loadWall(),loadWallet(),loadRewards(),loadRedemptionNotifications()]);
   };
   if (featureChannels.length === 0) {
     featureChannels.push(
