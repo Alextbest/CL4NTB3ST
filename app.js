@@ -51,12 +51,14 @@ const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"']/g,c=
 const authGate=$("#auth-gate"), appRoot=$("#app"), sessionMessage=$("#session-message"), accessStep=$("#access-step"), authForm=$("#auth-form"), profileForm=$("#profile-form"), profileSubmit=$("#profile-submit"), passwordRecoveryStep=$("#password-recovery-step"), passwordRecoveryForm=$("#password-recovery-form");
 const authTitle=$("#auth-title"), authDescription=$("#auth-description"), authSubmit=$("#auth-submit"), authToggle=$("#auth-mode-toggle"), authForgot=$("#auth-forgot"), signOutButton=$("#app-signout");
 let currentProfile=null, role="Miembro", authMode="signin", authBusy=false;
-function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden")}
+let clanIntroTimer=null;
+function hideLoadingScreen(){const screen=$("#loading-screen");if(screen)screen.classList.add("is-hidden");if(clanIntroTimer){clearTimeout(clanIntroTimer);clanIntroTimer=null}}
+function showClanIntro(){const screen=$("#loading-screen");if(!screen)return;clearTimeout(clanIntroTimer);screen.classList.remove("is-hidden");screen.classList.remove("intro-replay");void screen.offsetWidth;screen.classList.add("intro-replay");clanIntroTimer=setTimeout(()=>{screen.classList.add("is-hidden");clanIntroTimer=null},5000)}
 function animateUiEntrance(element){if(!element)return;element.classList.remove("ui-entering");void element.offsetWidth;element.classList.add("ui-entering");element.addEventListener("animationend",()=>element.classList.remove("ui-entering"),{once:true});setTimeout(()=>element.classList.remove("ui-entering"),360)}
-function showAccess(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.add("hidden");animateUiEntrance(authGate)}
-function showRegistration(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden");passwordRecoveryStep.classList.add("hidden");animateUiEntrance(profileForm)}
+function showAccess(){hideLoadingScreen();document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.remove("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.add("hidden");animateUiEntrance(authGate)}
+function showRegistration(){hideLoadingScreen();document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.remove("hidden");passwordRecoveryStep.classList.add("hidden");animateUiEntrance(profileForm)}
 function showPasswordRecovery(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.remove("hidden");hideLoadingScreen();sessionMessage.textContent="Escribe y confirma tu nueva contraseña para CL4NTB3ST.";animateUiEntrance(passwordRecoveryStep)}
-function showApp(profile,session){document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");animateUiEntrance(appRoot);$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus();subscribeClanPresence()}
+function showApp(profile,session){showClanIntro();document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");animateUiEntrance(appRoot);$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus();subscribeClanPresence()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data&&data.membership_status!=="active"){currentProfile=null;role="Miembro";showAccess();sessionMessage.textContent=data.membership_status==="banned"?"Tu cuenta está vetada y no puede acceder a CL4NTB3ST. Contacta al líder si necesitas solicitar una revisión.":"Tu acceso al clan fue retirado. Contacta al líder si necesitas solicitar tu reincorporación.";await supabase.auth.signOut();return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){if(passwordRecoveryPending){showPasswordRecovery();return}const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function passwordChecks(value){return {length:value.length>=8,lower:/[a-z]/.test(value),upper:/[A-Z]/.test(value),number:/[0-9]/.test(value),symbol:/[^A-Za-z0-9\s]/.test(value)}}
@@ -433,7 +435,6 @@ async function startApplication() {
     }
   }
   await restoreSession();
-  hideLoadingScreen();
   if (isNativeApp) await checkForApkUpdate();
 }
 startApplication();
@@ -443,7 +444,7 @@ async function refreshSignedInProfile(){
   if(session)await loadProfile(session);
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshSignedInProfile()});
-if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refreshSignedInProfile();if(currentProfile)initLobbyMusic()}else stopLobbyMusic()});
+if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){if(currentProfile)showClanIntro();refreshSignedInProfile();if(currentProfile)initLobbyMusic()}else stopLobbyMusic()});
 
 let activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder";
