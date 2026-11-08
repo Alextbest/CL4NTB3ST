@@ -1,4 +1,5 @@
 import { supabase } from "./supabaseClient.js";
+import { badgeIconMarkup } from "./badge-icons.js";
 import { initClanFeatures } from "./features.js?v=55";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
@@ -740,12 +741,12 @@ let memberBadgesByUser=new Map();
 function memberBadgeMarkup(userId){
  const badges=memberBadgesByUser.get(userId)||[];
  if(!badges.length)return "";
- return '<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge rarity-'+esc(b.rarity||"common")+'" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+esc(b.icon||"🏅")+'</span>').join("")+'</span>';
+ return '<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge rarity-'+esc(b.rarity||"common")+'" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+badgeIconMarkup(b.slug,b.rarity,28)+'</span>').join("")+'</span>';
 }
 async function loadCloudMembers(){
   const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
    supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,created_at,avatar_path,avatar_status").order("created_at",{ascending:true}),
-   supabase.from("member_badges").select("user_id,clan_badges(name,icon,rarity)")
+   supabase.from("member_badges").select("user_id,clan_badges(slug,name,rarity)")
   ]);
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
   if(!badgeError){
