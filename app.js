@@ -909,7 +909,6 @@ function render(){renderWeb();renderRules();const activeMembers=cloudMembers.fil
  const status=m.membership_status||"active";
  const statusLabel=status==="banned"?"VETADO":status==="removed"?"EXPULSADO":"ACTIVO";
  const statusClass=status==="banned"?"banned":status==="removed"?"removed":"active";
- const edit=canManageMembers()&&m.role==="Miembro"?`<button class="secondary-btn" data-edit-profile="${esc(m.id)}" type="button">Editar</button>`:"";
  let moderation="";
  if(isLeader()&&m.role!=="Líder"){
   if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
