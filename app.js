@@ -438,10 +438,28 @@ async function startApplication() {
   if (isNativeApp) await checkForApkUpdate();
 }
 startApplication();
+let profileRefreshInFlight=false;
 async function refreshSignedInProfile(){
-  if(document.hidden)return;
-  const {data:{session}}=await supabase.auth.getSession();
-  if(session)await loadProfile(session);
+  if(document.hidden||profileRefreshInFlight)return;
+  profileRefreshInFlight=true;
+  try{
+    const {data:{session},error:sessionError}=await supabase.auth.getSession();
+    if(sessionError||!session)return;
+    if(currentProfile?.id===session.user.id){
+      const {data,error}=await supabase.from("profiles")
+        .select("id,display_name,ff_nick,ff_id,role,membership_status")
+        .eq("id",session.user.id).maybeSingle();
+      if(error||!data)return;
+      if(data.membership_status!=="active"){await loadProfile(session);return}
+      const previousRole=role;
+      currentProfile=data;
+      role=data.role||"Miembro";
+      if(previousRole!==role)initClanFeatures(supabase,data,role,FilePicker,isNativeApp);
+      return;
+    }
+    await loadProfile(session);
+  }catch(error){console.warn("No se pudo actualizar el perfil al volver a la app:",error)}
+  finally{profileRefreshInFlight=false}
 }
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)refreshSignedInProfile()});
 if(isNativeApp)App.addListener("appStateChange",({isActive})=>{if(isActive){refreshSignedInProfile();if(currentProfile)initLobbyMusic()}else stopLobbyMusic()});
