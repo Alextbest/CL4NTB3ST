@@ -527,3 +527,17 @@ html, body, body * {
 .registration-result-overlay{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.82);backdrop-filter:blur(8px)}.registration-result-overlay.hidden{display:none}.registration-result-card{width:min(100%,420px);text-align:center;padding:28px 22px}.registration-result-icon{width:64px;height:64px;margin:0 auto 14px;border:2px solid currentColor;border-radius:50%;display:grid;place-items:center;font-size:38px;font-weight:800}.registration-result-card h2{margin:8px 0}.registration-result-card p{line-height:1.55;margin:12px 0 22px}.registration-result-card button{width:100%;min-height:48px}
 
 #registration-wait-actions{display:flex;gap:10px;margin-top:14px}#registration-wait-actions button{flex:1;min-height:46px}#registration-wait-actions.hidden{display:none}
+
+/* Herramientas de seguridad dentro del resumen de cuenta */
+.account-password-tools{display:grid;gap:10px;margin-top:10px}
+.account-password-tools>#password-change-toggle{justify-self:start;min-height:40px}
+.account-password-tools>#password-change-form{width:100%;margin:0;padding:14px}
+.account-password-tools #password-change-form h3{margin:0}
+.account-password-tools #password-change-form>p{margin:0;line-height:1.5}
+.account-password-tools #password-change-form input{width:100%;min-width:0}
+.account-password-tools .security-note{margin:2px 0;padding:11px}
+.account-password-tools .security-note ul{margin:8px 0 0;padding-left:20px;display:grid;gap:5px}
+.account-password-tools .security-note li{font-size:12px;color:var(--muted,#aaa)}
+.account-password-tools .security-note li.password-rule-met{color:#d7e6d8}
+.account-password-tools #account-password-submit{width:100%;min-height:44px}
+.account-password-tools #password-change-status{min-height:18px;margin:0;overflow-wrap:anywhere}
