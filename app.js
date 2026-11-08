@@ -86,6 +86,7 @@ function showRegistrationResult(kind){
     action.onclick=async()=>{
      closeRegistrationNotice();
      showAccess();
+     setAuthMode("signin");
      sessionMessage.textContent="Tu cuenta ya está creada y aprobada. Inicia sesión con tu correo y contraseña.";
     };
     modal.classList.remove("hidden");
@@ -97,6 +98,7 @@ function showRegistrationResult(kind){
    registrationWaitSession=null;
    await supabase.auth.signOut();
    showAccess();
+   setAuthMode("signin");
    sessionMessage.textContent="Tu registro fue desaprobado. Puedes contactar al líder principal para solicitar una revisión.";
   }
  };
