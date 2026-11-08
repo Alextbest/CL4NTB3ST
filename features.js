@@ -95,10 +95,22 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
 
   const missionForm = $("#mission-create-form");
   if (missionForm) {
-    missionForm.classList.toggle("hidden", !isLeader());
+    const syncMissionFormAccess = () => {
+      const allowed = isLeader();
+      missionForm.classList.toggle("hidden", !allowed);
+      missionForm.querySelectorAll("input, textarea, select, button").forEach(control => {
+        control.disabled = !allowed;
+      });
+    };
+    syncMissionFormAccess();
     missionForm.onsubmit = async e => {
       e.preventDefault();
-      if (!isLeader()) return;
+      if (!isLeader()) {
+        syncMissionFormAccess();
+        const status = $("#mission-create-status");
+        if (status) status.textContent = "Solo los líderes pueden publicar misiones.";
+        return;
+      }
       const button = missionForm.querySelector('button[type="submit"]');
       button.disabled = true;
       $("#mission-create-status").textContent = "Publicando misión…";
