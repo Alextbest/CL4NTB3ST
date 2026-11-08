@@ -45,13 +45,15 @@ jobs:
 
       - name: Package OTA bundle and manifest
         env:
-          OTA_VERSION: ota-${{ github.run_id }}
           OTA_NOTES: ${{ inputs.notes }}
           OTA_CHANGES: ${{ inputs.changes }}
         run: |
           cd www
           zip -r ../clantb3st-web-bundle.zip .
           cd ..
+          VERSION_CODE="$(( $(date -u +%s) / 86400 * 4096 + GITHUB_RUN_ID % 4096 ))"
+          export OTA_VERSION="ota-${VERSION_CODE}"
+          echo "OTA_VERSION=${OTA_VERSION}" >> "$GITHUB_ENV"
           export CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
           node --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
@@ -73,8 +75,8 @@ jobs:
       - name: Publish OTA release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ota-${{ github.run_id }}
-          name: "Parche OTA CL4N TB3ST ${{ github.run_id }}"
+          tag_name: ${{ env.OTA_VERSION }}
+          name: "Parche OTA CL4N TB3ST ${{ env.OTA_VERSION }}"
           body: ${{ inputs.notes }}
           files: |
             clantb3st-web-bundle.zip
@@ -88,5 +90,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add patch-manifest.json
-          git commit -m "Publish manual OTA manifest ${{ github.run_id }} [skip ci]"
+          git commit -m "Publish manual OTA manifest ${OTA_VERSION} [skip ci]"
           git push origin "HEAD:${GITHUB_REF_NAME}"
