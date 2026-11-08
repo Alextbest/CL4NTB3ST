@@ -73,6 +73,8 @@ function showRegistrationResult(kind){
    registrationWaitTimer=null;
    if(registrationWaitChannel){supabase.removeChannel(registrationWaitChannel);registrationWaitChannel=null}
    registrationWaitSession=null;
+   // Eliminar la sesión antes de mostrar la carga para impedir que una reapertura restaure el acceso automáticamente.
+   await supabase.auth.signOut();
    authGate.classList.add("hidden");appRoot.classList.add("hidden");
    showClanIntro();
    setTimeout(()=>{
@@ -83,7 +85,6 @@ function showRegistrationResult(kind){
     action.textContent="Aceptar";
     action.onclick=async()=>{
      closeRegistrationNotice();
-     await supabase.auth.signOut();
      showAccess();
      sessionMessage.textContent="Tu cuenta ya está creada y aprobada. Inicia sesión con tu correo y contraseña.";
     };
