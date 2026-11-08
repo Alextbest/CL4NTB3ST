@@ -2,9 +2,9 @@ const CACHE = "tb3st-v87";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=57",
-  "./app.js?v=62",
-  "./features.js?v=61",
+  "./styles.css?v=58",
+  "./app.js?v=65",
+  "./undefined",
   "./badge-icons.js?v=1",
   "./supabaseClient.js",
   "./manifest.webmanifest",
