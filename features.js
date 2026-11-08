@@ -1,3 +1,11 @@
+function showRewardFeedback(title,message){
+  const modal=document.querySelector("#reward-feedback-modal");
+  if(!modal)return;
+  modal.querySelector("[data-reward-feedback-title]").textContent=title;
+  modal.querySelector("[data-reward-feedback-message]").textContent=message;
+  modal.classList.add("is-open");
+  modal.setAttribute("aria-hidden","false");
+}
 const $ = (s) => document.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateText = (v) => v ? new Date(v).toLocaleString("es-PA",{dateStyle:"medium",timeStyle:"short"}) : "—";
@@ -475,7 +483,20 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
         if(error){alert("No se pudo abrir la recompensa: "+error.message);return;}
         card.innerHTML='<form class="reward-inline-edit form-grid"><label>Nombre del premio</label><input name="title" maxlength="80" required><label>Descripción</label><textarea name="description" rows="3" maxlength="1200"></textarea><label>Precio en oro</label><input name="gold_cost" type="number" min="1" max="1000000000" required><div class="inline-actions"><button class="primary-btn" type="submit">Confirmar cambios</button><button class="secondary-btn" type="button" data-cancel-reward>Cancelar</button></div><small class="footnote" data-edit-status></small></form>';
         const form=card.querySelector("form");form.elements.title.value=reward.title;form.elements.description.value=reward.description||"";form.elements.gold_cost.value=reward.gold_cost;
-        form.onsubmit=async ev=>{ev.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;const {error:updateError}=await supabase.from("clan_rewards").update({title:form.elements.title.value.trim(),description:form.elements.description.value.trim(),gold_cost:Number(form.elements.gold_cost.value),updated_at:new Date().toISOString()}).eq("id",id);if(updateError){form.querySelector("[data-edit-status]").textContent="No se pudo guardar: "+updateError.message;submit.disabled=false;}else await loadRewards();};
+        form.onsubmit=async ev=>{
+          ev.preventDefault();
+          const submit=form.querySelector('[type="submit"]');
+          submit.disabled=true;
+          const updated={title:form.elements.title.value.trim(),description:form.elements.description.value.trim(),gold_cost:Number(form.elements.gold_cost.value),updated_at:new Date().toISOString()};
+          const {error:updateError}=await supabase.from("clan_rewards").update(updated).eq("id",id);
+          if(updateError){
+            form.querySelector("[data-edit-status]").textContent="No se pudo guardar: "+updateError.message;
+            submit.disabled=false;
+            return;
+          }
+          await loadRewards();
+          showRewardFeedback("¡Recompensa actualizada!","Los cambios de «"+updated.title+"» se guardaron correctamente.");
+        };
         form.querySelector("[data-cancel-reward]").onclick=loadRewards;
         return;
       }
@@ -492,7 +513,14 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       if(error){const insufficient=(error.message||"").toLowerCase().includes("monedas insuficientes");$("#rewards-status").textContent=insufficient?"Monedas insuficientes. Necesitas más oro para canjear esta recompensa.":"No se pudo completar el canje: "+error.message;button.disabled=false;return}
       $("#rewards-status").textContent="Premio canjeado con éxito";
       await Promise.all([loadWallet(),loadRewards(),loadRedemptionNotifications()]);
+      showRewardFeedback("¡Canje realizado!","Tu recompensa quedó registrada. El aviso ya está disponible en Notificaciones.");
     });
+  }
+  const notificationsTab=$("#page-notifications");
+  const notificationsNav=document.querySelector('[data-page="notifications"]');
+  if(notificationsNav&&!notificationsNav.dataset.refreshBound){
+    notificationsNav.dataset.refreshBound="1";
+    notificationsNav.addEventListener("click",()=>{loadRedemptionNotifications();});
   }
   async function loadRedemptionNotifications(){
     const host=$("#redemption-notifications");if(!host)return;
