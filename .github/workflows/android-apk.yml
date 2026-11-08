@@ -1,17 +1,35 @@
-name: Build Android APK
+name: Build signed Android APK
 
 on:
   push:
-    branches: ["**"]
+    branches:
+      - feature/android-apk-capacitor
   workflow_dispatch:
 
+concurrency:
+  group: clantb3st-android-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
+    name: Build CL4N TB3ST signed APK
     runs-on: ubuntu-latest
     steps:
+      - name: Check signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64" || (echo "::error::Missing GitHub secret ANDROID_KEYSTORE_BASE64" && exit 1)
+          test -n "$ANDROID_KEYSTORE_PASSWORD" || (echo "::error::Missing GitHub secret ANDROID_KEYSTORE_PASSWORD" && exit 1)
+          test -n "$ANDROID_KEY_ALIAS" || (echo "::error::Missing GitHub secret ANDROID_KEY_ALIAS" && exit 1)
+          test -n "$ANDROID_KEY_PASSWORD" || (echo "::error::Missing GitHub secret ANDROID_KEY_PASSWORD" && exit 1)
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -24,25 +42,147 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
-      - name: Prepare web assets
-        run: npm run prepare:web
+      - name: Audit resolved dependency tree
+        run: |
+          npm audit --json > npm-audit-report.json || true
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const report = JSON.parse(readFileSync('npm-audit-report.json', 'utf8'));
+          console.log('Dependency audit summary:', JSON.stringify(report.metadata?.vulnerabilities ?? {}));
+          for (const [name, issue] of Object.entries(report.vulnerabilities ?? {})) {
+            console.log(JSON.stringify({ package: name, severity: issue.severity, direct: issue.isDirect, range: issue.range, fixAvailable: issue.fixAvailable, via: issue.via }));
+          }
+          NODE
 
-      - name: Generate Android project
+      - name: Prepare web and icon assets
+        run: |
+          npm run prepare:assets
+          npm run build:web
+
+      - name: Validate synchronized web assets
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const html = readFileSync('www/index.html', 'utf8');
+          const sw = readFileSync('www/sw.js', 'utf8');
+          const manifest = JSON.parse(readFileSync('www/manifest.webmanifest', 'utf8'));
+          const cssText = readFileSync('www/styles.css', 'utf8');
+          if (cssText.includes(String.raw`\n`)) throw new Error('CSS contains a literal escaped newline sequence.');
+          if ((cssText.match(/:root\s*\{/g) || []).length !== 1) throw new Error('Stylesheet must contain exactly one canonical theme variable block.');
+          if (!cssText.startsWith(':root{') || /#(?:f8d65c|ffd45e|c58aff|39204f|100b18)/i.test(cssText)) throw new Error('Legacy theme or invalid stylesheet start detected.');
+          const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+          const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
+          if (duplicates.length) throw new Error('Duplicate HTML IDs: ' + duplicates.join(', '));
+          const css = html.match(/href="(styles\.css\?v=\d+)"/)?.[1];
+          const app = html.match(/src="(app\.js\?v=\d+)"/)?.[1];
+          if (!css || !app || !sw.includes('./' + css) || !sw.includes('./' + app)) {
+            throw new Error('HTML and service-worker asset versions are out of sync.');
+          }
+          const theme = html.match(/name="theme-color" content="([^"]+)"/)?.[1];
+          if (!theme || theme !== manifest.theme_color) throw new Error('HTML and manifest theme colors do not match.');
+          console.log('Web asset versions, HTML IDs, and theme colors are consistent.');
+          NODE
+
+      - name: Create Android project
         run: npx cap add android
 
-      - name: Build debug APK
-        working-directory: android
-        run: ./gradlew --no-daemon assembleDebug
+      - name: Download Gradle distribution with retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          WRAPPER_PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
+          GRADLE_VERSION="$(sed -n 's#.*gradle-\([0-9][0-9.]*\)-all\.zip.*#\1#p' "$WRAPPER_PROPERTIES")"
+          test -n "$GRADLE_VERSION" || (echo "::error::Could not detect Gradle version from wrapper properties" && exit 1)
+          DIST_FILE="gradle-$GRADLE_VERSION-bin.zip"
+          DIST_URL="https://downloads.gradle.org/distributions/$DIST_FILE"
+          DIST_DIR="$RUNNER_TEMP/gradle-distribution"
+          mkdir -p "$DIST_DIR"
+          curl --fail --location --show-error \
+            --retry 8 --retry-all-errors --retry-delay 5 \
+            --connect-timeout 30 --max-time 900 \
+            "$DIST_URL" -o "$DIST_DIR/$DIST_FILE"
+          unzip -q "$DIST_DIR/$DIST_FILE" -d "$DIST_DIR"
+          test -x "$DIST_DIR/gradle-$GRADLE_VERSION/bin/gradle"
+          echo "$DIST_DIR/gradle-$GRADLE_VERSION/bin" >> "$GITHUB_PATH"
+          echo "Gradle $GRADLE_VERSION downloaded and added to PATH."
 
-      - name: Upload APK
+      - name: Set monotonic Android version code
+        run: |
+          VERSION_CODE="$(( $(date -u +%s) / 86400 * 4096 + GITHUB_RUN_ID % 4096 ))"
+          echo "ANDROID_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "Android version code: $VERSION_CODE"
+
+      - name: Generate native icon and splash resources
+        run: npx capacitor-assets generate --android
+
+      - name: Configure Android auth deep link
+        run: node scripts/configure-android.mjs
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Restore permanent signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/clantb3st-release.jks"
+          test -s "$RUNNER_TEMP/clantb3st-release.jks"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/clantb3st-release.jks" >> "$GITHUB_ENV"
+
+      - name: Configure permanent release signing
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: node scripts/configure-signing.mjs
+
+      - name: Build signed release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ env.ANDROID_KEYSTORE_PATH }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: cd android && gradle assembleRelease
+
+      - name: Verify APK signature
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+
+      - name: Upload signed APK
         uses: actions/upload-artifact@v4
         with:
-          name: CL4NTB3ST-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: CL4N-TB3ST-signed-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 90
+
+      - name: Commit generated dependency lockfile
+        run: |
+          if [ ! -f package-lock.json ]; then
+            echo "No package-lock.json was generated; skipping."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: lock npm dependencies [skip ci]"
+            git push origin "HEAD:$GITHUB_REF_NAME"
+          fi

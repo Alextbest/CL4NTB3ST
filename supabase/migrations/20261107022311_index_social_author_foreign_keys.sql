@@ -1,0 +1,1 @@
+-- Social author and post lookup indexes are consolidated in 20261107022005_clan_features_phase_one.sql.

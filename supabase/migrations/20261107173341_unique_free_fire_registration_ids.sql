@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_ff_id_unique_idx ON public.profiles(ff_id) WHERE ff_id IS NOT NULL;

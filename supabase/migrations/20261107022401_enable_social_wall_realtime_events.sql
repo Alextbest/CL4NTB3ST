@@ -1,0 +1,1 @@
+-- Social wall tables are added to supabase_realtime in 20261107022005_clan_features_phase_one.sql.

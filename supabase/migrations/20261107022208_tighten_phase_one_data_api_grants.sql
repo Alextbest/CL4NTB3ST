@@ -1,0 +1,1 @@
+-- Final least-privilege grants are consolidated in 20261107022005_clan_features_phase_one.sql and later profile hardening migrations.

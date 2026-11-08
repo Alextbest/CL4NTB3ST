@@ -1,0 +1,14 @@
+{
+  "version": "ota-372",
+  "url": "https://github.com/Alextbest/CL4NTB3ST/releases/download/ota-372/clantb3st-web-bundle.zip",
+  "nativeApi": 1,
+  "checksum": "34f0fed18058120bcc0ea83bc591d721fdf80b753cce961de5514343e2b843d2",
+  "notes": "Acceso separado, diseño oscuro y gris, y publicación de imágenes en el muro.",
+  "changes": [
+    "Diseño unificado en tonos oscuros y grises.",
+    "Adjuntar, previsualizar y publicar imágenes en el muro con almacenamiento privado.",
+    "Texto blanco y descripciones claras; campos grises con bordes neutros.",
+    "Iconos sencillos, sin neón ni animaciones exageradas.",
+    "Se sincronizan versiones de recursos y se elimina la caché anterior al activar el nuevo service worker."
+  ]
+}

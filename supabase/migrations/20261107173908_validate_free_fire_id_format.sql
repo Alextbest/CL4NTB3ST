@@ -1,0 +1,1 @@
+DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='profiles_ff_id_format_check' AND conrelid='public.profiles'::regclass) THEN ALTER TABLE public.profiles ADD CONSTRAINT profiles_ff_id_format_check CHECK(ff_id IS NULL OR ff_id ~ '^[0-9]{1,11}$'); END IF; END $$;

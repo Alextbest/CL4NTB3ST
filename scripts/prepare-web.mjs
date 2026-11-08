@@ -5,19 +5,16 @@ const root = process.cwd();
 const webDir = resolve(root, 'www');
 await mkdir(webDir, { recursive: true });
 
-const files = [
-  'index.html',
-  'app.js',
-  'styles.css',
-  'logo.png',
-  'manifest.webmanifest',
-  'sw.js',
-  'supabaseClient.js',
-  'icon.svg'
-];
-
-for (const file of files) {
+for (const file of ['index.html', 'app.js', 'styles.css', 'supabaseClient.js', 'manifest.webmanifest', 'sw.js']) {
   await copyFile(resolve(root, file), resolve(webDir, file));
 }
 
-console.log('Web assets copied to www/');
+await copyFile(resolve(root, 'assets/brand-logo.png'), resolve(webDir, 'logo.png'));
+await copyFile(resolve(root, 'assets/icon-192.png'), resolve(webDir, 'icon-192.png'));
+await copyFile(resolve(root, 'assets/icon-512.png'), resolve(webDir, 'icon-512.png'));
+
+const audioDir = resolve(webDir, 'audio');
+await mkdir(audioDir, { recursive: true });
+await copyFile(resolve(root, 'audio/06. Free Fire Lobby - World Series I.mp3'), resolve(audioDir, 'world-series-i.mp3'));
+
+console.log('Web assets copied to www/. Bundling app dependencies is handled by the build:web script.');

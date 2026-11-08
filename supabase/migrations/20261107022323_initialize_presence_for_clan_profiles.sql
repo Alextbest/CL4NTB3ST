@@ -1,0 +1,1 @@
+-- Presence table, initializer trigger and helper function are consolidated in 20261107022005_clan_features_phase_one.sql.
