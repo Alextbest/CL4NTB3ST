@@ -867,14 +867,23 @@ async function applyPendingAvatar(){
  },45000);
  try{
   await invokeAvatarModeration("apply",base64);
-  status.textContent="Actualizando la lista de integrantes…";
-  setAvatarProgress("Actualizando tu perfil","La foto fue guardada. Confirmando que ya aparece en Integrantes.");
-  await loadCloudMembers();
-  const updated=cloudMembers.find(member=>member.id===currentProfile?.id);
-  if(!updated?.avatarUrl)throw new Error("La foto se guardó, pero no pudimos confirmarla en la lista. Recarga Integrantes antes de volver a intentarlo.");
+  // Desde este punto la foto ya está guardada en el servidor. Un fallo al
+  // refrescar la lista no debe presentarse como si la subida hubiera fallado.
+  status.textContent="Foto guardada. Actualizando la lista de integrantes…";
+  setAvatarProgress("Foto guardada","Actualizando la lista de integrantes.");
+  let avatarVisible=false;
+  try{
+   await loadCloudMembers();
+   const updated=cloudMembers.find(member=>member.id===currentProfile?.id);
+   avatarVisible=Boolean(updated?.avatarUrl);
+  }catch(refreshError){
+   console.warn("La foto se guardó, pero no se pudo refrescar la lista:",refreshError);
+  }
   clearPendingAvatar();
   hideAvatarProgress();
-  showAvatarResult("¡Foto aplicada!","Tu nueva foto ya está visible en Integrantes.",true);
+  showAvatarResult("¡Foto aplicada!",avatarVisible
+   ?"Tu nueva foto ya está visible en Integrantes."
+   :"Tu foto quedó guardada. Si todavía no aparece en Integrantes, vuelve a abrir ese apartado o recarga la app.",true);
  }catch(error){
   hideAvatarProgress();
   const message=error?.message||"No se pudo aplicar la foto. Tu imagen anterior se mantiene.";
