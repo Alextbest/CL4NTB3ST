@@ -759,32 +759,119 @@ async function loadCloudMembers(){
 window.addEventListener("clan-badges-updated",()=>{loadCloudMembers()});
 const membersStatus=$("#members-status");
 const avatarForm=$("#profile-avatar-form");
+let avatarUploadInFlight=false;
+let avatarSlowTimer=null;
+function ensureAvatarProgress(){
+ let modal=$("#avatar-upload-progress");
+ if(modal)return modal;
+ modal=document.createElement("section");
+ modal.id="avatar-upload-progress";
+ modal.className="avatar-upload-progress hidden";
+ modal.setAttribute("role","status");
+ modal.setAttribute("aria-live","polite");
+ modal.innerHTML='<div class="avatar-upload-progress-card"><div class="avatar-upload-spinner" aria-hidden="true"></div><b id="avatar-upload-title">Procesando tu foto</b><p id="avatar-upload-detail">Preparando la imagen…</p><small>No cierres esta pantalla ni vuelvas a pulsar el botón.</small></div>';
+ document.body.appendChild(modal);
+ const style=document.createElement("style");
+ style.id="avatar-upload-progress-style";
+ style.textContent='#avatar-upload-progress{position:fixed;inset:0;z-index:10050;display:grid;place-items:center;padding:22px;background:rgba(0,0,0,.78);backdrop-filter:blur(8px)}#avatar-upload-progress.hidden{display:none}#avatar-upload-progress .avatar-upload-progress-card{width:min(100%,360px);padding:28px 22px;border:1px solid #484848;border-radius:18px;background:#171717;color:#fff;text-align:center;box-shadow:0 20px 70px #0009}#avatar-upload-progress b{display:block;font-size:18px;margin:14px 0 7px}#avatar-upload-progress p{margin:0 0 12px;color:#ddd}#avatar-upload-progress small{color:#aaa}.avatar-upload-spinner{width:42px;height:42px;margin:auto;border:4px solid #555;border-top-color:#fff;border-radius:50%;animation:avatar-spin .8s linear infinite}@keyframes avatar-spin{to{transform:rotate(360deg)}}';
+ document.head.appendChild(style);
+ return modal;
+}
+function setAvatarProgress(title,detail){
+ const modal=ensureAvatarProgress();
+ $("#avatar-upload-title").textContent=title;
+ $("#avatar-upload-detail").textContent=detail;
+ modal.classList.remove("hidden");
+}
+function hideAvatarProgress(){
+ const modal=$("#avatar-upload-progress");
+ if(modal)modal.classList.add("hidden");
+}
+function showAvatarResult(title,message,success){
+ let modal=$("#avatar-result-modal");
+ if(!modal){
+  modal=document.createElement("section");
+  modal.id="avatar-result-modal";
+  modal.className="avatar-upload-progress hidden";
+  modal.setAttribute("role","dialog");
+  modal.setAttribute("aria-modal","true");
+  modal.innerHTML='<div class="avatar-upload-progress-card"><b id="avatar-result-title"></b><p id="avatar-result-message"></p><button id="avatar-result-close" class="primary-btn" type="button">Aceptar</button></div>';
+  document.body.appendChild(modal);
+  $("#avatar-result-close").onclick=()=>modal.classList.add("hidden");
+ }
+ $("#avatar-result-title").textContent=title;
+ $("#avatar-result-message").textContent=message;
+ $("#avatar-result-close").textContent=success?"Aceptar":"Entendido";
+ modal.classList.remove("hidden");
+}
 if(avatarForm&&!avatarForm.dataset.bound){
  avatarForm.dataset.bound="1";
  avatarForm.addEventListener("submit",async event=>{
   event.preventDefault();
+  if(avatarUploadInFlight)return;
   const input=avatarForm.elements.avatar,button=avatarForm.querySelector('button[type="submit"]'),status=$("#profile-avatar-status"),file=input.files&&input.files[0];
   if(!file){status.textContent="Selecciona una imagen.";return;}
   if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){status.textContent="Usa JPG, PNG o WEBP de máximo 5 MB.";return;}
-  button.disabled=true;status.textContent="Preparando imagen…";
+  avatarUploadInFlight=true;
+  button.disabled=true;
+  button.textContent="Procesando foto…";
+  status.textContent="Preparando imagen…";
+  setAvatarProgress("Preparando tu foto","Optimizando la imagen antes de analizarla.");
+  let bitmap=null;
   try{
    if(typeof createImageBitmap!=="function")throw new Error("Este dispositivo no permite procesar la imagen.");
-   const bitmap=await createImageBitmap(file);
-   if(bitmap.width<128||bitmap.height<128||bitmap.width>6000||bitmap.height>6000){bitmap.close();throw new Error("La imagen debe medir entre 128 y 6000 píxeles por lado.");}
+   bitmap=await createImageBitmap(file);
+   if(bitmap.width<128||bitmap.height<128||bitmap.width>6000||bitmap.height>6000)throw new Error("La imagen debe medir entre 128 y 6000 píxeles por lado.");
    const canvas=document.createElement("canvas");canvas.width=512;canvas.height=512;
-   const ctx=canvas.getContext("2d",{alpha:false});if(!ctx){bitmap.close();throw new Error("No se pudo procesar la imagen.");}
+   const ctx=canvas.getContext("2d",{alpha:false});
+   if(!ctx)throw new Error("No se pudo procesar la imagen.");
    const scale=Math.max(512/bitmap.width,512/bitmap.height),width=bitmap.width*scale,height=bitmap.height*scale;
-   ctx.fillStyle="#111";ctx.fillRect(0,0,512,512);ctx.drawImage(bitmap,(512-width)/2,(512-height)/2,width,height);bitmap.close();
-   const clean=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.84));
-   if(!clean||clean.size>2*1024*1024)throw new Error("No se pudo comprimir la imagen al tamaño permitido.");
-   const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error("No se pudo leer la imagen procesada."));reader.readAsDataURL(clean);});
-   status.textContent="Analizando contenido…";
-   const {data,error}=await supabase.functions.invoke("moderate-profile-avatar",{body:{imageBase64:base64}});
-   if(error){let message=error.message||"No se pudo analizar la imagen.";try{const body=await error.context?.json?.();if(body?.error)message=body.error;}catch{}throw new Error(message);}
-   if(!data?.ok)throw new Error(data?.error||"No se pudo verificar la imagen.");
-   input.value="";status.textContent="Foto verificada y publicada en Integrantes.";await loadCloudMembers();
-  }catch(error){status.textContent=error.message||"No se pudo verificar la imagen. No se subió.";}
-  finally{button.disabled=false;}
+   ctx.fillStyle="#111";ctx.fillRect(0,0,512,512);ctx.drawImage(bitmap,(512-width)/2,(512-height)/2,width,height);
+   bitmap.close();bitmap=null;
+   const clean=await new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("No se pudo comprimir la imagen.")),"image/jpeg",0.84));
+   if(clean.size>2*1024*1024)throw new Error("No se pudo comprimir la imagen al tamaño permitido.");
+   const base64=await new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(reader.result);
+    reader.onerror=()=>reject(new Error("No se pudo leer la imagen procesada."));
+    reader.readAsDataURL(clean);
+   });
+   status.textContent="Analizando y aplicando la foto…";
+   setAvatarProgress("Analizando tu foto","El filtro está comprobando el contenido y, si cumple las reglas, guardará la imagen.");
+   avatarSlowTimer=setTimeout(()=>{
+    status.textContent="El servidor está tardando más de lo habitual. No vuelvas a enviar la foto; esperamos la confirmación.";
+    $("#avatar-upload-detail").textContent="La operación sigue en curso. Esperando respuesta segura del servidor…";
+   },45000);
+   const request=supabase.functions.invoke("moderate-profile-avatar",{body:{imageBase64:base64}});
+   const {data,error}=await request;
+   if(error){
+    let message=error.message||"No se pudo analizar la imagen.";
+    try{const body=await error.context?.json?.();if(body?.error)message=body.error;}catch{}
+    throw new Error(message);
+   }
+   if(!data?.ok)throw new Error(data?.error||"No se pudo verificar la imagen. No se guardó.");
+   status.textContent="Confirmando la actualización…";
+   setAvatarProgress("Confirmando tu identidad","El servidor aceptó la foto. Actualizando la lista de integrantes.");
+   await loadCloudMembers();
+   const updated=cloudMembers.find(member=>member.id===currentProfile?.id);
+   if(!updated?.avatarUrl)throw new Error("El servidor respondió, pero no pudimos confirmar la foto en la lista. Vuelve a cargar Integrantes antes de intentarlo otra vez.");
+   input.value="";
+   status.textContent="Foto de perfil actualizada correctamente.";
+   hideAvatarProgress();
+   showAvatarResult("¡Identidad actualizada!","Tu nueva foto ya está visible en Integrantes.",true);
+  }catch(error){
+   hideAvatarProgress();
+   const message=error?.message||"No se pudo actualizar la foto. La imagen anterior se mantiene.";
+   status.textContent=message;
+   showAvatarResult("No se pudo actualizar la foto",message+" Si el servidor tardó, espera a que termine de sincronizar antes de volver a intentarlo.",false);
+  }finally{
+   if(bitmap)bitmap.close();
+   if(avatarSlowTimer)clearTimeout(avatarSlowTimer);
+   avatarSlowTimer=null;
+   avatarUploadInFlight=false;
+   button.disabled=false;
+   button.textContent="Analizar y subir foto";
+  }
  });
 }
 $("#member-list").onclick=async e=>{
