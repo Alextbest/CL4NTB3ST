@@ -44,6 +44,7 @@ jobs:
           npm run build:web
 
       - name: Package OTA bundle and manifest
+        id: package
         env:
           OTA_NOTES: ${{ inputs.notes }}
           OTA_CHANGES: ${{ inputs.changes }}
@@ -54,6 +55,7 @@ jobs:
           VERSION_CODE="$(( $(date -u +%s) / 86400 * 4096 + GITHUB_RUN_ID % 4096 ))"
           export OTA_VERSION="ota-${VERSION_CODE}"
           echo "OTA_VERSION=${OTA_VERSION}" >> "$GITHUB_ENV"
+          echo "ota_version=${OTA_VERSION}" >> "$GITHUB_OUTPUT"
           export CHECKSUM="$(sha256sum clantb3st-web-bundle.zip | cut -d ' ' -f1)"
           node --input-type=module <<'NODE'
           import { writeFileSync } from 'node:fs';
@@ -75,8 +77,8 @@ jobs:
       - name: Publish OTA release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.OTA_VERSION }}
-          name: "Parche OTA CL4N TB3ST ${{ env.OTA_VERSION }}"
+          tag_name: ${{ steps.package.outputs.ota_version }}
+          name: "Parche OTA CL4N TB3ST ${{ steps.package.outputs.ota_version }}"
           body: ${{ inputs.notes }}
           files: |
             clantb3st-web-bundle.zip
