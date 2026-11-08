@@ -33,7 +33,7 @@ Deno.serve(async (req: Request) => {
     const { data: actor, error: actorError } = await admin.from("profiles")
       .select("role,membership_status").eq("id", user.id).maybeSingle();
     if (actorError) throw actorError;
-    if (!actor || actor.role !== "Líder" || actor.membership_status !== "active") {
+    if (!actor || !["Líder", "Líder interina"].includes(actor.role) || actor.membership_status !== "active") {
       return json(403, { ok: false, error: "Solo un líder activo puede administrar integrantes." });
     }
 
@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
       .select("id,display_name,role,membership_status").eq("id", targetId).maybeSingle();
     if (targetError) throw targetError;
     if (!target) return json(404, { ok: false, error: "No se encontró esa cuenta." });
-    if (target.role === "Líder") return json(403, { ok: false, error: "Las cuentas de líder están protegidas." });
+    if (targetId === "af0d8907-fc67-4290-bba6-eb0bc4c81126" || target.role === "Líder") return json(403, { ok: false, error: "La cuenta del líder principal está protegida." });
 
     if (action === "restore") {
       const { error } = await admin.auth.admin.updateUserById(targetId, { ban_duration: "none" });
