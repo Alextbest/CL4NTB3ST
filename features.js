@@ -345,22 +345,23 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     let mediaPath=null;
     try{
       if(selectedPostMedia){
-        const extensions={"image/jpeg":"jpg","image/png":"png","image/webp":"webp","video/mp4":"mp4","video/webm":"webm","video/quicktime":"mov"};
-        const extension=extensions[selectedPostMedia.type];
-        if(!extension)throw new Error("El formato del archivo no es compatible.");
-        mediaPath=userId()+"/"+crypto.randomUUID()+"."+extension;
-        const {error:uploadError}=await supabase.storage.from("social-post-media").upload(mediaPath,selectedPostMedia,{
-          cacheControl:"3600",contentType:selectedPostMedia.type,upsert:false
+        const {data:uploadInfo,error:signError}=await supabase.functions.invoke("social-media",{
+          body:{action:"create-upload",contentType:selectedPostMedia.type,size:selectedPostMedia.size}
         });
-        if(uploadError)throw new Error("No se pudo subir el archivo: "+uploadError.message);
+        if(signError)throw new Error("No se pudo preparar la subida a Backblaze: "+signError.message);
+        if(!uploadInfo?.ok||!uploadInfo.uploadUrl||!uploadInfo.path)throw new Error(uploadInfo?.error||"Backblaze no devolvió un enlace de subida válido.");
+        const uploadResponse=await fetch(uploadInfo.uploadUrl,{
+          method:"PUT",
+          headers:{"Content-Type":selectedPostMedia.type},
+          body:selectedPostMedia
+        });
+        if(!uploadResponse.ok)throw new Error("Backblaze rechazó el archivo (HTTP "+uploadResponse.status+").");
+        mediaPath=uploadInfo.path;
       }
       const {error}=await supabase.from("social_posts").insert({
         user_id:userId(),content,media_path:mediaPath
       });
-      if(error){
-        if(mediaPath)await supabase.storage.from("social-post-media").remove([mediaPath]);
-        throw error;
-      }
+      if(error)throw error;
       postForm.reset();clearPostImage();
       if(socialPostStatus)socialPostStatus.textContent="Publicación compartida con el clan.";
       await loadWall();
@@ -382,10 +383,13 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const signedUrls=new Map();
     if(mediaPaths.length){
       try{
-        const {data:files,error:signedError}=await supabase.storage.from("social-post-media").createSignedUrls(mediaPaths,3600);
+        const {data:downloadInfo,error:signedError}=await supabase.functions.invoke("social-media",{
+          body:{action:"create-downloads",paths:mediaPaths}
+        });
         if(signedError)throw signedError;
-        (files||[]).forEach(item=>{if(item.path&&item.signedUrl)signedUrls.set(item.path,item.signedUrl)});
-      }catch(urlError){console.error("No se pudieron firmar medios del muro:",urlError)}
+        if(!downloadInfo?.ok)throw new Error(downloadInfo?.error||"No se pudieron generar los enlaces de Backblaze.");
+        (downloadInfo.files||[]).forEach(item=>{if(item.path&&item.url)signedUrls.set(item.path,item.url)});
+      }catch(urlError){console.error("No se pudieron firmar medios del muro desde Backblaze:",urlError)}
     }
     host.innerHTML=posts.map(post=>{
       const comments=post.social_comments||[], reactions=post.social_reactions||[];
