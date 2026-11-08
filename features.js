@@ -152,11 +152,35 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
         .eq("user_id",userId()).in("mission_id",ids);
       if (!ownResult.error) own = ownResult.data || [];
     }
+    let reviewLoadError = null;
     if (isModerator()) {
       const reviewResult = await supabase.from("mission_submissions")
-        .select("id,mission_id,user_id,evidence_path,note,submitted_at,profiles(display_name,ff_nick),clan_missions(title,gold_reward,points,reward_type)")
+        .select("id,mission_id,user_id,evidence_path,note,submitted_at")
         .eq("status","pending").order("submitted_at",{ascending:true});
-      if (!reviewResult.error) pending = reviewResult.data || [];
+      if (reviewResult.error) {
+        reviewLoadError = reviewResult.error;
+      } else {
+        pending = reviewResult.data || [];
+        const userIds = [...new Set(pending.map(s => s.user_id))];
+        const missionIds = [...new Set(pending.map(s => s.mission_id))];
+        if (pending.length) {
+          const [profilesResult, missionsResult] = await Promise.all([
+            supabase.from("profiles").select("id,display_name,ff_nick").in("id",userIds),
+            supabase.from("clan_missions").select("id,title,gold_reward,points,reward_type").in("id",missionIds)
+          ]);
+          if (profilesResult.error) reviewLoadError = profilesResult.error;
+          else if (missionsResult.error) reviewLoadError = missionsResult.error;
+          else {
+            const profilesById = new Map((profilesResult.data || []).map(p => [p.id,p]));
+            const missionsById = new Map((missionsResult.data || []).map(m => [m.id,m]));
+            pending = pending.map(s => ({
+              ...s,
+              profiles: profilesById.get(s.user_id) || null,
+              clan_missions: missionsById.get(s.mission_id) || null
+            }));
+          }
+        }
+      }
     }
     host.innerHTML = (missions || []).map(m => {
       const submission = own.filter(s=>s.mission_id===m.id).sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at))[0];
@@ -172,11 +196,15 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       if (!isModerator()) { reviewHost.closest(".feature-section")?.classList.add("hidden"); }
       else {
         reviewHost.closest(".feature-section")?.classList.remove("hidden");
+        if (reviewLoadError) {
+          reviewHost.innerHTML = '<p class="muted">No se pudieron cargar las evidencias pendientes: '+esc(reviewLoadError.message || "Error de lectura")+'</p>';
+        } else {
         const items = await Promise.all(pending.map(async s => {
-          const { data } = await supabase.storage.from("mission-evidence").createSignedUrl(s.evidence_path,1800);
-          return {...s, evidenceUrl:data?.signedUrl || ""};
+          const { data, error } = await supabase.storage.from("mission-evidence").createSignedUrl(s.evidence_path,1800);
+          return {...s, evidenceUrl:!error ? (data?.signedUrl || "") : ""};
         }));
         reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.reward_type==="points"?Number(s.clan_missions?.points||0).toLocaleString("es-PA")+" pts":Number(s.clan_missions?.gold_reward||0).toLocaleString("es-PA")+" oro"}</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions">${isModerator()?`<button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button>`:""}<button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
+        }
       }
     }
   }
