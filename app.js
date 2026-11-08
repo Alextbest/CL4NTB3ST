@@ -1,5 +1,5 @@
 import { supabase } from "./supabaseClient.js";
-import { initClanFeatures } from "./features.js?v=43";
+import { initClanFeatures } from "./features.js?v=44";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
