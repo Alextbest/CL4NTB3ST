@@ -64,14 +64,46 @@ function showRegistrationResult(kind){
  const modal=$("#registration-result-modal");if(!modal)return;
  $("#registration-result-icon").textContent=kind==="approved"?"✓":"×";
  $("#registration-result-title").textContent=kind==="approved"?"¡Tu cuenta ha sido aprobada!":"Tu registro fue desaprobado";
- $("#registration-result-message").textContent=kind==="approved"?"El líder principal aprobó tu registro. Pulsa Aceptar para entrar a CL4NTB3ST.":"El líder principal no autorizó este registro. Puedes cerrar este aviso y contactar al líder para solicitar una revisión.";
- const action=$("#registration-result-accept");action.textContent=kind==="approved"?"Aceptar":"Aceptar";
- action.onclick=async()=>{closeRegistrationNotice();if(registrationWaitTimer)clearInterval(registrationWaitTimer);registrationWaitTimer=null;if(registrationWaitChannel){supabase.removeChannel(registrationWaitChannel);registrationWaitChannel=null}registrationWaitSession=null;await supabase.auth.signOut();showAccess();sessionMessage.textContent=kind==="approved"?"Tu cuenta ha sido aprobada. Ahora inicia sesión con tu correo y contraseña para entrar a CL4NTB3ST.":"Tu registro fue desaprobado. Puedes contactar al líder principal para solicitar una revisión.";};
+ $("#registration-result-message").textContent=kind==="approved"?"El líder principal aprobó tu solicitud. Pulsa Aceptar para continuar con la creación de tu cuenta.":"El líder principal no autorizó este registro. Puedes cerrar este aviso y contactar al líder para solicitar una revisión.";
+ const action=$("#registration-result-accept");action.textContent="Aceptar";
+ action.onclick=async()=>{
+  closeRegistrationNotice();
+  if(kind==="approved"){
+   if(registrationWaitTimer)clearInterval(registrationWaitTimer);
+   registrationWaitTimer=null;
+   if(registrationWaitChannel){supabase.removeChannel(registrationWaitChannel);registrationWaitChannel=null}
+   registrationWaitSession=null;
+   authGate.classList.add("hidden");appRoot.classList.add("hidden");
+   showClanIntro();
+   setTimeout(()=>{
+    hideLoadingScreen();
+    $("#registration-result-icon").textContent="✓";
+    $("#registration-result-title").textContent="¡Listo, tu cuenta ha sido creada!";
+    $("#registration-result-message").textContent="Pulsa Aceptar para ir al inicio de sesión e ingresar con tu correo y contraseña.";
+    action.textContent="Aceptar";
+    action.onclick=async()=>{
+     closeRegistrationNotice();
+     await supabase.auth.signOut();
+     showAccess();
+     sessionMessage.textContent="Tu cuenta ya está creada y aprobada. Inicia sesión con tu correo y contraseña.";
+    };
+    modal.classList.remove("hidden");
+   },5200);
+  }else{
+   if(registrationWaitTimer)clearInterval(registrationWaitTimer);
+   registrationWaitTimer=null;
+   if(registrationWaitChannel){supabase.removeChannel(registrationWaitChannel);registrationWaitChannel=null}
+   registrationWaitSession=null;
+   await supabase.auth.signOut();
+   showAccess();
+   sessionMessage.textContent="Tu registro fue desaprobado. Puedes contactar al líder principal para solicitar una revisión.";
+  }
+ };
  modal.classList.remove("hidden");
 }
 function showRegistrationWaiting(profile,session){
  hideLoadingScreen();document.body.classList.remove("authenticated");appRoot.classList.add("hidden");authGate.classList.remove("hidden");accessStep.classList.add("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.add("hidden");
- sessionMessage.textContent="Solicitud enviada correctamente. Espera la aprobación del líder principal; no necesitas volver a registrarte.";
+ sessionMessage.textContent="Solicitud enviada al líder del clan. Espera su aprobación; no necesitas volver a registrarte.";
  registrationWaitSession=session;
  if(registrationWaitChannel)supabase.removeChannel(registrationWaitChannel);
  registrationWaitChannel=supabase.channel("registration-status-"+session.user.id).on("postgres_changes",{event:"UPDATE",schema:"public",table:"profiles",filter:"id=eq."+session.user.id},payload=>{if(payload.new?.approval_status==="approved")showRegistrationResult("approved");else if(payload.new?.approval_status==="rejected")showRegistrationResult("rejected")}).subscribe();
@@ -95,7 +127,7 @@ authForm.onsubmit=async e=>{e.preventDefault();if(authBusy)return;const email=$(
 authForgot.onclick=async()=>{const email=$("#auth-email").value.trim().toLowerCase();if(!email){sessionMessage.textContent="Escribe primero el correo de tu cuenta.";return}authForgot.disabled=true;try{const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl});if(error)throw error;sessionMessage.textContent="Si el correo está registrado, recibirás instrucciones para restablecer la contraseña."}catch(error){sessionMessage.textContent="No se pudo solicitar el restablecimiento: "+error.message}finally{authForgot.disabled=false}};
 if(signOutButton)signOutButton.onclick=async()=>{signOutButton.disabled=true;const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo cerrar sesión: "+error.message;signOutButton.disabled=false;return}stopLobbyMusic();currentProfile=null;role="Miembro";stopClanPresence();showAccess();setAuthMode("signin");signOutButton.disabled=false};
 const ffIdInput=$("#profile-ffid");ffIdInput.addEventListener("input",()=>{ffIdInput.value=ffIdInput.value.replace(/\D/g,"").slice(0,11)});
-profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.trim();if(!/^[0-9]{1,11}$/.test(ffId)){sessionMessage.textContent="El ID de Free Fire debe contener solo números y tener como máximo 11 dígitos.";ffIdInput.focus();return}const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Guardando tus datos…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:ffId,phone_e164:phone};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,role").single();if(error)throw error;showRegistrationWaiting(data,session)}catch(error){const duplicateFfId=error.code==="23505"&&/profiles_ff_id_unique_idx|ff_id/i.test((error.message||"")+" "+(error.details||""));const duplicatePhone=error.code==="23505"&&/phone_e164/i.test((error.message||"")+" "+(error.details||""));sessionMessage.textContent=duplicateFfId?"Ese ID de Free Fire ya está registrado. No puedes usar el ID de otra cuenta.":duplicatePhone?"Ese número ya está registrado. Usa otro número.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
+profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.trim();if(!/^[0-9]{1,11}$/.test(ffId)){sessionMessage.textContent="El ID de Free Fire debe contener solo números y tener como máximo 11 dígitos.";ffIdInput.focus();return}const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Enviando solicitud de registro al líder del clan…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:ffId,phone_e164:phone};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,role").single();if(error)throw error;showRegistrationWaiting(data,session)}catch(error){const duplicateFfId=error.code==="23505"&&/profiles_ff_id_unique_idx|ff_id/i.test((error.message||"")+" "+(error.details||""));const duplicatePhone=error.code==="23505"&&/phone_e164/i.test((error.message||"")+" "+(error.details||""));sessionMessage.textContent=duplicateFfId?"Ese ID de Free Fire ya está registrado. No puedes usar el ID de otra cuenta.":duplicatePhone?"Ese número ya está registrado. Usa otro número.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
 supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();showAccess();return}if(event==="PASSWORD_RECOVERY"){passwordRecoveryPending=true;showPasswordRecovery();return}if(event==="SIGNED_IN"&&session){if(passwordRecoveryPending)showPasswordRecovery();else loadProfile(session)}});
 setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
