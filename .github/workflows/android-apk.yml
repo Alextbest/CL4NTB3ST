@@ -82,14 +82,14 @@ jobs:
           const sw = readFileSync('www/sw.js', 'utf8');
           const manifest = JSON.parse(readFileSync('www/manifest.webmanifest', 'utf8'));
           const cssText = readFileSync('www/styles.css', 'utf8');
-          if (cssText.includes('\\n')) throw new Error('CSS contains a literal escaped newline sequence.');
-          if ((cssText.match(/:root\\s*\\{/g) || []).length !== 1) throw new Error('Stylesheet must contain exactly one canonical theme variable block.');
+          if (cssText.includes('\n')) throw new Error('CSS contains a literal escaped newline sequence.');
+          if ((cssText.match(/:root\s*\{/g) || []).length !== 1) throw new Error('Stylesheet must contain exactly one canonical theme variable block.');
           if (!cssText.startsWith(':root{') || /#(?:f8d65c|ffd45e|c58aff|39204f|100b18)/i.test(cssText)) throw new Error('Legacy theme or invalid stylesheet start detected.');
-          const ids = [...html.matchAll(/\\bid="([^"]+)"/g)].map(match => match[1]);
+          const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
           const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))];
           if (duplicates.length) throw new Error('Duplicate HTML IDs: ' + duplicates.join(', '));
-          const css = html.match(/href="(styles\\.css\\?v=\\d+)"/)?.[1];
-          const app = html.match(/src="(app\\.js\\?v=\\d+)"/)?.[1];
+          const css = html.match(/href="(styles\.css\?v=\d+)"/)?.[1];
+          const app = html.match(/src="(app\.js\?v=\d+)"/)?.[1];
           if (!css || !app || !sw.includes('./' + css) || !sw.includes('./' + app)) {
             throw new Error('HTML and service-worker asset versions are out of sync.');
           }
@@ -106,7 +106,7 @@ jobs:
         run: |
           set -euo pipefail
           WRAPPER_PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
-          GRADLE_VERSION="$(sed -n 's#.*gradle-\\([0-9][0-9.]*\\)-all\\.zip.*#\\1#p' "$WRAPPER_PROPERTIES")"
+          GRADLE_VERSION="$(sed -n 's#.*gradle-\([0-9][0-9.]*\)-all\.zip.*#\1#p' "$WRAPPER_PROPERTIES")"
           test -n "$GRADLE_VERSION" || (echo "::error::Could not detect Gradle version from wrapper properties" && exit 1)
           DIST_FILE="gradle-$GRADLE_VERSION-bin.zip"
           DIST_URL="https://downloads.gradle.org/distributions/$DIST_FILE"
