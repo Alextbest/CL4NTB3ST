@@ -27,7 +27,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     featureUserId = profile.id;
   }
   const isLeader = () => featureContext?.role === "Líder";
-  const isModerator = () => isLeader();
+  const isModerator = () => ["Líder","Líder interina"].includes(featureContext?.role);
   const userId = () => featureContext.profile.id;
   let memberBadgesByUser = new Map();
   let canManageBadges = false;
@@ -147,12 +147,12 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       if (!reviewResult.error) pending = reviewResult.data || [];
     }
     host.innerHTML = (missions || []).map(m => {
-      const submission = own.find(s=>s.mission_id===m.id);
+      const submission = own.filter(s=>s.mission_id===m.id).sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at))[0];
       const state = submission ? (submission.status==="pending"?"En revisión":submission.status==="approved"?"Aprobada":"Rechazada") : "Sin entregar";
       const statusClass = submission ? submission.status : "none";
       const active = m.is_active && new Date(m.starts_at)<=new Date() && (!m.ends_at || new Date(m.ends_at)>=new Date());
       const rewardLabel=m.reward_type==="points"?Number(m.points||0).toLocaleString("es-PA")+" pts":Number(m.gold_reward||0).toLocaleString("es-PA")+" oro";
-      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${rewardLabel}</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><div class="inline-actions mission-evidence-actions"><small class="footnote" data-evidence-filename>Sin imagen seleccionada.</small><button class="secondary-btn" type="button" data-remove-evidence hidden>Quitar imagen</button></div><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
+      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${rewardLabel}</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${(!submission || submission.status==="rejected") && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><div class="inline-actions mission-evidence-actions"><small class="footnote" data-evidence-filename>Sin imagen seleccionada.</small><button class="secondary-btn" type="button" data-remove-evidence hidden>Quitar imagen</button></div><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
     }).join("") || '<div class="panel muted">Todavía no hay misiones publicadas.</div>';
 
     const reviewHost = $("#mission-review-list");
@@ -164,7 +164,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           const { data } = await supabase.storage.from("mission-evidence").createSignedUrl(s.evidence_path,1800);
           return {...s, evidenceUrl:data?.signedUrl || ""};
         }));
-        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.reward_type==="points"?Number(s.clan_missions?.points||0).toLocaleString("es-PA")+" pts":Number(s.clan_missions?.gold_reward||0).toLocaleString("es-PA")+" oro"}</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions">${isLeader()?`<button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button>`:""}<button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
+        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.reward_type==="points"?Number(s.clan_missions?.points||0).toLocaleString("es-PA")+" pts":Number(s.clan_missions?.gold_reward||0).toLocaleString("es-PA")+" oro"}</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions">${isModerator()?`<button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button>`:""}<button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
       }
     }
   }
@@ -234,7 +234,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     reviewHost.dataset.bound = "1";
     reviewHost.addEventListener("click", async e => {
       const button = e.target.closest("[data-review-submission]");
-      if (!button || !isModerator() || (button.dataset.decision==="approved" && !isLeader())) return;
+      if (!button || !isModerator()) return;
       const id = button.dataset.reviewSubmission;
       const note = reviewHost.querySelector(`[data-review-note="${id}"]`)?.value.trim() || "";
       button.disabled = true;
@@ -294,9 +294,9 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     if(badgeSelect) badgeSelect.innerHTML=(badges||[]).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
     const memberSelect=$("#badge-award-form select[name=user_id]");
     if(memberSelect){
-      const {data:members}=await supabase.from("profiles").select("id,display_name,role").order("display_name");
+      const {data:members}=await supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").order("display_name");
       primaryLeaderId=(members||[]).find(m=>m.role==="Líder")?.id||null;
-      memberSelect.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!==primaryLeaderId).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+      memberSelect.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!=="af0d8907-fc67-4290-bba6-eb0bc4c81126").map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     }
     $("#badge-award-form")?.classList.toggle("hidden",!canManageBadges);
   }
@@ -316,10 +316,10 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const pointsForm=$("#points-award-form");
   if(pointsForm){
     pointsForm.classList.toggle("hidden",!canManageClanAwards());
-    supabase.from("profiles").select("id,display_name,role").order("display_name").then(({data:members,error})=>{
+    supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").order("display_name").then(({data:members,error})=>{
       if(error){$("#points-award-status").textContent="No se pudo cargar la lista de integrantes: "+error.message;return;}
       primaryLeaderId=(members||[]).find(m=>m.role==="Líder")?.id||primaryLeaderId;
-      pointsForm.elements.user_id.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!==primaryLeaderId).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+      pointsForm.elements.user_id.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!=="af0d8907-fc67-4290-bba6-eb0bc4c81126").map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     });
     pointsForm.onsubmit=async e=>{
       e.preventDefault();if(!canManageClanAwards())return;
@@ -481,7 +481,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     const transferSelect=$("#currency-transfer-form select[name=recipient_id]");
     if(transferSelect&&!isLeader()){const {data:members}=await supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").in("role",["Miembro","Decano"]).neq("id",userId()).order("display_name");transferSelect.innerHTML=(members||[]).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");}
     const select=$("#gold-award-form select[name=user_id]");
-    if(canManageClanAwards()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!==primaryLeaderId).map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");const missionSelect=$("#gold-award-form select[name=mission_id]");const {data:missions}=await supabase.from("clan_missions").select("id,title,gold_reward").eq("is_active",true).eq("reward_type","gold").order("created_at",{ascending:false});if(missionSelect)missionSelect.innerHTML='<option value="">Otorgamiento manual</option>'+(missions||[]).map(m=>'<option value="'+m.id+'" data-gold="'+m.gold_reward+'" data-title="'+esc(m.title)+'">'+esc(m.title)+' · '+Number(m.gold_reward).toLocaleString("es-PA")+' oro</option>').join("")}
+    if(canManageClanAwards()&&select){const {data:members}=await supabase.from("profiles").select("id,display_name").eq("membership_status","active").order("display_name");select.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!=="af0d8907-fc67-4290-bba6-eb0bc4c81126").map(m=>'<option value="'+m.id+'">'+esc(m.display_name)+'</option>').join("");const missionSelect=$("#gold-award-form select[name=mission_id]");const {data:missions}=await supabase.from("clan_missions").select("id,title,gold_reward").eq("is_active",true).eq("reward_type","gold").order("created_at",{ascending:false});if(missionSelect)missionSelect.innerHTML='<option value="">Otorgamiento manual</option>'+(missions||[]).map(m=>'<option value="'+m.id+'" data-gold="'+m.gold_reward+'" data-title="'+esc(m.title)+'">'+esc(m.title)+' · '+Number(m.gold_reward).toLocaleString("es-PA")+' oro</option>').join("")}
     $("#gold-award-form")?.classList.toggle("hidden",!canManageClanAwards());
   }
   const goldAwardForm=$("#gold-award-form");
