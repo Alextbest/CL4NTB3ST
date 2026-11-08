@@ -744,7 +744,7 @@ function memberBadgeMarkup(userId){
 }
 async function loadCloudMembers(){
   const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
-   supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,created_at").order("created_at",{ascending:true}),
+   supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,created_at,avatar_path,avatar_status").order("created_at",{ascending:true}),
    supabase.from("member_badges").select("user_id,clan_badges(name,icon,rarity)")
   ]);
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
@@ -752,11 +752,41 @@ async function loadCloudMembers(){
    memberBadgesByUser=new Map();
    (earned||[]).forEach(row=>{if(!row.clan_badges)return;const list=memberBadgesByUser.get(row.user_id)||[];list.push(row.clan_badges);memberBadgesByUser.set(row.user_id,list)});
   }
-  cloudMembers=data||[];
+  const membersWithAvatars=await Promise.all((data||[]).map(async member=>{if(!member.avatar_path||member.avatar_status!=="approved")return {...member,avatarUrl:""};const {data:asset,error:assetError}=await supabase.storage.from("clan-avatars").createSignedUrl(member.avatar_path,3600);return {...member,avatarUrl:assetError?"":(asset?.signedUrl||"")};}));
+  cloudMembers=membersWithAvatars;
   render();
 }
 window.addEventListener("clan-badges-updated",()=>{loadCloudMembers()});
 const membersStatus=$("#members-status");
+const avatarForm=$("#profile-avatar-form");
+if(avatarForm&&!avatarForm.dataset.bound){
+ avatarForm.dataset.bound="1";
+ avatarForm.addEventListener("submit",async event=>{
+  event.preventDefault();
+  const input=avatarForm.elements.avatar,button=avatarForm.querySelector('button[type="submit"]'),status=$("#profile-avatar-status"),file=input.files&&input.files[0];
+  if(!file){status.textContent="Selecciona una imagen.";return;}
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>5*1024*1024){status.textContent="Usa JPG, PNG o WEBP de máximo 5 MB.";return;}
+  button.disabled=true;status.textContent="Preparando imagen…";
+  try{
+   if(typeof createImageBitmap!=="function")throw new Error("Este dispositivo no permite procesar la imagen.");
+   const bitmap=await createImageBitmap(file);
+   if(bitmap.width<128||bitmap.height<128||bitmap.width>6000||bitmap.height>6000){bitmap.close();throw new Error("La imagen debe medir entre 128 y 6000 píxeles por lado.");}
+   const canvas=document.createElement("canvas");canvas.width=512;canvas.height=512;
+   const ctx=canvas.getContext("2d",{alpha:false});if(!ctx){bitmap.close();throw new Error("No se pudo procesar la imagen.");}
+   const scale=Math.max(512/bitmap.width,512/bitmap.height),width=bitmap.width*scale,height=bitmap.height*scale;
+   ctx.fillStyle="#111";ctx.fillRect(0,0,512,512);ctx.drawImage(bitmap,(512-width)/2,(512-height)/2,width,height);bitmap.close();
+   const clean=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.84));
+   if(!clean||clean.size>2*1024*1024)throw new Error("No se pudo comprimir la imagen al tamaño permitido.");
+   const base64=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error("No se pudo leer la imagen procesada."));reader.readAsDataURL(clean);});
+   status.textContent="Analizando contenido…";
+   const {data,error}=await supabase.functions.invoke("moderate-profile-avatar",{body:{imageBase64:base64}});
+   if(error){let message=error.message||"No se pudo analizar la imagen.";try{const body=await error.context?.json?.();if(body?.error)message=body.error;}catch{}throw new Error(message);}
+   if(!data?.ok)throw new Error(data?.error||"No se pudo verificar la imagen.");
+   input.value="";status.textContent="Foto verificada y publicada en Integrantes.";await loadCloudMembers();
+  }catch(error){status.textContent=error.message||"No se pudo verificar la imagen. No se subió.";}
+  finally{button.disabled=false;}
+ });
+}
 $("#member-list").onclick=async e=>{
   const actionButton=e.target.closest("[data-member-action]");
   if(actionButton){
@@ -936,7 +966,8 @@ function render(){renderWeb();renderRules();const activeMembers=cloudMembers.fil
   if(status==="active")moderation=`<button class="secondary-btn" data-member-action="remove" data-member-id="${esc(m.id)}" type="button">Expulsar</button><button class="danger-btn" data-member-action="ban" data-member-id="${esc(m.id)}" type="button">Banear</button>`;
   else moderation=`<button class="secondary-btn" data-member-action="restore" data-member-id="${esc(m.id)}" type="button">${status==="banned"?"Quitar veto":"Reintegrar"}</button>`;
  }
- return `<div class="member-row"><div class="avatar">${esc((m.display_name||"?").slice(0,1).toUpperCase())}</div><div class="member-info"><b class="member-name-line">${esc(m.display_name)}${m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':''}${memberBadgeMarkup(m.id)}</b><small>${esc(m.role)} · ${esc(m.ff_nick||"Sin nick")} · <span class="member-status ${statusClass}">${statusLabel}</span></small><small class="connection-status ${onlineClanMembers.has(m.id)?"online":"offline"}" data-connection-user="${esc(m.id)}">${onlineClanMembers.has(m.id)?"En línea":"Desconectado"}</small></div><div class="member-actions">${moderation}</div></div>`;
+ const photo=m.avatarUrl?'<img class="member-avatar-photo" src="'+esc(m.avatarUrl)+'" alt="Foto de '+esc(m.display_name)+'" loading="lazy" decoding="async">':'<span class="member-avatar-fallback">'+esc((m.display_name||"?").slice(0,1).toUpperCase())+'</span>';
+ return '<article class="member-card"><div class="member-avatar">'+photo+'</div><div class="member-info"><b class="member-name-line">'+esc(m.display_name)+(m.ff_id?'<span class="member-ff-id">#'+esc(m.ff_id)+'</span>':'')+'</b><small>'+esc(m.role)+' · '+esc(m.ff_nick||"Sin nick")+' · <span class="member-status '+statusClass+'">'+statusLabel+'</span></small><small class="connection-status '+(onlineClanMembers.has(m.id)?"online":"offline")+'" data-connection-user="'+esc(m.id)+'">'+(onlineClanMembers.has(m.id)?"En línea":"Desconectado")+'</small><div class="member-equipped">'+(memberBadgeMarkup(m.id)||'<small class="muted">Sin insignias equipadas</small>')+'</div></div><div class="member-actions">'+moderation+'</div></article>';
 }).join("")||'<p class="muted">Todavía no hay cuentas registradas.</p>';$("#activity-form").classList.toggle("hidden",!isLeader());$("#activity-pill").textContent=activities.length+" actividades";$("#recent-activity").textContent=activities[0]?activities[0].name:"Todavía no hay actividades.";
 $("#activities-list").innerHTML=activities.map(a=>{
  const start=new Date(a.date),locked=Date.now()>=start.getTime()-3600000,going=!!a.participants?.[currentProfile?.id],voted=a.votes?.[currentProfile?.id];
