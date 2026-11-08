@@ -101,6 +101,12 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
+      - name: Set monotonic Android version code
+        run: |
+          VERSION_CODE="$(( $(date -u +%s) / 86400 * 4096 + GITHUB_RUN_ID % 4096 ))"
+          echo "ANDROID_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "Android version code: $VERSION_CODE"
+
       - name: Generate native icon and splash resources
         run: npx capacitor-assets generate --android
 
@@ -143,12 +149,13 @@ jobs:
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
           TAG="apk-${GITHUB_RUN_ID}"
+          VERSION_CODE="${ANDROID_VERSION_CODE}"
           CHECKSUM="$(sha256sum "$APK" | cut -d ' ' -f1)"
-          VERSION_NAME="1.0.${GITHUB_RUN_ID}"
+          VERSION_NAME="1.0.${VERSION_CODE}"
           cat > apk-manifest.json <<EOF
           {
             "packageId": "com.clantb3st.app",
-            "versionCode": ${GITHUB_RUN_ID},
+            "versionCode": ${VERSION_CODE},
             "versionName": "${VERSION_NAME}",
             "url": "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/app-release.apk",
             "sha256": "${CHECKSUM}",
