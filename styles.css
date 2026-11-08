@@ -467,3 +467,36 @@ html, body, body * {
 @keyframes intro-spark-rise{0%{transform:translateY(0) scale(.4);opacity:0}15%{opacity:1}100%{transform:translateY(-105vh) scale(1.3);opacity:0}}
 @keyframes intro-progress-fill{to{width:100%}}
 @media(prefers-reduced-motion:reduce){.intro-content,.intro-title-wrap,.intro-progress,.intro-emblem img,.intro-emblem-ring,.intro-emblem-ring:before,.intro-eye,.intro-smoke,.intro-sparks i,.intro-progress-track span{animation:none!important}.intro-progress-track span{width:100%}}
+
+/* Rendimiento móvil: intro animada optimizada para composición GPU */
+.loading-screen.clan-intro{contain:layout paint style;isolation:isolate;transform:translateZ(0);backface-visibility:hidden}
+.loading-screen.clan-intro.is-hidden *{animation-play-state:paused!important}
+.loading-screen.clan-intro.intro-replay *{animation-play-state:running}
+.intro-content,.intro-title-wrap,.intro-progress,.intro-emblem img,.intro-emblem-ring,.intro-emblem-ring:before,.intro-emblem-ring:after,.intro-eye,.intro-smoke,.intro-sparks i,.intro-progress-track span{backface-visibility:hidden}
+.intro-content{will-change:transform,opacity}
+.intro-emblem{filter:none}
+.intro-emblem-ring{will-change:transform,opacity;box-shadow:0 0 10px #ff152d,inset 0 0 12px #8d0718}
+.intro-emblem-ring:before{will-change:transform}
+.intro-emblem-ring:after{will-change:transform,opacity}
+.intro-emblem img{will-change:transform,opacity}
+.intro-eye{filter:none;background:radial-gradient(ellipse,#fff 0%,#ff263d 35%,#b0001c 72%,transparent 100%);box-shadow:0 0 8px 2px #f11;will-change:transform,opacity}
+.intro-smoke{filter:none;will-change:transform,opacity;background:radial-gradient(ellipse at center,#b20b2466 0%,#62081730 42%,transparent 72%)}
+.intro-sparks i{width:2px;height:2px;box-shadow:0 0 5px 1px #f22;will-change:transform,opacity}
+.intro-sparks i:nth-child(n+7){display:none}
+.intro-progress-track span{width:100%;transform:scaleX(0);transform-origin:left;will-change:transform;animation:none}
+.loading-screen.intro-replay .intro-progress-track span{animation:intro-progress-fill 5s linear forwards}
+.intro-replay .intro-content{animation:intro-content-in .65s cubic-bezier(.16,1,.3,1) both}
+.intro-replay .intro-title-wrap{animation:intro-title-in .55s .28s both}
+.intro-replay .intro-progress{animation:intro-title-in .45s .5s both}
+.intro-replay .intro-emblem img{animation:intro-emblem-impact .65s .12s cubic-bezier(.16,1,.3,1) both}
+@keyframes intro-content-in{from{opacity:0;transform:translate3d(0,20px,0) scale(.97)}to{opacity:1;transform:translate3d(0,0,0) scale(1)}}
+@keyframes intro-title-in{from{opacity:0;transform:translate3d(0,10px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+@keyframes intro-emblem-impact{0%{opacity:0;transform:translate3d(0,0,0) scale(.55) rotate(-10deg)}70%{opacity:1;transform:translate3d(0,0,0) scale(1.06) rotate(2deg)}100%{opacity:1;transform:translate3d(0,0,0) scale(1) rotate(0)}}
+@keyframes intro-ring-pulse{50%{transform:translate3d(0,0,0) scale(1.025);opacity:.75}}
+@keyframes intro-ring-spin{to{transform:translate3d(0,0,0) rotate(360deg)}}
+@keyframes intro-ring-expand{0%{transform:translate3d(0,0,0) scale(.94);opacity:.3}100%{transform:translate3d(0,0,0) scale(1.12);opacity:0}}
+@keyframes intro-eye-flash{0%,100%{opacity:.72;transform:translate3d(0,0,0) scaleX(.88)}50%{opacity:1;transform:translate3d(0,0,0) scaleX(1.12)}}
+@keyframes intro-smoke-drift{to{transform:translate3d(12px,-10px,0) scale(1.1);opacity:.65}}
+@keyframes intro-spark-rise{0%{transform:translate3d(0,0,0) scale(.5);opacity:0}15%{opacity:1}100%{transform:translate3d(0,-100vh,0) scale(1);opacity:0}}
+@keyframes intro-progress-fill{to{transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.loading-screen.clan-intro *{animation:none!important;transition:none!important}.intro-progress-track span{transform:scaleX(1)}}
