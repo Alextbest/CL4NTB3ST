@@ -149,7 +149,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       const statusClass = submission ? submission.status : "none";
       const active = m.is_active && new Date(m.starts_at)<=new Date() && (!m.ends_at || new Date(m.ends_at)>=new Date());
       const rewardLabel=m.reward_type==="points"?Number(m.points||0).toLocaleString("es-PA")+" pts":Number(m.gold_reward||0).toLocaleString("es-PA")+" oro";
-      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${rewardLabel}</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
+      return `<article class="panel mission-card"><div class="panel-title"><h3>${esc(m.title)}</h3><span class="tag">${rewardLabel}</span></div><p>${esc(m.description || "Sin descripción.")}</p>${m.instructions?`<div class="feature-note"><b>Instrucciones</b><p>${esc(m.instructions)}</p></div>`:""}<div class="feature-meta"><span>${m.cadence==="daily"?"Diaria":m.cadence==="weekly"?"Semanal":"Única"}</span><span>Finaliza: ${m.ends_at?dateText(m.ends_at):"Sin fecha límite"}</span><span class="submission-state ${statusClass}">${state}</span></div>${submission?.review_note?`<p class="footnote">Observación: ${esc(submission.review_note)}</p>`:""}${!submission && active?`<form class="mission-submit-form" data-mission-submit="${m.id}"><label>Captura de evidencia (JPG, PNG o WEBP, máximo 10 MB)</label><input type="file" name="evidence" accept="image/jpeg,image/png,image/webp" required><div class="inline-actions mission-evidence-actions"><small class="footnote" data-evidence-filename>Sin imagen seleccionada.</small><button class="secondary-btn" type="button" data-remove-evidence hidden>Quitar imagen</button></div><textarea name="note" rows="2" maxlength="500" placeholder="Explica brevemente tu resultado (opcional)"></textarea><button class="primary-btn" type="submit">Enviar evidencia</button><small class="footnote" data-submit-status></small></form>`:!active?'<p class="footnote">Esta misión no está disponible actualmente.</p>':""}${isLeader()?`<button class="secondary-btn" type="button" data-mission-delete="${m.id}">Eliminar misión</button>`:""}</article>`;
     }).join("") || '<div class="panel muted">Todavía no hay misiones publicadas.</div>';
 
     const reviewHost = $("#mission-review-list");
@@ -169,6 +169,26 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   const missionsHost = $("#missions-list");
   if (missionsHost && !missionsHost.dataset.bound) {
     missionsHost.dataset.bound = "1";
+    missionsHost.addEventListener("change", e => {
+      const input = e.target.closest('input[type="file"][name="evidence"]');
+      if (!input) return;
+      const form = input.closest("[data-mission-submit]");
+      const removeButton = form?.querySelector("[data-remove-evidence]");
+      const filename = form?.querySelector("[data-evidence-filename]");
+      const selected = input.files?.[0] || null;
+      if (filename) filename.textContent = selected ? selected.name : "Sin imagen seleccionada.";
+      if (removeButton) removeButton.hidden = !selected;
+    });
+    missionsHost.addEventListener("click", e => {
+      const removeButton = e.target.closest("[data-remove-evidence]");
+      if (!removeButton) return;
+      const form = removeButton.closest("[data-mission-submit]");
+      const input = form?.querySelector('input[type="file"][name="evidence"]');
+      if (input) input.value = "";
+      const filename = form?.querySelector("[data-evidence-filename]");
+      if (filename) filename.textContent = "Sin imagen seleccionada.";
+      removeButton.hidden = true;
+    });
     missionsHost.addEventListener("submit", async e => {
       const form = e.target.closest("[data-mission-submit]");
       if (!form) return;
