@@ -125,7 +125,7 @@ function showRegistrationWaiting(profile,session){
  if(back)back.onclick=async()=>{if(!registrationWaitSession)return;stopRegistrationWaiting();const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo volver al inicio de sesión: "+error.message;return}showAccess();setAuthMode("signin");sessionMessage.textContent="Has vuelto al inicio de sesión. Cuando el líder te confirme por WhatsApp si tu cuenta fue aprobada o desaprobada, podrás intentar entrar.";};
 }
 function showPasswordRecovery(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.remove("hidden");hideLoadingScreen();sessionMessage.textContent="Escribe y confirma tu nueva contraseña para CL4NTB3ST.";animateUiEntrance(passwordRecoveryStep)}
-function showApp(profile,session){const isNewEntry=!currentProfile||currentProfile.id!==profile.id||!document.body.classList.contains("authenticated");if(isNewEntry)showClanIntro();document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");animateUiEntrance(appRoot);$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();if(canApproveRegistrations()){loadPendingRegistrations();subscribeRegistrationRequests()}loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberStatus();subscribeClanPresence()}
+function showApp(profile,session){const isNewEntry=!currentProfile||currentProfile.id!==profile.id||!document.body.classList.contains("authenticated");if(isNewEntry)showClanIntro();document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");animateUiEntrance(appRoot);$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();subscribeClanProfiles();subscribeClanRules();if(canApproveRegistrations()){loadPendingRegistrations();subscribeRegistrationRequests()}loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberPreferences();subscribeMemberStatus();subscribeClanPresence()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,approval_status").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data&&data.approval_status==="rejected"){currentProfile=null;role="Miembro";showAccess();setAuthMode("signin");sessionMessage.textContent="Tu cuenta no ha sido registrada porque la solicitud fue desaprobada.";await supabase.auth.signOut();return}if(data&&data.approval_status!=="approved"){currentProfile=null;role="Miembro";showRegistrationWaiting(data,session);return}if(data&&data.membership_status!=="active"){currentProfile=null;role="Miembro";showAccess();sessionMessage.textContent=data.membership_status==="banned"?"Tu cuenta está vetada y no puede acceder a CL4NTB3ST. Contacta al líder si necesitas solicitar una revisión.":"Tu acceso al clan fue retirado. Contacta al líder si necesitas solicitar tu reincorporación.";await supabase.auth.signOut();return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){if(passwordRecoveryPending){showPasswordRecovery();return}const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function passwordChecks(value){return {length:value.length>=8,lower:/[a-z]/.test(value),upper:/[A-Z]/.test(value),number:/[0-9]/.test(value),symbol:/[^A-Za-z0-9\s]/.test(value)}}
@@ -194,7 +194,7 @@ if(passwordChangeToggle&&passwordChangeForm){
 
 const ffIdInput=$("#profile-ffid");ffIdInput.addEventListener("input",()=>{ffIdInput.value=ffIdInput.value.replace(/\D/g,"").slice(0,11)});
 profileForm.onsubmit=async e=>{e.preventDefault();const ffId=ffIdInput.value.trim();if(!/^[0-9]{1,11}$/.test(ffId)){sessionMessage.textContent="El ID de Free Fire debe contener solo números y tener como máximo 11 dígitos.";ffIdInput.focus();return}const phone=$("#profile-phone").value.trim().replace(/[\s()-]/g,"");const phonePattern=/^\+[1-9][0-9]{7,14}$/;if(!phonePattern.test(phone)){sessionMessage.textContent="Escribe el número con código internacional. Ejemplo: +50761234567.";return}profileSubmit.disabled=true;sessionMessage.textContent="Enviando solicitud de registro al líder del clan…";try{const {data:{session},error:sessionError}=await supabase.auth.getSession();if(sessionError||!session)throw sessionError||new Error("La sesión expiró. Inicia sesión otra vez.");const payload={id:session.user.id,display_name:$("#profile-name").value.trim(),ff_nick:$("#profile-nick").value.trim(),ff_id:ffId,phone_e164:phone};const {data,error}=await supabase.from("profiles").insert(payload).select("id,display_name,ff_nick,ff_id,role").single();if(error)throw error;showRegistrationWaiting(data,session)}catch(error){const duplicateFfId=error.code==="23505"&&/profiles_ff_id_unique_idx|ff_id/i.test((error.message||"")+" "+(error.details||""));const duplicatePhone=error.code==="23505"&&/phone_e164/i.test((error.message||"")+" "+(error.details||""));sessionMessage.textContent=duplicateFfId?"Ese ID de Free Fire ya está registrado. No puedes usar el ID de otra cuenta.":duplicatePhone?"Ese número ya está registrado. Usa otro número.":"No se pudo guardar el registro: "+(error.message||"Error desconocido")}finally{profileSubmit.disabled=false}};
-supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();showAccess();return}if(event==="PASSWORD_RECOVERY"){passwordRecoveryPending=true;showPasswordRecovery();return}if(event==="SIGNED_IN"&&session){if(passwordRecoveryPending)showPasswordRecovery();else loadProfile(session)}});
+supabase.auth.onAuthStateChange((event,session)=>{if(event==="SIGNED_OUT"){stopClanPresence();stopAccountRealtime();window.stopClanFeatureRealtime?.();showAccess();return}if(event==="PASSWORD_RECOVERY"){passwordRecoveryPending=true;showPasswordRecovery();return}if(event==="SIGNED_IN"&&session){if(passwordRecoveryPending)showPasswordRecovery();else loadProfile(session)}});
 setAuthMode("signin");
 const PATCH_MANIFEST_URL = "https://raw.githubusercontent.com/Alextbest/CL4NTB3ST/feature/android-apk-capacitor/patch-manifest.json";
 const PATCH_BUILTIN_VERSION = "ota-315";
@@ -864,15 +864,22 @@ function memberBadgeMarkup(userId){
  if(!badges.length)return "";
  return '<span class="member-name-badges" aria-label="Insignias">'+badges.map(b=>'<span class="member-name-badge rarity-'+esc(b.rarity||"common")+'" title="'+esc(b.name||"Insignia")+'" aria-label="'+esc(b.name||"Insignia")+'">'+badgeIconMarkup(b.slug,b.rarity,28)+'</span>').join("")+'</span>';
 }
-let registrationChannel=null;
+let registrationChannel=null, clanProfilesChannel=null, clanRulesChannel=null, memberPreferencesChannel=null;
 async function loadPendingRegistrations(){
  if(!canApproveRegistrations())return;
  const panel=$("#registration-approval-panel");if(panel)panel.classList.remove("hidden");
  const list=$("#registration-requests-list");if(!list)return;
- const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,phone_e164,created_at,approval_status").eq("approval_status","pending").order("created_at",{ascending:true});
+ const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,created_at,approval_status").eq("approval_status","pending").order("created_at",{ascending:true});
  if(error){list.innerHTML='<p class="muted">No se pudieron cargar las solicitudes: '+esc(error.message)+'</p>';return}
- const requests=data||[];$("#registration-pending-count").textContent=requests.length+" pendientes";
- list.innerHTML=requests.map(x=>'<article class="feature-card"><div><b>'+esc(x.display_name||"Sin nombre")+'</b><p class="muted">'+esc(x.ff_nick||"Sin nick")+' · ID FF: '+esc(x.ff_id||"—")+'</p><small>'+esc(x.phone_e164||"Sin teléfono")+' · '+esc(new Date(x.created_at).toLocaleString("es-PA"))+'</small></div><div class="inline-actions"><button class="primary-btn" type="button" data-registration-action="approve" data-registration-id="'+esc(x.id)+'">Aprobar</button><button class="danger-btn" type="button" data-registration-action="reject" data-registration-id="'+esc(x.id)+'">Desaprobar</button></div></article>').join("")||'<p class="muted">No hay solicitudes pendientes.</p>';
+ const requests=data||[];let contacts=[];
+ if(requests.length){
+  const contactResult=await supabase.from("clan_member_contacts").select("user_id,phone_e164").in("user_id",requests.map(x=>x.id));
+  if(contactResult.error){list.innerHTML='<p class="muted">No se pudieron cargar los teléfonos de las solicitudes: '+esc(contactResult.error.message)+'</p>';return}
+  contacts=contactResult.data||[];
+ }
+ const contactMap=new Map(contacts.map(x=>[x.user_id,x.phone_e164]));
+ $("#registration-pending-count").textContent=requests.length+" pendientes";
+ list.innerHTML=requests.map(x=>'<article class="feature-card"><div><b>'+esc(x.display_name||"Sin nombre")+'</b><p class="muted">'+esc(x.ff_nick||"Sin nick")+' · ID FF: '+esc(x.ff_id||"—")+'</p><small>'+esc(contactMap.get(x.id)||"Sin teléfono")+' · '+esc(new Date(x.created_at).toLocaleString("es-PA"))+'</small></div><div class="inline-actions"><button class="primary-btn" type="button" data-registration-action="approve" data-registration-id="'+esc(x.id)+'">Aprobar</button><button class="danger-btn" type="button" data-registration-action="reject" data-registration-id="'+esc(x.id)+'">Desaprobar</button></div></article>').join("")||'<p class="muted">No hay solicitudes pendientes.</p>';
 }
 function subscribeRegistrationRequests(){
  if(!canApproveRegistrations()||registrationChannel)return;
@@ -902,6 +909,26 @@ document.addEventListener("click",async e=>{
  }catch(error){if(status)status.textContent=error.message||"No se pudo guardar la decisión."}
  finally{button.disabled=false}
 });
+function subscribeClanProfiles(){
+ if(clanProfilesChannel)supabase.removeChannel(clanProfilesChannel);
+ if(!currentProfile)return;
+ clanProfilesChannel=supabase.channel("clan-profiles-live")
+  .on("postgres_changes",{event:"*",schema:"public",table:"profiles"},async()=>{
+   await loadCloudMembers();
+   if(canApproveRegistrations())await loadPendingRegistrations();
+  }).subscribe();
+}
+function subscribeClanRules(){
+ if(clanRulesChannel)supabase.removeChannel(clanRulesChannel);
+ if(!currentProfile)return;
+ clanRulesChannel=supabase.channel("clan-rules-live")
+  .on("postgres_changes",{event:"*",schema:"public",table:"clan_rules"},()=>loadClanRules())
+  .subscribe();
+}
+function stopAccountRealtime(){
+ [clanProfilesChannel,clanRulesChannel,memberPreferencesChannel].forEach(channel=>{if(channel)supabase.removeChannel(channel)});
+ clanProfilesChannel=null;clanRulesChannel=null;memberPreferencesChannel=null;
+}
 async function loadCloudMembers(){
   const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
    supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,approval_status,created_at,avatar_path,avatar_status").eq("approval_status","approved").order("created_at",{ascending:true}),
@@ -1334,6 +1361,19 @@ async function initLobbyMusic(){
  const muted=result.error?false:!!result.data?.music_muted;
  musicToggle.dataset.muted=String(muted);musicToggle.textContent=muted?"Activar música":"Silenciar música";musicToggle.setAttribute("aria-pressed",String(muted));
  if(!muted)await playLobbyMusic();else stopLobbyMusic();
+}
+function subscribeMemberPreferences(){
+ if(memberPreferencesChannel)supabase.removeChannel(memberPreferencesChannel);
+ if(!currentProfile)return;
+ const memberId=currentProfile.id;
+ memberPreferencesChannel=supabase.channel("member-preferences-"+memberId)
+  .on("postgres_changes",{event:"*",schema:"public",table:"member_preferences",filter:"user_id=eq."+memberId},payload=>{
+   const muted=payload.eventType==="DELETE"?false:!!payload.new?.music_muted;
+   musicToggle.dataset.muted=String(muted);
+   musicToggle.textContent=muted?"Activar música":"Silenciar música";
+   musicToggle.setAttribute("aria-pressed",String(muted));
+   if(muted)stopLobbyMusic();else playLobbyMusic().catch(error=>console.warn("No se pudo reactivar la música sincronizada:",error));
+  }).subscribe();
 }
 if(musicToggle)musicToggle.onclick=async()=>{
  if(!currentProfile)return;const muted=musicToggle.dataset.muted!=="true";musicToggle.disabled=true;
