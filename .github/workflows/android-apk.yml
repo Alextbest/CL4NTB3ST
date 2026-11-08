@@ -101,42 +101,25 @@ jobs:
       - name: Create Android project
         run: npx cap add android
 
-      - name: Download and cache Gradle distribution with retries
+      - name: Download Gradle distribution with retries
         shell: bash
         run: |
           set -euo pipefail
-          PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
-          node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync } from 'node:fs';
-          const path = 'android/gradle/wrapper/gradle-wrapper.properties';
-          let properties = readFileSync(path, 'utf8');
-          const line = properties.match(/^distributionUrl=(.+)$/m);
-          if (!line) throw new Error('Gradle wrapper distributionUrl is missing.');
-          const updated = line[1]
-            .replace('https\\://services.gradle.org', 'https\\://downloads.gradle.org')
-            .replace('-all.zip', '-bin.zip');
-          if (updated === line[1] || !updated.includes('downloads.gradle.org')) {
-            throw new Error('Could not switch Gradle wrapper to the direct binary distribution URL.');
-          }
-          properties = properties.replace(line[0], 'distributionUrl=' + updated);
-          writeFileSync(path, properties);
-          console.log('Using direct Gradle distribution:', updated);
-          NODE
-          DIST_URL="$(sed -n 's/^distributionUrl=//p' "$PROPERTIES" | sed 's#\\:#:#g')"
-          DIST_FILE="${DIST_URL##*/}"
-          DIST_NAME="${DIST_FILE%.zip}"
-          DIST_ROOT="${DIST_NAME%-bin}"
-          DIST_HASH="$(printf '%s' "$DIST_URL" | md5sum | cut -d' ' -f1)"
-          DIST_DIR="$HOME/.gradle/wrapper/dists/$DIST_NAME/$DIST_HASH"
+          WRAPPER_PROPERTIES="android/gradle/wrapper/gradle-wrapper.properties"
+          GRADLE_VERSION="$(sed -n 's#.*gradle-\\([0-9][0-9.]*\\)-all\\.zip.*#\\1#p' "$WRAPPER_PROPERTIES")"
+          test -n "$GRADLE_VERSION" || (echo "::error::Could not detect Gradle version from wrapper properties" && exit 1)
+          DIST_FILE="gradle-$GRADLE_VERSION-bin.zip"
+          DIST_URL="https://downloads.gradle.org/distributions/$DIST_FILE"
+          DIST_DIR="$RUNNER_TEMP/gradle-distribution"
           mkdir -p "$DIST_DIR"
           curl --fail --location --show-error \
             --retry 8 --retry-all-errors --retry-delay 5 \
             --connect-timeout 30 --max-time 900 \
-            "$DIST_URL" -o "$RUNNER_TEMP/$DIST_FILE"
-          unzip -q "$RUNNER_TEMP/$DIST_FILE" -d "$DIST_DIR"
-          test -x "$DIST_DIR/$DIST_ROOT/bin/gradle"
-          touch "$DIST_DIR/$DIST_ROOT.ok"
-          echo "Gradle distribution cached at $DIST_DIR"
+            "$DIST_URL" -o "$DIST_DIR/$DIST_FILE"
+          unzip -q "$DIST_DIR/$DIST_FILE" -d "$DIST_DIR"
+          test -x "$DIST_DIR/gradle-$GRADLE_VERSION/bin/gradle"
+          echo "$DIST_DIR/gradle-$GRADLE_VERSION/bin" >> "$GITHUB_PATH"
+          echo "Gradle $GRADLE_VERSION downloaded and added to PATH."
 
       - name: Set monotonic Android version code
         run: |
@@ -174,7 +157,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: cd android && ./gradlew assembleRelease
+        run: cd android && gradle assembleRelease
 
       - name: Verify APK signature
         run: |
