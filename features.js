@@ -147,7 +147,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
           const { data } = await supabase.storage.from("mission-evidence").createSignedUrl(s.evidence_path,1800);
           return {...s, evidenceUrl:data?.signedUrl || ""};
         }));
-        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.reward_type==="points"?Number(s.clan_missions?.points||0).toLocaleString("es-PA")+" pts":Number(s.clan_missions?.gold_reward||0).toLocaleString("es-PA")+" oro"}</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions"><button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button><button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
+        reviewHost.innerHTML = items.map(s=>`<article class="panel review-card"><div class="panel-title"><h3>${esc(s.clan_missions?.title || "Misión")}</h3><span class="tag">${s.clan_missions?.reward_type==="points"?Number(s.clan_missions?.points||0).toLocaleString("es-PA")+" pts":Number(s.clan_missions?.gold_reward||0).toLocaleString("es-PA")+" oro"}</span></div><b>${esc(s.profiles?.display_name || "Integrante")}</b><small>${esc(s.profiles?.ff_nick || "")} · ${dateText(s.submitted_at)}</small><p>${esc(s.note || "Sin comentario.")}</p>${s.evidenceUrl?`<a href="${esc(s.evidenceUrl)}" target="_blank" rel="noopener">Ver evidencia ↗</a>`:'<small>No se pudo generar el enlace de evidencia.</small>'}<textarea data-review-note="${s.id}" rows="2" maxlength="500" placeholder="Observación opcional"></textarea><div class="inline-actions">${isLeader()?`<button class="primary-btn" type="button" data-review-submission="${s.id}" data-decision="approved">Aprobar</button>`:""}<button class="secondary-btn" type="button" data-review-submission="${s.id}" data-decision="rejected">Rechazar</button></div></article>`).join("") || '<p class="muted">No hay evidencias pendientes de revisión.</p>';
       }
     }
   }
@@ -197,7 +197,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
     reviewHost.dataset.bound = "1";
     reviewHost.addEventListener("click", async e => {
       const button = e.target.closest("[data-review-submission]");
-      if (!button || !isModerator()) return;
+      if (!button || !isModerator() || (button.dataset.decision==="approved" && !isLeader())) return;
       const id = button.dataset.reviewSubmission;
       const note = reviewHost.querySelector(`[data-review-note="${id}"]`)?.value.trim() || "";
       button.disabled = true;
@@ -265,7 +265,7 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
       pointsForm.elements.user_id.innerHTML=(members||[]).map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
     });
     pointsForm.onsubmit=async e=>{
-      e.preventDefault();if(!isModerator())return;
+      e.preventDefault();if(!isLeader())return;
       const button=pointsForm.querySelector('button[type="submit"]');button.disabled=true;
       $("#points-award-status").textContent="Registrando puntos…";
       const {error}=await supabase.rpc("record_clan_points",{
