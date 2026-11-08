@@ -905,7 +905,7 @@ document.addEventListener("click",async e=>{
 async function loadCloudMembers(){
   const [{data,error},{data:earned,error:badgeError}]=await Promise.all([
    supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,approval_status,created_at,avatar_path,avatar_status").eq("approval_status","approved").order("created_at",{ascending:true}),
-   supabase.from("member_badges").select("user_id,clan_badges(slug,name,rarity)")
+   supabase.from("member_badges").select("user_id,equipped,clan_badges(slug,name,rarity)").eq("equipped",true)
   ]);
   if(error){if(roleAssignStatus)roleAssignStatus.textContent="No se pudieron cargar las cuentas: "+error.message;return}
   if(!badgeError){
