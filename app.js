@@ -807,6 +807,7 @@ let webFrameOpen = false;
 let webAccessGranted = false;
 let webPurchaseBusy = false;
 let websitePurchaseRequestId = null;
+let websitePurchaseRetrySameRequest = false;
 let websitePurchaseSuccess = false;
 let clanSiteChannel = null;
 let cloudWebLoading = false;
@@ -817,7 +818,8 @@ function closeWebsitePurchaseModal(){
   websitePurchaseModal?.classList.add("hidden");
   websitePurchaseModal?.setAttribute("aria-hidden","true");
   websitePurchaseSuccess=false;
-  websitePurchaseRequestId=null;
+  if(!websitePurchaseRetrySameRequest)websitePurchaseRequestId=null;
+  websitePurchaseRetrySameRequest=false;
   webPurchaseBusy=false;
   if(webOpen)webOpen.disabled=false;
 }
@@ -934,6 +936,7 @@ if(webOpen)webOpen.onclick=async()=>{
       websitePurchaseMark.textContent="!";
       websitePurchaseMark.classList.add("insufficient");
       websitePurchaseRequestId=null;
+      websitePurchaseRetrySameRequest=false;
       webPurchaseBusy=false;
     }else{
       websitePurchaseTitle.textContent="Acceso no disponible";
@@ -945,6 +948,7 @@ if(webOpen)webOpen.onclick=async()=>{
     }
   }catch(error){
     console.error("No se pudo verificar la compra del sitio web:",error);
+    websitePurchaseRetrySameRequest=true;
     websitePurchaseTitle.textContent="No se pudo verificar la compra";
     websitePurchaseMessage.textContent="No pudimos confirmar el resultado. Pulsa Aceptar y vuelve a intentarlo; se reutilizará la misma solicitud para evitar un cobro duplicado.";
     websitePurchaseMark.textContent="!";
