@@ -617,7 +617,7 @@ const isLeader=()=>role==="Líder";
 const isClanAdmin=()=>["Líder","Líder interina"].includes(role);
 const PRIMARY_LEADER_ID="af0d8907-fc67-4290-bba6-eb0bc4c81126";
 const canApproveRegistrations=()=>currentProfile?.approval_status==="approved"&&currentProfile?.membership_status==="active"&&(currentProfile?.id===PRIMARY_LEADER_ID||currentProfile?.role==="Líder interina");
-function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
+function nav(p){if(webPurchaseBusy&&p!=="web"){if(websitePurchaseMessage)websitePurchaseMessage.textContent="Espera a que termine la verificación y acepta el resultado antes de cambiar de apartado.";return}const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
 (function initUiMicrointeractions(){
