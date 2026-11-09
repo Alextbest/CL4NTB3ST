@@ -56,7 +56,9 @@ function authFeedback(message,{loading=false,title="Aviso",actions=[]}={}){
  $("#auth-feedback-title").textContent=title;$("#auth-feedback-message").textContent=message;
  $("#auth-feedback-spinner").classList.toggle("hidden",!loading);
  const host=$("#auth-feedback-actions");host.innerHTML="";
- actions.forEach(({label,kind="primary",run})=>{const button=document.createElement("button");button.type="button";button.className=kind==="secondary"?"secondary-btn":"primary-btn";button.textContent=label;button.onclick=run;host.append(button)});
+ const visibleActions=loading?actions:(actions.length?actions:[{label:"Aceptar",run:closeAuthFeedback}]);
+ visibleActions.forEach(({label,kind="primary",run})=>{const button=document.createElement("button");button.type="button";button.className=kind==="secondary"?"secondary-btn":"primary-btn";button.textContent=label;button.onclick=run;host.append(button)});
+ modal.classList.toggle("is-loading",loading);
  modal.classList.remove("hidden");
 }
 function closeAuthFeedback(){const modal=$("#auth-feedback-modal");if(modal)modal.classList.add("hidden")}
@@ -156,7 +158,7 @@ authToggle.onclick=()=>setAuthMode(authMode==="signin"?"signup":"signin");
 async function attemptSignIn(email,password){
  if(authBusy)return;authBusy=true;authSubmit.disabled=true;authFeedback("Comprobando tus credenciales…",{loading:true,title:"Iniciando sesión"});
  try{const {data,error}=await supabase.auth.signInWithPassword({email,password});if(error)throw error;if(!data.session)throw new Error("No se recibió una sesión. Confirma tu correo e inténtalo de nuevo.");closeAuthFeedback();await loadProfile(data.session)}
- catch(error){const message="No se pudo iniciar sesión: "+(error.message||"Error desconocido");authFeedback(message,{title:"Credenciales incorrectas",actions:[{label:"Reintentar",kind:"primary",run:()=>attemptSignIn(email,password)},{label:"Cambiar",kind:"secondary",run:()=>{closeAuthFeedback();$("#auth-email").focus()}}]})}
+ catch(error){const message="No se pudo iniciar sesión: "+(error.message||"Error desconocido");authFeedback(message,{title:"Credenciales incorrectas",actions:[{label:"Reintentar",kind:"primary",run:()=>attemptSignIn(email,password)},{label:"Cambiar",kind:"secondary",run:()=>{closeAuthFeedback();const field=$("#auth-password");field.focus();field.select()}}]})}
  finally{authBusy=false;authSubmit.disabled=false}
 }
 authForm.onsubmit=async e=>{e.preventDefault();if(authBusy)return;const email=$("#auth-email").value.trim().toLowerCase(),password=$("#auth-password").value;if(!email){authFeedback("Escribe un correo electrónico válido.");return}if(authMode==="signup"&&!updatePasswordRules()){authFeedback("La contraseña no cumple todos los requisitos de seguridad.");$("#auth-password").focus();return}if(authMode==="signin"&&password.length<1){authFeedback("Escribe la contraseña de tu cuenta.");return}
