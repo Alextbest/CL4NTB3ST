@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { badgeIconMarkup } from "./badge-icons.js?v=1";
-import { initClanFeatures } from "./features.js?v=64";
+import { initClanFeatures } from "./features.js?v=65";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
@@ -125,7 +125,7 @@ function showRegistrationWaiting(profile,session){
  if(back)back.onclick=async()=>{if(!registrationWaitSession)return;stopRegistrationWaiting();const {error}=await supabase.auth.signOut();if(error){sessionMessage.textContent="No se pudo volver al inicio de sesión: "+error.message;return}showAccess();setAuthMode("signin");sessionMessage.textContent="Has vuelto al inicio de sesión. Cuando el líder te confirme por WhatsApp si tu cuenta fue aprobada o desaprobada, podrás intentar entrar.";};
 }
 function showPasswordRecovery(){document.body.classList.remove("authenticated");authGate.classList.remove("hidden");appRoot.classList.add("hidden");accessStep.classList.add("hidden");profileForm.classList.add("hidden");passwordRecoveryStep.classList.remove("hidden");hideLoadingScreen();sessionMessage.textContent="Escribe y confirma tu nueva contraseña para CL4NTB3ST.";animateUiEntrance(passwordRecoveryStep)}
-function showApp(profile,session){const isNewEntry=!currentProfile||currentProfile.id!==profile.id||!document.body.classList.contains("authenticated");if(isNewEntry)showClanIntro();document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");animateUiEntrance(appRoot);$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();subscribeClanProfiles();subscribeClanRules();if(canApproveRegistrations()){loadPendingRegistrations();subscribeRegistrationRequests()}loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberPreferences();subscribeMemberStatus();subscribeClanPresence()}
+function showApp(profile,session){const approvalPanel=$("#registration-approval-panel");if(approvalPanel)approvalPanel.classList.toggle("hidden",!canApproveRegistrations());const isNewEntry=!currentProfile||currentProfile.id!==profile.id||!document.body.classList.contains("authenticated");if(isNewEntry)showClanIntro();document.body.classList.add("authenticated");currentProfile=profile;role=profile.role||"Miembro";authGate.classList.add("hidden");appRoot.classList.remove("hidden");animateUiEntrance(appRoot);$("#signed-in-email").textContent=session?.user?.email||"";render();loadClanRules();loadCloudMembers();subscribeClanProfiles();subscribeClanRules();if(canApproveRegistrations()){loadPendingRegistrations();subscribeRegistrationRequests()}loadCloudActivities();subscribeCloudActivities();loadClanSite();subscribeClanSite();initClanFeatures(supabase,profile,role,FilePicker,isNativeApp);initLobbyMusic();subscribeMemberPreferences();subscribeMemberStatus();subscribeClanPresence()}
 async function loadProfile(session){if(!session?.user){showAccess();return}const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,role,membership_status,approval_status").eq("id",session.user.id).maybeSingle();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar tu perfil: "+error.message;return}if(data&&data.approval_status==="rejected"){currentProfile=null;role="Miembro";showAccess();setAuthMode("signin");sessionMessage.textContent="Tu cuenta no ha sido registrada porque la solicitud fue desaprobada.";await supabase.auth.signOut();return}if(data&&data.approval_status!=="approved"){currentProfile=null;role="Miembro";showRegistrationWaiting(data,session);return}if(data&&data.membership_status!=="active"){currentProfile=null;role="Miembro";showAccess();sessionMessage.textContent=data.membership_status==="banned"?"Tu cuenta está vetada y no puede acceder a CL4NTB3ST. Contacta al líder si necesitas solicitar una revisión.":"Tu acceso al clan fue retirado. Contacta al líder si necesitas solicitar tu reincorporación.";await supabase.auth.signOut();return}if(data)showApp(data,session);else showRegistration()}
 async function restoreSession(){if(passwordRecoveryPending){showPasswordRecovery();return}const {data,error}=await supabase.auth.getSession();if(error){showAccess();sessionMessage.textContent="No se pudo comprobar la sesión: "+error.message;return}if(data.session)await loadProfile(data.session);else showAccess()}
 function passwordChecks(value){return {length:value.length>=8,lower:/[a-z]/.test(value),upper:/[A-Z]/.test(value),number:/[0-9]/.test(value),symbol:/[^A-Za-z0-9\s]/.test(value)}}
@@ -587,7 +587,7 @@ let activities=[], editing=null, activityChannels=[];
 const isLeader=()=>role==="Líder";
 const isClanAdmin=()=>["Líder","Líder interina"].includes(role);
 const PRIMARY_LEADER_ID="af0d8907-fc67-4290-bba6-eb0bc4c81126";
-const canApproveRegistrations=()=>currentProfile?.id===PRIMARY_LEADER_ID||(currentProfile?.role==="Líder interina"&&currentProfile?.membership_status==="active");
+const canApproveRegistrations=()=>currentProfile?.approval_status==="approved"&&currentProfile?.membership_status==="active"&&(currentProfile?.id===PRIMARY_LEADER_ID||currentProfile?.role==="Líder interina");
 function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
@@ -866,8 +866,9 @@ function memberBadgeMarkup(userId){
 }
 let registrationChannel=null, clanProfilesChannel=null, clanRulesChannel=null, memberPreferencesChannel=null;
 async function loadPendingRegistrations(){
- if(!canApproveRegistrations())return;
- const panel=$("#registration-approval-panel");if(panel)panel.classList.remove("hidden");
+ const panel=$("#registration-approval-panel");
+ if(!canApproveRegistrations()){if(panel)panel.classList.add("hidden");return;}
+ if(panel)panel.classList.remove("hidden");
  const list=$("#registration-requests-list");if(!list)return;
  const {data,error}=await supabase.from("profiles").select("id,display_name,ff_nick,ff_id,created_at,approval_status").eq("approval_status","pending").order("created_at",{ascending:true});
  if(error){list.innerHTML='<p class="muted">No se pudieron cargar las solicitudes: '+esc(error.message)+'</p>';return}
