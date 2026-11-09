@@ -617,7 +617,7 @@ const isLeader=()=>role==="Líder";
 const isClanAdmin=()=>["Líder","Líder interina"].includes(role);
 const PRIMARY_LEADER_ID="af0d8907-fc67-4290-bba6-eb0bc4c81126";
 const canApproveRegistrations=()=>currentProfile?.approval_status==="approved"&&currentProfile?.membership_status==="active"&&(currentProfile?.id===PRIMARY_LEADER_ID||currentProfile?.role==="Líder interina");
-function nav(p){const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
+function nav(p){if(webPurchaseBusy&&p!=="web"){if(websitePurchaseMessage)websitePurchaseMessage.textContent="Espera a que termine la verificación y acepta el resultado antes de cambiar de apartado.";return}const target=document.getElementById("page-"+p);if(!target)return;document.querySelectorAll(".page").forEach(x=>x.classList.toggle("active",x===target));document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.page===p));window.scrollTo({top:0,behavior:"smooth"});document.dispatchEvent(new CustomEvent("clan-page-changed",{detail:{page:p}}))}
 
 // Microinteracciones globales: validación visual, estado de envío y confirmaciones.
 (function initUiMicrointeractions(){
@@ -804,19 +804,64 @@ if (newsBack) newsBack.onclick = () => {
 
 let cloudWebUrl = "";
 let webFrameOpen = false;
+let webAccessGranted = false;
+let webPurchaseBusy = false;
+let websitePurchaseRequestId = null;
+let websitePurchaseRetrySameRequest = false;
+let websitePurchaseSuccess = false;
 let clanSiteChannel = null;
 let cloudWebLoading = false;
 const webForm=$("#web-link-form"), webInput=$("#web-link-input"), webFrame=$("#web-frame"), webEmpty=$("#web-empty"), webOpen=$("#web-open"), webReload=$("#web-reload"), webClear=$("#web-clear");
+const websitePurchaseModal=$("#website-purchase-modal"), websitePurchaseSpinner=$("#website-purchase-spinner"), websitePurchaseMark=$("#website-purchase-mark"), websitePurchaseTitle=$("#website-purchase-title"), websitePurchaseMessage=$("#website-purchase-message"), websitePurchaseAccept=$("#website-purchase-accept");
 function validWebUrl(value){try{const u=new URL(value);return u.protocol==="https:"?u.href:null}catch{return null}}
+function closeWebsitePurchaseModal(){
+  websitePurchaseModal?.classList.add("hidden");
+  websitePurchaseModal?.setAttribute("aria-hidden","true");
+  websitePurchaseSuccess=false;
+  if(!websitePurchaseRetrySameRequest)websitePurchaseRequestId=null;
+  websitePurchaseRetrySameRequest=false;
+  webPurchaseBusy=false;
+  if(webOpen)webOpen.disabled=false;
+}
+function openClanWebsiteAfterPayment(){
+  const url=validWebUrl(cloudWebUrl);
+  if(!url || !document.getElementById("page-web")?.classList.contains("active"))return;
+  webAccessGranted=true;
+  webFrameOpen=true;
+  webFrame.src=url;
+  webFrame.classList.remove("hidden");
+  webOpen.classList.add("hidden");
+  webReload.classList.remove("hidden");
+  renderWeb();
+}
 function renderWeb(){
   const url=validWebUrl(cloudWebUrl);
   if(webInput && isLeader() && document.activeElement!==webInput) webInput.value=cloudWebUrl;
   if(webForm) webForm.classList.toggle("hidden",!isLeader());
-  webOpen.classList.toggle("hidden",webFrameOpen || !url);
+  if(webOpen){
+    webOpen.classList.toggle("hidden",webFrameOpen || !url);
+    webOpen.textContent="Pagar 100 de oro";
+    webOpen.disabled=webPurchaseBusy;
+  }
   webEmpty.classList.toggle("hidden",!!url);
   if(webEmpty) webEmpty.textContent="El líder todavía no ha configurado un sitio web.";
   if($("#web-view-title")) $("#web-view-title").textContent="Sitio privado del clan";
 }
+if(websitePurchaseAccept)websitePurchaseAccept.onclick=()=>{
+  const shouldOpen=websitePurchaseSuccess;
+  closeWebsitePurchaseModal();
+  if(shouldOpen)openClanWebsiteAfterPayment();
+};
+document.addEventListener("clan-page-changed",event=>{
+  if(event.detail?.page==="web")return;
+  webAccessGranted=false;
+  webFrameOpen=false;
+  if(webFrame){webFrame.removeAttribute("src");webFrame.classList.add("hidden")}
+  if(webReload)webReload.classList.add("hidden");
+  if(webOpen)webOpen.classList.remove("hidden");
+  renderWeb();
+});
+
 async function loadClanSite(){
   if(cloudWebLoading)return;
   cloudWebLoading=true;
@@ -860,10 +905,62 @@ if(webForm)webForm.onsubmit=async e=>{
   }catch(error){alert("No se pudo guardar el sitio: "+(error.message||"Error desconocido"))}
   finally{if(submit){submit.disabled=false;submit.textContent="Guardar enlace"}}
 };
-if(webOpen)webOpen.onclick=()=>{
+if(webOpen)webOpen.onclick=async()=>{
+  if(webPurchaseBusy)return;
   const url=validWebUrl(cloudWebUrl);
-  if(!url)return;
-  webFrameOpen=true;webFrame.src=url;webFrame.classList.remove("hidden");webOpen.classList.add("hidden");webReload.classList.remove("hidden")
+  if(!url || !document.getElementById("page-web")?.classList.contains("active"))return;
+  webPurchaseBusy=true;
+  webOpen.disabled=true;
+  if(!websitePurchaseRequestId)websitePurchaseRequestId=crypto.randomUUID();
+  websitePurchaseSuccess=false;
+  websitePurchaseModal.classList.remove("hidden");
+  websitePurchaseModal.setAttribute("aria-hidden","false");
+  websitePurchaseSpinner.classList.remove("hidden");
+  websitePurchaseMark.classList.add("hidden");
+  websitePurchaseTitle.textContent="Verificando compra";
+  websitePurchaseMessage.textContent="Comprobando tu cartera de oro…";
+  websitePurchaseAccept.classList.add("hidden");
+  try{
+    const {data,error}=await supabase.rpc("purchase_clan_website_entry",{p_request_id:websitePurchaseRequestId});
+    if(error)throw error;
+    if(data?.success===true){
+      websitePurchaseSuccess=true;
+      websitePurchaseTitle.textContent="Cobro realizado con éxito";
+      websitePurchaseMessage.textContent="Se descontaron 100 de oro de tu cartera. Pulsa Aceptar para entrar al sitio web.";
+      websitePurchaseMark.textContent="✓";
+      websitePurchaseMark.classList.remove("insufficient");
+      webPurchaseBusy=true;
+    }else if(data?.code==="insufficient_funds"){
+      websitePurchaseTitle.textContent="Monedas insuficientes";
+      websitePurchaseMessage.textContent="No tienes las 100 monedas de oro necesarias. No se realizó ningún descuento.";
+      websitePurchaseMark.textContent="!";
+      websitePurchaseMark.classList.add("insufficient");
+      websitePurchaseRequestId=null;
+      websitePurchaseRetrySameRequest=false;
+      webPurchaseBusy=false;
+    }else{
+      websitePurchaseTitle.textContent="Acceso no disponible";
+      websitePurchaseMessage.textContent="Tu cuenta no tiene acceso activo al clan. No se realizó ningún cobro.";
+      websitePurchaseMark.textContent="!";
+      websitePurchaseMark.classList.add("insufficient");
+      websitePurchaseRequestId=null;
+      webPurchaseBusy=false;
+    }
+  }catch(error){
+    console.error("No se pudo verificar la compra del sitio web:",error);
+    websitePurchaseRetrySameRequest=true;
+    websitePurchaseTitle.textContent="No se pudo verificar la compra";
+    websitePurchaseMessage.textContent="No pudimos confirmar el resultado. Pulsa Aceptar y vuelve a intentarlo; se reutilizará la misma solicitud para evitar un cobro duplicado.";
+    websitePurchaseMark.textContent="!";
+    websitePurchaseMark.classList.add("insufficient");
+    webPurchaseBusy=false;
+  }finally{
+    websitePurchaseSpinner.classList.add("hidden");
+    websitePurchaseMark.classList.remove("hidden");
+    websitePurchaseAccept.classList.remove("hidden");
+    websitePurchaseAccept.textContent="Aceptar";
+    if(webOpen)webOpen.disabled=webPurchaseBusy;
+  }
 };
 if(webOpen){["contextmenu","selectstart","dragstart"].forEach(type=>webOpen.addEventListener(type,e=>e.preventDefault()))}
 if(webReload)webReload.onclick=()=>{if(webFrame.src)webFrame.src=webFrame.src};
