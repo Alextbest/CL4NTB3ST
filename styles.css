@@ -560,3 +560,23 @@ html, body, body * {
 @keyframes auth-spin{to{transform:rotate(360deg)}}
 
 /* Build refresh: auth dialogs and password visibility. */
+
+/* Animación ligera del emblema principal: flotación 3D y neón */
+.tb3st-emblem{perspective:900px}
+.tb3st-emblem img{
+  transform-style:preserve-3d;
+  transform-origin:50% 55%;
+  animation:tb3st-logo-float 6.5s ease-in-out infinite;
+  will-change:transform;
+  filter:drop-shadow(0 0 7px #9b35ffcc) drop-shadow(0 0 17px #6e20ff88) drop-shadow(0 0 25px #ed35ff55)!important;
+}
+@keyframes tb3st-logo-float{
+  0%,100%{transform:translate3d(0,0,0) rotateX(0deg) rotateY(-4deg) rotateZ(-.6deg)}
+  25%{transform:translate3d(0,-7px,0) rotateX(3deg) rotateY(3deg) rotateZ(.5deg)}
+  50%{transform:translate3d(0,-11px,0) rotateX(0deg) rotateY(5deg) rotateZ(.6deg)}
+  75%{transform:translate3d(0,-5px,0) rotateX(-2deg) rotateY(-2deg) rotateZ(-.4deg)}
+}
+@media(prefers-reduced-motion:reduce){
+  .tb3st-emblem img{animation:none;will-change:auto;transform:none}
+}
+
