@@ -1,6 +1,6 @@
 import { supabase } from "./supabaseClient.js";
 import { badgeIconMarkup } from "./badge-icons.js?v=1";
-import { initClanFeatures } from "./features.js?v=63";
+import { initClanFeatures } from "./features.js?v=64";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
