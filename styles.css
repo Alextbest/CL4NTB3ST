@@ -544,3 +544,17 @@ html, body, body * {
 
 /* Gestión y equipamiento de insignias */
 #badge-manager-member-filter{width:100%;margin:8px 0 14px}.my-badge-row{align-items:center}.my-badge-row .feature-row-main{min-width:0}.my-badge-row button{min-width:104px;white-space:nowrap}.badge-revoke-btn{flex:none;min-width:86px}
+
+/* Controles y avisos centrados de autenticación */
+.password-input-wrap{position:relative;width:100%;display:flex;align-items:center}
+.password-input-wrap>input{width:100%;padding-right:54px!important}
+.password-visibility{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:40px;height:38px;min-height:38px;padding:0;display:grid;place-items:center;background:#252525;border:1px solid #555;border-radius:9px;color:#fff;font-size:21px;z-index:2}
+.auth-feedback-overlay{position:fixed;inset:0;z-index:12000;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.82);backdrop-filter:blur(8px)}
+.auth-feedback-overlay.hidden{display:none}
+.auth-feedback-card{width:min(100%,410px);padding:26px 22px;border:1px solid #555;border-radius:18px;background:#202020;color:#fff;text-align:center;box-shadow:0 18px 60px #0009}
+.auth-feedback-card h2{margin:8px 0 12px;font-size:20px}
+.auth-feedback-card p{margin:0 0 20px;line-height:1.55;overflow-wrap:anywhere}
+.auth-feedback-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.auth-feedback-actions button{flex:1 1 125px;min-height:46px}
+.auth-feedback-spinner{width:38px;height:38px;margin:0 auto 14px;border:4px solid #555;border-top-color:#f33;border-radius:50%;animation:auth-spin .8s linear infinite}
+@keyframes auth-spin{to{transform:rotate(360deg)}}
