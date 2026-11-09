@@ -580,3 +580,36 @@ html, body, body * {
   .tb3st-emblem img{animation:none;will-change:auto;transform:none}
 }
 
+/* Suspensión 3D sutil para los bloques destacados de inicio */
+.topbar .brand,.stats,.tb3st-brand-lockup,.tb3st-hero-copy,
+.tb3st-clan-status,.tb3st-slogan,.tb3st-section-heading,
+.tb3st-section-heading .live-dot{
+  transform-style:preserve-3d;
+  transform-origin:50% 50%;
+  animation:tb3st-ui-float 8s ease-in-out infinite;
+  will-change:transform;
+}
+.topbar .brand{animation-delay:-1.2s}
+.stats{animation-delay:-3.1s}
+.tb3st-brand-lockup{animation-delay:-2s}
+.tb3st-hero-copy{animation-delay:-4.4s}
+.tb3st-clan-status{animation-delay:-2.8s}
+.tb3st-slogan{animation-delay:-5.2s}
+.tb3st-section-heading{animation-delay:-3.7s}
+.tb3st-section-heading .live-dot{animation-delay:-6s}
+@keyframes tb3st-ui-float{
+  0%,100%{transform:translate3d(0,0,0) rotateX(0deg) rotateY(0deg)}
+  25%{transform:translate3d(0,-2px,0) rotateX(.35deg) rotateY(-.25deg)}
+  50%{transform:translate3d(0,-4px,0) rotateX(0deg) rotateY(.3deg)}
+  75%{transform:translate3d(0,-2px,0) rotateX(-.3deg) rotateY(0deg)}
+}
+@media(prefers-reduced-motion:reduce){
+  .topbar .brand,.stats,.tb3st-brand-lockup,.tb3st-hero-copy,
+  .tb3st-clan-status,.tb3st-slogan,.tb3st-section-heading,
+  .tb3st-section-heading .live-dot{
+    animation:none;
+    will-change:auto;
+    transform:none;
+  }
+}
+
