@@ -300,52 +300,117 @@ export function initClanFeatures(supabase, profile, role, FilePicker, isNativeAp
   async function loadBadges() {
     const catalogHost=$("#badge-catalog"), earnedHost=$("#badge-earned"), myBadgeHost=$("#badge-my-collection"), managerFilter=$("#badge-manager-member-filter"), managerPanel=$("#badge-management-panel");
     if(!catalogHost || !earnedHost)return;
-    const [{data:badges,error:bError},{data:earned,error:eError},{data:managerData,error:managerError},{data:primaryLeader}] = await Promise.all([
+
+    const [badgeResult,earnedResult,managerResult,membersResult]=await Promise.all([
       supabase.from("clan_badges").select("id,slug,name,description,rarity,is_active").eq("is_active",true).order("name"),
-      supabase.from("member_badges").select("id,user_id,note,awarded_at,equipped,profiles(display_name,membership_status),clan_badges(slug,name,description,rarity)").order("awarded_at",{ascending:false}),
+      supabase.from("member_badges").select("id,user_id,badge_id,note,awarded_at,equipped,clan_badges(slug,name,description,rarity)").order("awarded_at",{ascending:false}),
       supabase.rpc("is_clan_badge_manager"),
-      supabase.from("profiles").select("id").eq("role","Líder").maybeSingle()
+      supabase.from("profiles").select("id,display_name,role,membership_status").eq("membership_status","active").order("display_name")
     ]);
+    const {data:badges,error:bError}=badgeResult;
+    const {data:earned,error:eError}=earnedResult;
+    const {data:members,error:membersError}=membersResult;
+
     primaryLeaderId="af0d8907-fc67-4290-bba6-eb0bc4c81126";
-    canManageBadges = !managerError && managerData === true;
+    canManageBadges=!managerResult.error && managerResult.data===true;
     if(managerPanel)managerPanel.classList.toggle("hidden",!canManageBadges);
-    const pointsFormAccess=$("#points-award-form");
-    if(pointsFormAccess)pointsFormAccess.classList.toggle("hidden",!canManageClanAwards());
-    if(bError){catalogHost.innerHTML='<p class="muted">'+esc(bError.message)+'</p>';return}
-    if(!eError){
-      const next=new Map();
-      (earned||[]).forEach(row=>{if(!row.clan_badges)return;const list=next.get(row.user_id)||[];list.push(row.clan_badges);next.set(row.user_id,list)});
-      memberBadgesByUser=next;
+    $("#points-award-form")?.classList.toggle("hidden",!canManageClanAwards());
+
+    if(bError){catalogHost.innerHTML='<p class="muted">No se pudo cargar el catálogo: '+esc(bError.message)+'</p>';}
+    else {
+      catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${esc(b.rarity||"common")}"><span class="badge-icon rarity-${esc(b.rarity||"common")}">${badgeIconMarkup(b.slug,b.rarity,72)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
     }
-    catalogHost.innerHTML=(badges||[]).map(b=>`<article class="badge-card rarity-${b.rarity||"common"}"><span class="badge-icon rarity-${b.rarity||"common"}">${badgeIconMarkup(b.slug,b.rarity,72)}</span><b>${esc(b.name)}</b><small>${esc(b.description)}</small><span class="tag">${b.rarity==="legendary"?"Legendaria":b.rarity==="epic"?"Épica":b.rarity==="rare"?"Rara":"Común"}</span></article>`).join("")||'<p class="muted">No hay insignias activas.</p>';
-    const myBadges=(earned||[]).filter(e=>e.user_id===userId());
-    if(myBadgeHost){myBadgeHost.innerHTML=myBadges.length?myBadges.map(e=>`<article class="feature-row my-badge-row"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.clan_badges?.name||"Insignia")}</b><small>${e.equipped?"Actualmente equipada":"Guardada en tu colección"}</small></div><button class="${e.equipped?"secondary-btn":"primary-btn"}" type="button" data-toggle-my-badge="${esc(e.id)}" data-equipped="${e.equipped?"true":"false"}">${e.equipped?"Desequipar":"Equipar"}</button></article>`).join(""):'<p class="muted">Todavía no tienes insignias. Cuando un líder te otorgue una, aparecerá aquí.</p>';}
-    const managerOptions=[...new Map((earned||[]).map(e=>[e.user_id,{id:e.user_id,name:e.profiles?.display_name||"Integrante"}])).values()];
-    if(managerFilter){const previous=managerFilter.value;managerFilter.innerHTML='<option value="">Todos los integrantes</option>'+managerOptions.map(m=>`<option value="${esc(m.id)}">${esc(m.name)}</option>`).join("");managerFilter.value=managerOptions.some(m=>m.id===previous)?previous:"";}
-    const selectedMember=managerFilter?.value||"";
-    const managerRows=(earned||[]).filter(e=>!selectedMember||e.user_id===selectedMember);
-    earnedHost.innerHTML=managerRows.map(e=>`<article class="feature-row" data-member-badge-user="${esc(e.user_id)}"><span class="badge-icon small rarity-${e.clan_badges?.rarity||"common"}">${badgeIconMarkup(e.clan_badges?.slug,e.clan_badges?.rarity,38)}</span><div class="feature-row-main"><b>${esc(e.profiles?.display_name||"Integrante")} · ${esc(e.clan_badges?.name||"Insignia")}</b><small>${dateText(e.awarded_at)} ${e.note?"· "+esc(e.note):""}</small></div>${canManageBadges&&e.profiles?.membership_status==="active"&&(featureContext.role!=="Líder interina"||e.user_id!==primaryLeaderId)?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar esta insignia" aria-label="Revocar insignia de ${esc(e.profiles?.display_name||"integrante")}" data-revoke-badge="${esc(e.id)}">Revocar</button>`:""}</article>`).join("");
+
+    if(eError){
+      memberBadgesByUser=new Map();
+      if(myBadgeHost)myBadgeHost.innerHTML='<p class="muted">No se pudo cargar tu colección: '+esc(eError.message)+'</p>';
+      if(earnedHost)earnedHost.innerHTML='<p class="muted">No se pudieron cargar las insignias otorgadas: '+esc(eError.message)+'</p>';
+      return;
+    }
+
+    const rows=earned||[];
+    const profilesById=new Map((members||[]).map(m=>[m.id,m]));
+    const equippedMap=new Map();
+    rows.filter(row=>row.equipped===true && row.clan_badges).forEach(row=>{
+      const list=equippedMap.get(row.user_id)||[];
+      list.push(row.clan_badges);
+      equippedMap.set(row.user_id,list);
+    });
+    memberBadgesByUser=equippedMap;
+
+    const myBadges=rows.filter(row=>row.user_id===userId() && row.clan_badges);
+    if(myBadgeHost){
+      myBadgeHost.innerHTML=myBadges.length?myBadges.map(row=>`<article class="feature-row my-badge-row">
+        <span class="badge-icon small rarity-${esc(row.clan_badges?.rarity||"common")}">${badgeIconMarkup(row.clan_badges?.slug,row.clan_badges?.rarity,38)}</span>
+        <div class="feature-row-main"><b>${esc(row.clan_badges?.name||"Insignia")}</b><small>${row.equipped?"Equipada · visible junto a tu nombre":"Guardada · no se muestra en tu perfil"}</small></div>
+        <button class="${row.equipped?"secondary-btn":"primary-btn"}" type="button" data-toggle-my-badge="${esc(row.id)}" data-equipped="${row.equipped?"true":"false"}">${row.equipped?"Desequipar":"Equipar"}</button>
+      </article>`).join(""):'<p class="muted">Tu galería está vacía. Las insignias que te otorgue un líder aparecerán aquí y podrás equiparlas o guardarlas cuando quieras.</p>';
+    }
+
+    if(managerFilter){
+      const previous=managerFilter.value;
+      managerFilter.innerHTML='<option value="">Todos los integrantes</option>'+(members||[]).map(member=>`<option value="${esc(member.id)}">${esc(member.display_name||"Integrante")} · ${esc(member.role||"Miembro")}</option>`).join("");
+      managerFilter.value=(members||[]).some(member=>member.id===previous)?previous:"";
+    }
+
+    const renderManagerGallery=()=>{
+      if(!canManageBadges){earnedHost.innerHTML="";return;}
+      if(membersError){earnedHost.innerHTML='<p class="muted">No se pudo cargar la lista de integrantes: '+esc(membersError.message)+'</p>';return;}
+      const selected=managerFilter?.value||"";
+      const selectedProfile=profilesById.get(selected);
+      const filtered=rows.filter(row=>(!selected||row.user_id===selected)&&row.clan_badges);
+      if(selected&&!selectedProfile){earnedHost.innerHTML='<p class="muted">No se encontró el integrante seleccionado.</p>';return;}
+      if(!filtered.length){
+        earnedHost.innerHTML=selected
+          ?'<p class="muted">'+esc(selectedProfile?.display_name||"Este integrante")+' todavía no tiene insignias otorgadas.</p>'
+          :'<p class="muted">Ningún integrante tiene insignias otorgadas todavía.</p>';
+        return;
+      }
+      earnedHost.innerHTML=filtered.map(row=>{
+        const member=profilesById.get(row.user_id);
+        const protectedTarget=featureContext.role==="Líder interina"&&row.user_id===primaryLeaderId;
+        const canRevoke=canManageBadges&&member?.membership_status==="active"&&!protectedTarget;
+        return `<article class="feature-row" data-member-badge-user="${esc(row.user_id)}">
+          <span class="badge-icon small rarity-${esc(row.clan_badges?.rarity||"common")}">${badgeIconMarkup(row.clan_badges?.slug,row.clan_badges?.rarity,38)}</span>
+          <div class="feature-row-main"><b>${esc(member?.display_name||"Integrante")} · ${esc(row.clan_badges?.name||"Insignia")}</b><small>${row.equipped?"Equipada en su perfil":"Guardada en su galería"} · ${dateText(row.awarded_at)} ${row.note?"· "+esc(row.note):""}</small></div>
+          ${canRevoke?`<button class="danger-btn badge-revoke-btn" type="button" title="Revocar y eliminar de la galería" aria-label="Revocar insignia de ${esc(member?.display_name||"integrante")}" data-revoke-badge="${esc(row.id)}">Revocar</button>`:""}
+        </article>`;
+      }).join("");
+    };
+    renderManagerGallery();
     const managerNote=$("#badge-manager-note");
-    if(managerNote){managerNote.classList.toggle("hidden",!canManageBadges);managerNote.textContent=canManageBadges?"Puedes otorgar y revocar insignias de los integrantes. La cuenta del líder principal está protegida.":"";}
-    if(myBadgeHost)myBadgeHost.onclick=async event=>{const toggle=event.target.closest("[data-toggle-my-badge]");if(!toggle)return;toggle.disabled=true;const {error}=await supabase.rpc("set_my_badge_equipped",{p_member_badge_id:toggle.dataset.toggleMyBadge,p_equipped:toggle.dataset.equipped!=="true"?true:false});if(error){window.alert("No se pudo actualizar la insignia: "+error.message);toggle.disabled=false;return;}await loadBadges();window.dispatchEvent(new Event("clan-badges-updated"));};
-    if(managerFilter)managerFilter.onchange=()=>{const selected=managerFilter.value;earnedHost.querySelectorAll("[data-member-badge-user]").forEach(node=>node.classList.toggle("hidden",!!selected&&node.dataset.memberBadgeUser!==selected));};
+    if(managerNote){managerNote.classList.toggle("hidden",!canManageBadges);managerNote.textContent=canManageBadges?"Selecciona un integrante para consultar su galería. Puedes revocar una insignia y eliminarla definitivamente de su colección. La cuenta del líder principal está protegida.":"";}
+
+    if(myBadgeHost)myBadgeHost.onclick=async event=>{
+      const toggle=event.target.closest("[data-toggle-my-badge]");
+      if(!toggle)return;
+      toggle.disabled=true;
+      const {error}=await supabase.rpc("set_my_badge_equipped",{
+        p_member_badge_id:toggle.dataset.toggleMyBadge,
+        p_equipped:toggle.dataset.equipped!=="true"
+      });
+      if(error){window.alert("No se pudo actualizar la insignia: "+error.message);toggle.disabled=false;return;}
+      await loadBadges();
+      window.dispatchEvent(new Event("clan-badges-updated"));
+    };
+    if(managerFilter)managerFilter.onchange=renderManagerGallery;
     earnedHost.onclick=async event=>{
       const revokeButton=event.target.closest("[data-revoke-badge]");
       if(!revokeButton||!canManageBadges)return;
-      if(!window.confirm("¿Revocar esta insignia? Dejará de aparecer en el perfil del integrante."))return;
+      if(!window.confirm("¿Revocar esta insignia? Se eliminará de la galería del integrante y dejará de mostrarse en su perfil."))return;
       revokeButton.disabled=true;
       const {error}=await supabase.rpc("revoke_clan_badge",{p_member_badge_id:revokeButton.dataset.revokeBadge});
       if(error){window.alert("No se pudo revocar: "+error.message);revokeButton.disabled=false;return;}
       await loadBadges();
       window.dispatchEvent(new Event("clan-badges-updated"));
     };
+
     const badgeSelect=$("#badge-award-form select[name=badge_id]");
-    if(badgeSelect) badgeSelect.innerHTML=(badges||[]).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
+    if(badgeSelect)badgeSelect.innerHTML=(badges||[]).map(b=>`<option value="${b.id}">${esc(b.name)}</option>`).join("");
     const memberSelect=$("#badge-award-form select[name=user_id]");
     if(memberSelect){
-      const {data:members}=await supabase.from("profiles").select("id,display_name,role").eq("membership_status","active").order("display_name");
-      primaryLeaderId="af0d8907-fc67-4290-bba6-eb0bc4c81126";
-      memberSelect.innerHTML=(members||[]).filter(m=>featureContext.role!=="Líder interina"||m.id!=="af0d8907-fc67-4290-bba6-eb0bc4c81126").map(m=>`<option value="${m.id}">${esc(m.display_name)}</option>`).join("");
+      if(membersError){memberSelect.innerHTML='<option value="">No se pudo cargar la lista</option>';}
+      else memberSelect.innerHTML=(members||[]).filter(member=>featureContext.role!=="Líder interina"||member.id!==primaryLeaderId).map(member=>`<option value="${member.id}">${esc(member.display_name)}</option>`).join("");
     }
     $("#badge-award-form")?.classList.toggle("hidden",!canManageBadges);
   }
