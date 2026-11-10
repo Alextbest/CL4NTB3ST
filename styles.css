@@ -930,3 +930,136 @@ footer span{color:#ff6575!important}
   }
 }
 /* Fin de la capa Dark Elite. Las clases .clan-intro y su secuencia JS permanecen intactas. */
+
+
+/* DARK ELITE — pulido de módulos secundarios */
+#page-presence .presence-form,
+#page-missions .mission-create-form,
+#page-gold .currency-transfer-form,
+#page-gold .gold-award-form,
+#page-rewards .reward-create-form,
+#page-notifications .panel,
+#page-ranking .panel,
+#page-badges .panel,
+#page-social .social-post-form,
+#page-news .news-detail,
+#page-rules .rules-form{
+  background:linear-gradient(145deg,#171a22,#10131a)!important;
+  border:1px solid #343945!important;
+  border-radius:16px!important;
+}
+#page-presence .presence-list,
+#page-missions .mission-review-list,
+#page-gold .gold-ledger-list,
+#page-gold .points-ledger-list,
+#page-rewards .rewards-list,
+#page-badges .badge-catalog,
+#page-badges .badge-my-collection,
+#page-social .social-wall,
+#page-ranking .ranking-list,
+#page-rules .rules-list{
+  gap:11px;
+}
+#page-presence .presence-indicator{box-shadow:0 0 0 3px #f02d4318}
+#page-missions .mission-card,
+#page-rewards .reward-card,
+#page-social .social-post,
+#page-ranking .ranking-row,
+#page-badges .badge-card,
+#page-badges .feature-row,
+#page-news .news-detail,
+#page-notifications .feature-row{
+  position:relative;
+  overflow:hidden;
+  border:1px solid #343945!important;
+  border-radius:15px!important;
+  background:linear-gradient(145deg,#191c25 0%,#11141b 78%)!important;
+  box-shadow:0 9px 22px #0006!important;
+  color:#f7f7fa!important;
+}
+#page-missions .mission-card:before,
+#page-rewards .reward-card:before,
+#page-social .social-post:before,
+#page-badges .badge-card:before{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:2px;
+  background:linear-gradient(180deg,#ff6878,transparent 82%);
+  opacity:.75;
+  pointer-events:none;
+}
+#page-ranking .ranking-position{
+  color:#ff7583!important;
+  font-weight:900;
+}
+#page-ranking .ranking-currency,
+#page-ranking .ranking-stat{color:#f1d5d9!important}
+#page-badges .badge-icon{
+  filter:drop-shadow(0 5px 12px #f02d4328);
+}
+#page-badges .pinned-tag,
+#page-badges .tag{border-color:#63313b!important;background:#28151c!important;color:#ffb2bb!important}
+#page-social .social-post-head-actions,
+#page-social .social-post-tools,
+#page-social .social-reactions,
+#page-social .social-comments,
+#page-social .comment-form{position:relative;z-index:1}
+#page-social .social-content,
+#page-news .news-detail-body{color:#d0d4dd!important;line-height:1.65}
+#page-news .news-detail-title{color:#fff!important;line-height:1.25}
+#page-rules .rules-list article{
+  border:1px solid #343945!important;
+  border-radius:13px!important;
+  background:linear-gradient(145deg,#191c25,#11141b)!important;
+}
+#page-rules .rules-list article span{color:#ff7785!important;font-weight:900}
+#page-members .member-row,
+#page-members .member-card,
+#page-activities .activity-card{
+  transition:transform 200ms ease,border-color 200ms ease,box-shadow 200ms ease!important;
+}
+#page-members .member-row:focus-within,
+#page-activities .activity-card:focus-within,
+#page-presence .presence-form:focus-within,
+#page-missions .mission-create-form:focus-within{
+  border-color:#82404a!important;
+  box-shadow:0 0 0 3px #f02d4318!important;
+}
+#page-members button,
+#page-activities button,
+#page-presence button,
+#page-missions button,
+#page-gold button,
+#page-rewards button,
+#page-notifications button,
+#page-ranking button,
+#page-badges button,
+#page-social button,
+#page-news button,
+#page-rules button{
+  -webkit-tap-highlight-color:transparent;
+}
+@media(hover:hover){
+  #page-missions .mission-card:hover,
+  #page-rewards .reward-card:hover,
+  #page-social .social-post:hover,
+  #page-ranking .ranking-row:hover,
+  #page-badges .badge-card:hover,
+  #page-badges .feature-row:hover{
+    transform:translateY(-2px);
+    border-color:#75404a!important;
+    box-shadow:0 14px 28px #0008,0 0 0 1px #f02d4312!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #page-members .member-row,
+  #page-activities .activity-card,
+  #page-missions .mission-card,
+  #page-rewards .reward-card,
+  #page-social .social-post,
+  #page-ranking .ranking-row,
+  #page-badges .badge-card,
+  #page-badges .feature-row{transition:none!important}
+}
+/* Fin del pulido visual secundario. Sin cambios en IDs, handlers ni lógica de negocio. */
