@@ -1075,3 +1075,10 @@ footer span{color:#ff6575!important}
 @media(max-width:390px){
   .tb3st-emblem img{max-height:120px}
 }
+
+/* Bufón: marco suavizado, sin esquinas cuadradas. */
+.tb3st-emblem img{
+  border-radius:24px!important;
+  overflow:hidden;
+  clip-path:inset(0 round 24px);
+}
