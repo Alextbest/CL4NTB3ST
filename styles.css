@@ -633,8 +633,7 @@ html, body, body * {
    CL4NTB3ST — DARK ELITE
    Capa visual aislada: no altera IDs, DOM funcional ni lógica JS.
    ========================================================= */
-:root{
-  color-scheme:dark;
+html,body{
   --elite-bg:#08090d;
   --elite-bg-soft:#0e1016;
   --elite-panel:#12151d;
