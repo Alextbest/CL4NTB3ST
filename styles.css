@@ -1065,65 +1065,13 @@ footer span{color:#ff6575!important}
 /* Fin del pulido visual secundario. Sin cambios en IDs, handlers ni lógica de negocio. */
 
 
-/* Emblema monocromático integrado: bordes difuminados sin alterar la animación 3D */
-.brand-logo{
-  width:48px!important;height:48px!important;object-fit:contain!important;
-  border:0!important;border-radius:50%!important;background:radial-gradient(circle,#000 24%,#050609 52%,transparent 76%)!important;
-  mix-blend-mode:screen;mask-image:radial-gradient(ellipse at center,#000 48%,rgba(0,0,0,.88) 62%,transparent 82%);
-  -webkit-mask-image:radial-gradient(ellipse at center,#000 48%,rgba(0,0,0,.88) 62%,transparent 82%);
-  box-shadow:none!important;
-}
-.tb3st-emblem{isolation:isolate;background:radial-gradient(ellipse at center,#000 0%,#020304 48%,transparent 78%);border-radius:50%;overflow:visible}
+ 
+/* Bufón: tamaño contenido dentro del diseño original de la portada. */
 .tb3st-emblem img{
-  display:block;width:100%;height:100%;object-fit:contain;border:0!important;border-radius:50%!important;
-  background:radial-gradient(ellipse at center,#000 20%,#030405 55%,transparent 78%)!important;
-  mix-blend-mode:screen;mask-image:radial-gradient(ellipse at center,#000 49%,rgba(0,0,0,.9) 63%,transparent 83%);
-  -webkit-mask-image:radial-gradient(ellipse at center,#000 49%,rgba(0,0,0,.9) 63%,transparent 83%);
-  /* Se conserva tb3st-logo-float: la animación 3D existente no se sustituye. */
+  width:min(100%,145px);
+  max-height:135px;
+  object-fit:contain;
 }
-@media(prefers-reduced-motion:reduce){.brand-logo,.tb3st-emblem img{animation:none!important}}
-
-
-/* Emblema bufón — corrección de expansión y máscara heredada */
-.brand-logo,
-#loading-screen .intro-emblem img,
-.tb3st-emblem img,
-.tb3st-hero-art img{
-  display:block!important;
-  width:100%!important;
-  height:100%!important;
-  max-width:none!important;
-  max-height:none!important;
-  object-fit:cover!important;
-  object-position:center 43%!important;
-  border:0!important;
-  border-radius:inherit!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  mix-blend-mode:screen!important;
-  -webkit-mask-image:radial-gradient(ellipse at center,#000 58%,rgba(0,0,0,.94) 70%,rgba(0,0,0,.55) 84%,transparent 100%)!important;
-  mask-image:radial-gradient(ellipse at center,#000 58%,rgba(0,0,0,.94) 70%,rgba(0,0,0,.55) 84%,transparent 100%)!important;
+@media(max-width:390px){
+  .tb3st-emblem img{max-height:120px}
 }
-#loading-screen .intro-emblem,
-.tb3st-emblem,
-.tb3st-hero-art{
-  overflow:visible!important;
-  isolation:isolate;
-  background:radial-gradient(ellipse at center,#050607 0%,#020304 62%,transparent 100%)!important;
-}
-.tb3st-hero-art{
-  width:clamp(180px,42%,340px)!important;
-  min-width:0!important;
-  min-height:220px!important;
-  aspect-ratio:4/5!important;
-  border-radius:28px!important;
-}
-.tb3st-hero-art img{border-radius:24px!important;object-fit:cover!important}
-.brand-logo{object-position:center 43%!important}
-@media(max-width:520px){
-  .tb3st-hero-art{width:min(46%,190px)!important;min-height:185px!important}
-}
-@media(prefers-reduced-motion:reduce){
-  .brand-logo,#loading-screen .intro-emblem img,.tb3st-emblem img,.tb3st-hero-art img{animation:none!important}
-}
-/* Fin de corrección de emblema. No se modifica JS ni la secuencia de entrada. */
