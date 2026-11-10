@@ -97,7 +97,7 @@ jobs:
           }
           const { existsSync } = await import('node:fs');
           const cacheName = sw.match(/const CACHE = "([^"]+)"/)?.[1];
-          if (cacheName !== 'tb3st-v96') throw new Error('Unexpected service-worker cache version: ' + cacheName);
+          if (cacheName !== 'tb3st-v97') throw new Error('Unexpected service-worker cache version: ' + cacheName);
           if (sw.includes('./undefined')) throw new Error('Service worker contains an invalid ./undefined precache entry.');
           const assetBlock = sw.match(/const ASSETS = (\[[\s\S]*?\]);/);
           if (!assetBlock) throw new Error('Service-worker ASSETS list could not be parsed.');
