@@ -6,7 +6,7 @@ const root = process.cwd();
 const assets = resolve(root, 'assets');
 await mkdir(assets, { recursive: true });
 
-const source = resolve(root, 'launcher-icon.jpg');
+const source = resolve(root, 'launcher-icon.png');
 const dark = { r: 21, g: 21, b: 21, alpha: 1 };
 
 // Existing clan artwork remains the source of truth; generate large,
